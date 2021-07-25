@@ -20,7 +20,7 @@ jobs:
     - name: Install package with test dependencies
       run: pip install .[tests]
     - name: Run PyTest
-      run: echo "Replace this with pytest once tests are added"
+      run: pytest
     - name: Run Flake8
       run: flake8
     - name: Run mypy
