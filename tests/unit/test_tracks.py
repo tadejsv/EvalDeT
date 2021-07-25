@@ -23,6 +23,11 @@ def tracks_with_one_item_no_class():
     return tracks
 
 
+##############################
+# Test errors
+##############################
+
+
 def test_too_small_frame_num(empty_tracks: Tracks):
     with pytest.raises(ValueError, match="You attempted to add frame -1"):
         empty_tracks.add_frame(-1, [0], np.array([[0, 0, 1, 1]]))
@@ -71,6 +76,11 @@ def test_non_unique_ids(empty_tracks: Tracks):
 def test_non_existent_frame_id(tracks_with_one_item: Tracks):
     with pytest.raises(ValueError, match="The frame 10"):
         tracks_with_one_item[10]
+
+
+##############################
+# Test core functionality
+##############################
 
 
 def test_add_one_observation(empty_tracks: Tracks):
@@ -132,3 +142,8 @@ def test_add_second_observation_no_class(tracks_with_one_item: Tracks):
     assert tracks_with_one_item.frames == [0, 2]
     assert tracks_with_one_item.all_classes == set([1])
     assert tracks_with_one_item._last_frame == 2
+
+
+##############################
+# Test creation from files
+##############################

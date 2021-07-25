@@ -39,6 +39,9 @@ class Tracks:
 
         The first line will be checked to make sure it conforms to the format, however
         the other lines will not be checked.
+
+        Args:
+            file_path: Path where the detections file is located
         """
         pass
 
@@ -46,12 +49,48 @@ class Tracks:
     def from_ua_detrac(
         cls,
         file_path: Union[Path, str],
-        label_attr_name: Optional[str] = None,
-        label_list: Optional[List[str]] = None,
+        classes_attr_name: Optional[str] = None,
+        classes_list: Optional[List[str]] = None,
     ) -> Tracks:
         """Creates a Tracks object from detections file in the UA-DETRAC XML format.
-        
-        The ``ignored_region`` node
+
+        Here's how this file might look like:
+
+        .. code-block:: xml
+
+            <sequence name="MVI_20033">
+                <sequence_attribute camera_state="unstable" sence_weather="sunny"/>
+                <ignored_region>
+                    <box height="53.75" left="458.75" top="0.5" width="159.5"/>
+                </ignored_region>
+                <frame density="4" num="1">
+                    <target_list>
+                        <target id="1">
+                            <box height="71.46" left="256.88" top="201.1" width="67.06"/>
+                            <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="91" truncation_ratio="0" vehicle_type="Taxi"/>
+                        </target>
+                    </target_list>
+                </frame>
+            </sequence>
+
+        The ``ignored_region`` node will not be taken into account - if you want
+        some detections to be ignored, you need to filter them prior to the creation
+        of the file.
+
+        All attributes of each detection will be ignored, except for the one designated
+        by ``classes_attr_name`` (for example, in original UA-DETRAC this could be
+        ``"vehicle_type"``). This would then give values for ``classes`` attribute.
+        As this attribute usually contains string values, you also need to provide
+        ``classes_list`` - a list of all possible class values. The class attribute will
+        then be replaced by the index of the label in this list.
+
+        Args:
+            file_path: Path where the detections file is located
+            classes_attr_name: The name of the attribute to be used for the ``classes``
+                attribute. If provided, ``classes_list`` must be provided as well.
+            classes_list: The list of all possible class values - must be provided if
+                ``classes_attr_name`` is provided. The values from that attribute in the
+                file will then be replaced by the index of that value in this list.
         """
 
         pass
