@@ -23,9 +23,9 @@ class Tracks:
         self._last_frame = -1
 
         self._frame_nums = []
-        self._detections = []
-        self._ids = []
-        self._classes = []
+        self._detections = dict()
+        self._ids = dict()
+        self._classes = dict()
 
         self._all_classes = set()
 
@@ -84,11 +84,11 @@ class Tracks:
             raise ValueError("The `ids` must be unique.")
 
         # If all ok, add objects to collections
-        self._detections.append(detections.copy())
-        self._ids.append(ids.copy())
+        self._detections[frame_num] = detections.copy()
+        self._ids[frame_num] = ids.copy()
 
         if classes is not None:
-            self._classes.append(classes.copy())
+            self._classes[frame_num] = classes.copy()
             self._all_classes.update(classes)
 
         self._last_frame = frame_num
@@ -106,4 +106,14 @@ class Tracks:
         return len(self._frame_nums)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        pass
+        if idx not in self._frame_nums:
+            raise ValueError(f"The frame {idx} does not exist.")
+
+        return_dict = {
+            "ids": self._ids[idx],
+            "detections": self._detections[idx],
+        }
+        if idx in self._classes:
+            return_dict["classes"] = self._classes[idx]
+
+        return return_dict
