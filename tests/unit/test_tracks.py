@@ -74,7 +74,7 @@ def test_non_unique_ids(empty_tracks: Tracks):
 
 
 def test_non_existent_frame_id(tracks_with_one_item: Tracks):
-    with pytest.raises(ValueError, match="The frame 10"):
+    with pytest.raises(KeyError, match="The frame 10"):
         tracks_with_one_item[10]
 
 
@@ -108,6 +108,14 @@ def test_add_more_observations(empty_tracks: Tracks):
     assert empty_tracks.frames == [0]
     assert empty_tracks.all_classes == set([1])
     assert empty_tracks._last_frame == 0
+
+
+def test_contains_true(tracks_with_one_item: Tracks):
+    assert 0 in tracks_with_one_item
+
+
+def test_contains_false(tracks_with_one_item: Tracks):
+    assert 1 not in tracks_with_one_item
 
 
 def test_getitem_one_item(tracks_with_one_item: Tracks):

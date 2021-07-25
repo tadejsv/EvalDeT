@@ -34,16 +34,71 @@ class Tracks:
 
             <frame_id>, <track_id>, <x>, <y>, <w>, <h>, <not ignored>, <class_id>, <visibility>, <skipped>
 
-        The last two elements (``visibility`` and ``skipped``) are optional. The values
-        for ``not ignored``, ``visibility`` and ``skipped`` will be ignored.
-
-        The first line will be checked to make sure it conforms to the format, however
-        the other lines will not be checked.
+        Note that all values above are expected to be **numeric** - string values will
+        cause an error. The last two elements (``visibility`` and ``skipped``) are
+        optional. The values for ``not ignored``, ``visibility`` and ``skipped`` will be
+        ignored.
 
         Args:
-            file_path: Path where the detections file is located
+            file_path: Path where the detections file is located. The file should be
+                in the format described above, and should not have a header.
         """
-        pass
+
+        tracks = cls()
+
+        with open(file_path, newline="") as file:
+            fieldnames = ["frame_id", "track_id", "x", "y", "w", "h", "_", "class_id"]
+            csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
+
+            current_frame = -1
+            detections: List[List[float]] = []
+            classes: List[int] = []
+            ids: List[int] = []
+
+            for line_num, line in enumerate(csv_reader):
+                try:
+                    frame_num = int(line["frame_id"])
+                    track_id, class_id = int(line["track_id"]), int(line["class_id"])
+
+                    xmin, ymin = float(line["x"]), float(line["y"])
+                    xmax, ymax = xmin + float(line["w"]), ymin + float(line["h"])
+                except ValueError:
+                    raise ValueError(
+                        "Error when converting values to numbers on line"
+                        f" {line_num}. Please check that all the values are numeric"
+                        " and that the file follows the CVAT-MOT format."
+                    )
+
+                if frame_num > current_frame:
+                    # Flush current frame
+                    if current_frame > -1:
+                        tracks.add_frame(
+                            current_frame,
+                            ids=ids,
+                            detections=np.array(detections, dtype=np.float32),
+                            classes=classes,
+                        )
+
+                    # Reset frame accumulator objects
+                    current_frame = frame_num
+                    detections = []
+                    classes = []
+                    ids = []
+
+                # Add to frame accumulator objects
+                detections.append([xmin, ymin, xmax, ymax])
+                classes.append(class_id)
+                ids.append(track_id)
+
+            # Flush final frame
+            tracks.add_frame(
+                current_frame,
+                ids=ids,
+                detections=np.array(detections, dtype=np.float32),
+                classes=classes,
+            )
+
+        return tracks
 
     @classmethod
     def from_ua_detrac(
@@ -195,10 +250,14 @@ class Tracks:
     def __len__(self) -> int:
         return len(self._frame_nums)
 
+    def __contains__(self, idx: int) -> bool:
+        """Whether the frame ``idx`` is present in the collection."""
+        return idx in self._frame_nums
+
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         """Get the frame with number ``idx``."""
-        if idx not in self._frame_nums:
-            raise ValueError(f"The frame {idx} does not exist.")
+        if idx not in self:
+            raise KeyError(f"The frame {idx} does not exist.")
 
         return_dict = {
             "ids": self._ids[idx],
