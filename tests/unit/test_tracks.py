@@ -1,3 +1,5 @@
+import tempfile
+
 import numpy as np
 import pytest
 
@@ -5,21 +7,63 @@ from evaldet import Tracks
 
 
 @pytest.fixture(scope="function")
-def empty_tracks():
+def empty_tracks() -> Tracks:
     return Tracks()
 
 
 @pytest.fixture(scope="function")
-def tracks_with_one_item():
+def tracks_with_one_item() -> Tracks:
     tracks = Tracks()
     tracks.add_frame(0, [0], np.array([[0, 0, 1, 1]]), [1])
     return tracks
 
 
 @pytest.fixture(scope="function")
-def tracks_with_one_item_no_class():
+def tracks_with_one_item_no_class() -> Tracks:
     tracks = Tracks()
     tracks.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
+    return tracks
+
+
+@pytest.fixture(scope="module")
+def sample_tracks() -> Tracks:
+    tracks = Tracks()
+    tracks.add_frame(
+        660,
+        ids=[1, 2, 3],
+        detections=np.array(
+            [
+                [323.83, 104.06, 367.6, 139.49],
+                [273.1, 88.77, 328.69, 113.09],
+                [375.24, 80.43, 401.65, 102.67],
+            ]
+        ),
+        classes=[2, 2, 2],
+    )
+    tracks.add_frame(
+        661,
+        ids=[1, 2, 3],
+        detections=np.array(
+            [
+                [320.98, 105.24, 365.65, 140.95],
+                [273.1, 88.88, 328.8, 113.4],
+                [374.69, 80.78, 401.09, 103.01],
+            ]
+        ),
+        classes=[2, 2, 2],
+    )
+    tracks.add_frame(
+        800,
+        ids=[2, 4],
+        detections=np.array(
+            [
+                [329.27, 96.65, 385.8, 129.1],
+                [0.0, 356.7, 76.6, 479.37],
+            ]
+        ),
+        classes=[2, 2],
+    )
+
     return tracks
 
 
@@ -155,3 +199,125 @@ def test_add_second_observation_no_class(tracks_with_one_item: Tracks):
 ##############################
 # Test creation from files
 ##############################
+
+
+def test_error_convert_number_mot_cvat():
+    """
+    Test that an error is raised when there is an error
+    converting values in CVAT, because they are not numbers.
+    """
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(f"{tmpdir}/test.csv", "w") as tmpfile:
+            tmpfile.write("0, 0, 0, 0, 1, 1, 0, car")
+
+        with pytest.raises(ValueError, match="Error when converting values"):
+            Tracks.from_mot_cvat(f"{tmpdir}/test.csv")
+
+
+def test_read_mot_cvat(sample_tracks):
+    tracks = Tracks.from_mot_cvat("tests/data/cvat_mot_sample.csv")
+
+    assert tracks.frames == sample_tracks.frames
+
+    assert tracks[660]["ids"] == sample_tracks[660]["ids"]
+    assert tracks[661]["ids"] == sample_tracks[661]["ids"]
+    assert tracks[800]["ids"] == sample_tracks[800]["ids"]
+
+    np.testing.assert_array_almost_equal(
+        tracks[660]["detections"],
+        sample_tracks[660]["detections"],
+        decimal=4,
+    )
+    np.testing.assert_array_almost_equal(
+        tracks[661]["detections"],
+        sample_tracks[661]["detections"],
+        decimal=4,
+    )
+    np.testing.assert_array_almost_equal(
+        tracks[800]["detections"],
+        sample_tracks[800]["detections"],
+        decimal=4,
+    )
+
+    assert tracks[660]["classes"] == sample_tracks[660]["classes"]
+    assert tracks[660]["classes"] == sample_tracks[661]["classes"]
+    assert tracks[800]["classes"] == sample_tracks[800]["classes"]
+
+
+def test_error_ua_detrac_no_class_list():
+    with pytest.raises(ValueError, match="If you provide `classes_attr_name`,"):
+        Tracks.from_ua_detrac(
+            "tests/data/ua_detrac_sample.xml",
+            classes_attr_name="vehicle_type",
+        )
+
+
+def test_read_ua_detrac(sample_tracks):
+    tracks = Tracks.from_ua_detrac(
+        "tests/data/ua_detrac_sample.xml",
+        classes_attr_name="vehicle_type",
+        classes_list=["Taxi", "Bike", "Car"],
+    )
+    tracks_no_cls = Tracks.from_ua_detrac("tests/data/ua_detrac_sample.xml")
+
+    assert tracks.frames == sample_tracks.frames
+    assert tracks_no_cls.frames == sample_tracks.frames
+
+    assert tracks[660]["ids"] == sample_tracks[660]["ids"]
+    assert tracks[661]["ids"] == sample_tracks[661]["ids"]
+    assert tracks[800]["ids"] == sample_tracks[800]["ids"]
+
+    assert tracks_no_cls[660]["ids"] == sample_tracks[660]["ids"]
+    assert tracks_no_cls[661]["ids"] == sample_tracks[661]["ids"]
+    assert tracks_no_cls[800]["ids"] == sample_tracks[800]["ids"]
+
+    np.testing.assert_array_almost_equal(
+        tracks[660]["detections"],
+        sample_tracks[660]["detections"],
+        decimal=4,
+    )
+    np.testing.assert_array_almost_equal(
+        tracks[661]["detections"],
+        sample_tracks[661]["detections"],
+        decimal=4,
+    )
+    np.testing.assert_array_almost_equal(
+        tracks[800]["detections"],
+        sample_tracks[800]["detections"],
+        decimal=4,
+    )
+
+    assert tracks[660]["classes"] == sample_tracks[660]["classes"]
+    assert tracks[660]["classes"] == sample_tracks[661]["classes"]
+    assert tracks[800]["classes"] == sample_tracks[800]["classes"]
+
+
+def test_read_cvat_video(sample_tracks):
+    tracks = Tracks.from_mot_cvat("tests/data/cvat_mot_sample.csv")
+
+    assert tracks.frames == sample_tracks.frames
+
+    assert tracks[660]["ids"] == sample_tracks[660]["ids"]
+    assert tracks[661]["ids"] == sample_tracks[661]["ids"]
+    assert tracks[800]["ids"] == sample_tracks[800]["ids"]
+
+    np.testing.assert_array_almost_equal(
+        tracks[660]["detections"],
+        sample_tracks[660]["detections"],
+        decimal=4,
+    )
+    np.testing.assert_array_almost_equal(
+        tracks[661]["detections"],
+        sample_tracks[661]["detections"],
+        decimal=4,
+    )
+    np.testing.assert_array_almost_equal(
+        tracks[800]["detections"],
+        sample_tracks[800]["detections"],
+        decimal=4,
+    )
+
+    assert tracks[660]["classes"] == sample_tracks[660]["classes"]
+    assert tracks[660]["classes"] == sample_tracks[661]["classes"]
+    assert tracks[800]["classes"] == sample_tracks[800]["classes"]

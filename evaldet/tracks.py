@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import csv
-import xml
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
 
@@ -148,7 +148,49 @@ class Tracks:
                 file will then be replaced by the index of that value in this list.
         """
 
-        pass
+        if classes_attr_name and not classes_list:
+            raise ValueError(
+                "If you provide `classes_attr_name`,"
+                " you must also provide `classes_list`"
+            )
+
+        xml_tree = ET.parse(file_path)
+        root = xml_tree.getroot()
+        tracks = cls()
+
+        frames = root.findall("frame")
+        for frame in frames:
+            tracks_f = frame.find("target_list").findall("target")  # type: ignore
+
+            current_frame = int(frame.attrib["num"])
+            detections: List[List[float]] = []
+            classes: List[int] = []
+            ids: List[int] = []
+
+            for track in tracks_f:
+                # Get track attributes
+                ids.append(int(track.attrib["id"]))
+
+                box = track.find("box")
+                xmin, ymin = float(box.attrib["left"]), float(box.attrib["top"])  # type: ignore
+                xmax = xmin + float(box.attrib["width"])  # type: ignore
+                ymax = ymin + float(box.attrib["height"])  # type: ignore
+                detections.append([xmin, ymin, xmax, ymax])
+
+                if classes_attr_name:
+                    attrs = track.find("attribute")
+                    class_val = attrs.attrib[classes_attr_name]  # type: ignore
+                    class_val = classes_list.index(class_val)  # type: ignore
+                    classes.append(class_val)
+
+            tracks.add_frame(
+                current_frame,
+                ids=ids,
+                detections=np.array(detections, dtype=np.float32),
+                classes=classes if len(classes) else None,
+            )
+
+        return tracks
 
     def __init__(self):
         self._last_frame = -1

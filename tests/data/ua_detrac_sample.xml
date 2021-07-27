@@ -1,0 +1,50 @@
+<sequence name="MVI_XXXX">
+    <sequence_attribute camera_state="unstable" sence_weather="sunny"/>
+    <ignored_region>
+        <box height="53.75" left="458.75" top="0.5" width="159.5"/>
+    </ignored_region>
+    <frame density="3" num="660">
+        <target_list>
+            <target id="1">
+                <box height="35.43000000000001" left="323.83" top="104.06" width="43.77000000000004"/>
+                <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="2" truncation_ratio="0" vehicle_type="Car"/>
+            </target>
+            <target id="2">
+                <box height="24.320000000000007" left="273.1" top="88.77" width="55.589999999999975"/>
+                <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="3" truncation_ratio="0" vehicle_type="Car"/>
+            </target>
+            <target id="3">
+                <box height="22.239999999999995" left="375.24" top="80.43" width="26.409999999999968"/>
+                <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="2" truncation_ratio="0" vehicle_type="Car"/>
+            </target>
+        </target_list>
+    </frame>
+    <frame density="3" num="661">
+        <target_list>
+            <target id="1">
+                <box height="35.709999999999994" left="320.98" top="105.24" width="44.66999999999996"/>
+                <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="2" truncation_ratio="0" vehicle_type="Car"/>
+            </target>
+            <target id="2">
+                <box height="24.52000000000001" left="273.1" top="88.88" width="55.69999999999999"/>
+                <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="3" truncation_ratio="0" vehicle_type="Car"/>
+            </target>
+            <target id="3">
+                <box height="22.230000000000004" left="374.69" top="80.78" width="26.399999999999977"/>
+                <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="2" truncation_ratio="0" vehicle_type="Car"/>
+            </target>
+        </target_list>
+    </frame>
+    <frame density="2" num="800">
+        <target_list>
+            <target id="2">
+                <box height="32.44999999999999" left="329.27" top="96.65" width="56.53000000000003"/>
+                <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="3" truncation_ratio="0" vehicle_type="Car"/>
+            </target>
+            <target id="4">
+                <box height="122.67000000000002" left="0.0" top="356.7" width="76.6"/>
+                <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="1" truncation_ratio="0" vehicle_type="Car"/>
+            </target>
+        </target_list>
+    </frame>
+</sequence>
