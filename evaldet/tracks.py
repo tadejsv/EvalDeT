@@ -192,6 +192,98 @@ class Tracks:
 
         return tracks
 
+    @classmethod
+    def from_cvat_video(
+        cls,
+        file_path: Union[Path, str],
+        classes_list: List[str],
+    ) -> Tracks:
+        """Creates a Tracks object from detections file in the CVAT for Video XML
+        format.
+
+        Here's how this file might look like:
+
+        .. code-block:: xml
+
+            <annotations>
+                <version>1.1</version>
+                <meta>
+                    <!-- lots of non-relevant metadata -->
+                </meta>
+                <track id="0" label="Car" source="manual">
+                    <box frame="659" outside="0" occluded="0" keyframe="1" xtl="323.83" ytl="104.06" xbr="367.60" ybr="139.49" z_order="-1"> </box>
+                    <box frame="660" outside="0" occluded="0" keyframe="1" xtl="320.98" ytl="105.24" xbr="365.65" ybr="140.95" z_order="0"> </box>
+                </track>
+                <track id="1" label="Car" source="manual">
+                    <box frame="659" outside="0" occluded="0" keyframe="1" xtl="273.10" ytl="88.77" xbr="328.69" ybr="113.09" z_order="1"> </box>
+                    <box frame="660" outside="0" occluded="0" keyframe="1" xtl="273.10" ytl="88.88" xbr="328.80" ybr="113.40" z_order="0"> </box>
+                </track>
+                <track id="2" label="Car" source="manual">
+                    <box frame="659" outside="0" occluded="0" keyframe="1" xtl="375.24" ytl="80.43" xbr="401.65" ybr="102.67" z_order="0"> </box>
+                    <box frame="660" outside="0" occluded="0" keyframe="1" xtl="374.69" ytl="80.78" xbr="401.09" ybr="103.01" z_order="0"> </box>
+                </track>
+                <track id="3" label="Car" source="manual">
+                    <box frame="699" outside="0" occluded="0" keyframe="1" xtl="381.50" ytl="79.04" xbr="405.12" ybr="99.19" z_order="0"> </box>
+                    <box frame="700" outside="0" occluded="0" keyframe="1" xtl="380.94" ytl="79.60" xbr="404.56" ybr="99.75" z_order="0"> </box>
+                </track>
+            </annotations>
+
+        All attributes of each detection will be ignored, except for ``label`` (in the
+        ``track`` object), which will be used for the ``class`` values. As this
+        attribute usually contains string values, you also need to provide
+        ``classes_list`` - a list of all possible class values. The class attribute will
+        then be replaced by the index of the label in this list.
+
+        .. warning::
+            As this format organizes detections by id, instead of by frame, all
+            detections must first be read in before they can be written to a
+            ``Tracks`` object. Therefore, if you are opening large files, you
+            can face large memory consumpition.
+
+        Args:
+            file_path: Path where the detections file is located
+            classes_list: The list of all possible class values. The values from that
+            attribute in the file will then be replaced by the index of that value in
+            this list.
+        """
+
+        xml_tree = ET.parse(file_path)
+        root = xml_tree.getroot()
+        tracks = cls()
+
+        frames: Dict[int, Any] = {}
+        tracks_cvat = root.findall("track")
+        for track_cvat in tracks_cvat:
+            track_id = int(track_cvat.attrib["id"])
+            track_class = classes_list.index(track_cvat.attrib["label"])
+
+            for box in track_cvat.findall("box"):
+                frame_num = int(box.attrib["frame"])
+                xmin, ymin = float(box.attrib["xtl"]), float(box.attrib["ytl"])
+                xmax, ymax = float(box.attrib["xbr"]), float(box.attrib["ybr"])
+
+                current_frame = frames.get(frame_num, {})
+                if current_frame:
+                    current_frame["classes"].append(track_class)
+                    current_frame["ids"].append(track_id)
+                    current_frame["detections"].append([xmin, ymin, xmax, ymax])
+                else:
+                    current_frame["classes"] = [track_class]
+                    current_frame["ids"] = [track_id]
+                    current_frame["detections"] = [[xmin, ymin, xmax, ymax]]
+                    frames[frame_num] = current_frame
+
+        list_frames = sorted(list(frames.keys()))
+        for frame in list_frames:
+            tracks.add_frame(
+                frame,
+                ids=frames[frame]["ids"],
+                detections=np.array(frames[frame]["detections"]),
+                classes=frames[frame]["classes"],
+            )
+
+        return tracks
+
     def __init__(self):
         self._last_frame = -1
 

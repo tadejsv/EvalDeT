@@ -220,9 +220,9 @@ def test_read_mot_cvat(sample_tracks):
 
     assert tracks.frames == sample_tracks.frames
 
-    assert tracks[660]["ids"] == sample_tracks[660]["ids"]
-    assert tracks[661]["ids"] == sample_tracks[661]["ids"]
-    assert tracks[800]["ids"] == sample_tracks[800]["ids"]
+    assert set(tracks[660]["ids"]) == set(sample_tracks[660]["ids"])
+    assert set(tracks[661]["ids"]) == set(sample_tracks[661]["ids"])
+    assert set(tracks[800]["ids"]) == set(sample_tracks[800]["ids"])
 
     np.testing.assert_array_almost_equal(
         tracks[660]["detections"],
@@ -240,9 +240,9 @@ def test_read_mot_cvat(sample_tracks):
         decimal=4,
     )
 
-    assert tracks[660]["classes"] == sample_tracks[660]["classes"]
-    assert tracks[660]["classes"] == sample_tracks[661]["classes"]
-    assert tracks[800]["classes"] == sample_tracks[800]["classes"]
+    assert set(tracks[660]["classes"]) == set(sample_tracks[660]["classes"])
+    assert set(tracks[660]["classes"]) == set(sample_tracks[661]["classes"])
+    assert set(tracks[800]["classes"]) == set(sample_tracks[800]["classes"])
 
 
 def test_error_ua_detrac_no_class_list():
@@ -264,13 +264,13 @@ def test_read_ua_detrac(sample_tracks):
     assert tracks.frames == sample_tracks.frames
     assert tracks_no_cls.frames == sample_tracks.frames
 
-    assert tracks[660]["ids"] == sample_tracks[660]["ids"]
-    assert tracks[661]["ids"] == sample_tracks[661]["ids"]
-    assert tracks[800]["ids"] == sample_tracks[800]["ids"]
+    assert set(tracks[660]["ids"]) == set(sample_tracks[660]["ids"])
+    assert set(tracks[661]["ids"]) == set(sample_tracks[661]["ids"])
+    assert set(tracks[800]["ids"]) == set(sample_tracks[800]["ids"])
 
-    assert tracks_no_cls[660]["ids"] == sample_tracks[660]["ids"]
-    assert tracks_no_cls[661]["ids"] == sample_tracks[661]["ids"]
-    assert tracks_no_cls[800]["ids"] == sample_tracks[800]["ids"]
+    assert set(tracks_no_cls[660]["ids"]) == set(sample_tracks[660]["ids"])
+    assert set(tracks_no_cls[661]["ids"]) == set(sample_tracks[661]["ids"])
+    assert set(tracks_no_cls[800]["ids"]) == set(sample_tracks[800]["ids"])
 
     np.testing.assert_array_almost_equal(
         tracks[660]["detections"],
@@ -288,19 +288,21 @@ def test_read_ua_detrac(sample_tracks):
         decimal=4,
     )
 
-    assert tracks[660]["classes"] == sample_tracks[660]["classes"]
-    assert tracks[660]["classes"] == sample_tracks[661]["classes"]
-    assert tracks[800]["classes"] == sample_tracks[800]["classes"]
+    assert set(tracks[660]["classes"]) == set(sample_tracks[660]["classes"])
+    assert set(tracks[660]["classes"]) == set(sample_tracks[661]["classes"])
+    assert set(tracks[800]["classes"]) == set(sample_tracks[800]["classes"])
 
 
 def test_read_cvat_video(sample_tracks):
-    tracks = Tracks.from_mot_cvat("tests/data/cvat_mot_sample.csv")
+    tracks = Tracks.from_cvat_video(
+        "tests/data/cvat_video_sample.xml", classes_list=["Taxi", "Bike", "Car"]
+    )
 
     assert tracks.frames == sample_tracks.frames
 
-    assert tracks[660]["ids"] == sample_tracks[660]["ids"]
-    assert tracks[661]["ids"] == sample_tracks[661]["ids"]
-    assert tracks[800]["ids"] == sample_tracks[800]["ids"]
+    assert set(tracks[660]["ids"]) == set(sample_tracks[660]["ids"])
+    assert set(tracks[661]["ids"]) == set(sample_tracks[661]["ids"])
+    assert set(tracks[800]["ids"]) == set(sample_tracks[800]["ids"])
 
     np.testing.assert_array_almost_equal(
         tracks[660]["detections"],
@@ -318,6 +320,6 @@ def test_read_cvat_video(sample_tracks):
         decimal=4,
     )
 
-    assert tracks[660]["classes"] == sample_tracks[660]["classes"]
-    assert tracks[660]["classes"] == sample_tracks[661]["classes"]
-    assert tracks[800]["classes"] == sample_tracks[800]["classes"]
+    assert set(tracks[660]["classes"]) == set(sample_tracks[660]["classes"])
+    assert set(tracks[660]["classes"]) == set(sample_tracks[661]["classes"])
+    assert set(tracks[800]["classes"]) == set(sample_tracks[800]["classes"])

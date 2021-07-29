@@ -1,98 +1,22 @@
-<?xml version="1.0" encoding="utf-8"?>
 <annotations>
-  <version>1.1</version>
-  <meta>
-    <task>
-      <id>10</id>
-      <name>test-video</name>
-      <size>1001</size>
-      <mode>interpolation</mode>
-      <overlap>5</overlap>
-      <bugtracker></bugtracker>
-      <created>2021-07-24 14:12:27.498893+00:00</created>
-      <updated>2021-07-24 16:08:47.594650+00:00</updated>
-      <start_frame>0</start_frame>
-      <stop_frame>1000</stop_frame>
-      <frame_filter></frame_filter>
-      <labels>
-        <label>
-          <name>Motorcycle</name>
-          <color>#ac37c2</color>
-          <attributes>
-          </attributes>
-        </label>
-        <label>
-          <name>Car</name>
-          <color>#33ddff</color>
-          <attributes>
-          </attributes>
-        </label>
-        <label>
-          <name>Van</name>
-          <color>#45dd93</color>
-          <attributes>
-          </attributes>
-        </label>
-        <label>
-          <name>Truck</name>
-          <color>#acaf2e</color>
-          <attributes>
-          </attributes>
-        </label>
-        <label>
-          <name>Heavy truck</name>
-          <color>#eeb812</color>
-          <attributes>
-          </attributes>
-        </label>
-        <label>
-          <name>Bus</name>
-          <color>#6c6b72</color>
-          <attributes>
-          </attributes>
-        </label>
-      </labels>
-      <segments>
-        <segment>
-          <id>281</id>
-          <start>0</start>
-          <stop>1000</stop>
-          <url>http://cvat.sasp-project.com/?id=281</url>
-        </segment>
-      </segments>
-      <owner>
-        <username>admin</username>
-        <email>admin@sasp-project.com</email>
-      </owner>
-      <assignee></assignee>
-      <original_size>
-        <width>720</width>
-        <height>480</height>
-      </original_size>
-    </task>
-    <dumped>2021-07-24 16:09:36.223448+00:00</dumped>
-    <source>test.avi</source>
-  </meta>
-  <track id="0" label="Car" source="manual">
-    <box frame="660" outside="0" occluded="0" keyframe="1" xtl="320.98" ytl="105.24" xbr="365.65" ybr="140.95" z_order="0">
-    </box>
-    <box frame="661" outside="0" occluded="0" keyframe="1" xtl="318.13" ytl="106.43" xbr="363.70" ybr="142.41" z_order="0">
-    </box>
-  </track>
-  <track id="1" label="Car" source="manual">
-    <box frame="660" outside="0" occluded="0" keyframe="1" xtl="273.10" ytl="88.88" xbr="328.80" ybr="113.40" z_order="0">
-    </box>
-    <box frame="661" outside="0" occluded="0" keyframe="1" xtl="273.10" ytl="88.98" xbr="328.90" ybr="113.71" z_order="0">
-    </box>
-    <box frame="800" outside="1" occluded="0" keyframe="1" xtl="329.27" ytl="96.65" xbr="385.80" ybr="129.10" z_order="0">
-    </box>
-  </track>
-  <track id="2" label="Car" source="manual">
-    <box frame="660" outside="0" occluded="0" keyframe="1" xtl="374.69" ytl="80.78" xbr="401.09" ybr="103.01" z_order="0">
-    </box>
-    <box frame="661" outside="0" occluded="0" keyframe="1" xtl="374.13" ytl="81.13" xbr="400.53" ybr="103.36" z_order="0">
-    </box>
-    <box frame="800" outside="1" occluded="0" keyframe="1" xtl="0.00" ytl="356.70" xbr="76.60" ybr="479.37" z_order="0">
-    </box>
-  </track>
+    <version>1.1</version>
+    <meta>
+        <!-- lots of non-relevant metadata -->
+    </meta>
+    <track id="1" label="Car" source="manual">
+        <box frame="660" outside="0" occluded="0" keyframe="1" xtl="323.83" ytl="104.06" xbr="367.60" ybr="139.49" z_order="-1"> </box>
+        <box frame="661" outside="0" occluded="0" keyframe="1" xtl="320.98" ytl="105.24" xbr="365.65" ybr="140.95" z_order="0"> </box>
+    </track>
+    <track id="2" label="Car" source="manual">
+        <box frame="660" outside="0" occluded="0" keyframe="1" xtl="273.10" ytl="88.77" xbr="328.69" ybr="113.09" z_order="1"> </box>
+        <box frame="661" outside="0" occluded="0" keyframe="1" xtl="273.10" ytl="88.88" xbr="328.80" ybr="113.40" z_order="0"> </box>
+        <box frame="800" outside="0" occluded="0" keyframe="1" xtl="329.27" ytl="96.65" xbr="385.8" ybr="129.1" z_order="0"> </box>
+    </track>
+    <track id="3" label="Car" source="manual">
+        <box frame="660" outside="0" occluded="0" keyframe="1" xtl="375.24" ytl="80.43" xbr="401.65" ybr="102.67" z_order="0"> </box>
+        <box frame="661" outside="0" occluded="0" keyframe="1" xtl="374.69" ytl="80.78" xbr="401.09" ybr="103.01" z_order="0"> </box>
+    </track>
+    <track id="4" label="Car" source="manual">
+        <box frame="800" outside="0" occluded="0" keyframe="1" xtl="0.0" ytl="356.7" xbr="76.6" ybr="479.37" z_order="0"> </box>
+    </track>
 </annotations>
