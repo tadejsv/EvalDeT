@@ -30,7 +30,7 @@ class Tracks:
             <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
 
         Note that all values above are expected to be **numeric** - string values will
-        cause an error. The values for ``not conf``, ``x``, ``y`` and ``z`` will be
+        cause an error. The values for ``conf``, ``x``, ``y`` and ``z`` will be
         ignored.
 
         Args:
