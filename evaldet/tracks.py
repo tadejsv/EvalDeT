@@ -456,7 +456,7 @@ class Tracks:
         self._frame_nums.append(frame_num)
 
     @property
-    def all_classes(self) -> Set[Optional[int]]:
+    def all_classes(self) -> Set[int]:
         """Get a set of all classes in the collection."""
         return self._all_classes.copy()
 
