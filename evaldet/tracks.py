@@ -243,8 +243,8 @@ class Tracks:
         Args:
             file_path: Path where the detections file is located
             classes_list: The list of all possible class values. The values from that
-            attribute in the file will then be replaced by the index of that value in
-            this list.
+                attribute in the file will then be replaced by the index of that value
+                in this list.
         """
 
         xml_tree = ET.parse(file_path)
