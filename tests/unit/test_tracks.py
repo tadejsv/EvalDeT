@@ -245,6 +245,32 @@ def test_read_mot_cvat(sample_tracks):
     assert set(tracks[800]["classes"]) == set(sample_tracks[800]["classes"])
 
 
+def test_read_mot(sample_tracks):
+    tracks = Tracks.from_mot("tests/data/mot_sample.csv")
+
+    assert tracks.frames == sample_tracks.frames
+
+    assert set(tracks[660]["ids"]) == set(sample_tracks[660]["ids"])
+    assert set(tracks[661]["ids"]) == set(sample_tracks[661]["ids"])
+    assert set(tracks[800]["ids"]) == set(sample_tracks[800]["ids"])
+
+    np.testing.assert_array_almost_equal(
+        tracks[660]["detections"],
+        sample_tracks[660]["detections"],
+        decimal=4,
+    )
+    np.testing.assert_array_almost_equal(
+        tracks[661]["detections"],
+        sample_tracks[661]["detections"],
+        decimal=4,
+    )
+    np.testing.assert_array_almost_equal(
+        tracks[800]["detections"],
+        sample_tracks[800]["detections"],
+        decimal=4,
+    )
+
+
 def test_error_ua_detrac_no_class_list():
     with pytest.raises(ValueError, match="If you provide `classes_attr_name`,"):
         Tracks.from_ua_detrac(

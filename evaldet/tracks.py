@@ -17,14 +17,86 @@ class Tracks:
 
     - MOT format (as described `here <https://motchallenge.net/instructions/>`_)
     - CVAT's version of the MOT format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/formats/format-mot/>`_)
+    - CVAT for Video format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/xml_format/>`_)
     - UA-DETRAC XML format (you can download an example `here <https://detrac-db.rit.albany.edu/Tracking>`_)
     """
 
     @classmethod
     def from_mot(cls, file_path: Union[Path, str]):
-        """Creates a Tracks object from detections file in the MOT format."""
+        """Creates a Tracks object from detections file in the MOT format.
 
-        pass
+        The format should look like this: ::
+
+            <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
+
+        Note that all values above are expected to be **numeric** - string values will
+        cause an error. The values for ``not conf``, ``x``, ``y`` and ``z`` will be
+        ignored.
+
+        Args:
+            file_path: Path where the detections file is located. The file should be
+                in the format described above, and should not have a header.
+        """
+
+        tracks = cls()
+
+        with open(file_path, newline="") as file:
+            fieldnames = [
+                "frame",
+                "id",
+                "bb_left",
+                "bb_top",
+                "bb_width",
+                "bb_height",
+                "_",
+            ]
+            csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
+
+            current_frame = -1
+            detections: List[List[float]] = []
+            ids: List[int] = []
+
+            for line_num, line in enumerate(csv_reader):
+                try:
+                    frame_num, track_id = int(line["frame"]), int(line["id"])
+
+                    xmin, ymin = float(line["bb_left"]), float(line["bb_top"])
+                    xmax, ymax = xmin + float(line["bb_width"]), ymin + float(
+                        line["bb_height"]
+                    )
+                except ValueError:
+                    raise ValueError(
+                        "Error when converting values to numbers on line"
+                        f" {line_num}. Please check that all the values are numeric"
+                        " and that the file follows the MOT format."
+                    )
+
+                if frame_num > current_frame:
+                    # Flush current frame
+                    if current_frame > -1:
+                        tracks.add_frame(
+                            current_frame,
+                            ids=ids,
+                            detections=np.array(detections, dtype=np.float32),
+                        )
+
+                    # Reset frame accumulator objects
+                    current_frame = frame_num
+                    detections = []
+                    ids = []
+
+                # Add to frame accumulator objects
+                detections.append([xmin, ymin, xmax, ymax])
+                ids.append(track_id)
+
+            # Flush final frame
+            tracks.add_frame(
+                current_frame,
+                ids=ids,
+                detections=np.array(detections, dtype=np.float32),
+            )
+
+        return tracks
 
     @classmethod
     def from_mot_cvat(cls, file_path: Union[Path, str]) -> Tracks:
@@ -123,6 +195,18 @@ class Tracks:
                         <target id="1">
                             <box height="71.46" left="256.88" top="201.1" width="67.06"/>
                             <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="91" truncation_ratio="0" vehicle_type="Taxi"/>
+                        </target>
+                    </target_list>
+                </frame>
+                <frame density="2" num="2">
+                    <target_list>
+                        <target id="2">
+                            <box height="32.44999999999999" left="329.27" top="96.65" width="56.53000000000003"/>
+                            <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="3" truncation_ratio="0" vehicle_type="Car"/>
+                        </target>
+                        <target id="4">
+                            <box height="122.67000000000002" left="0.0" top="356.7" width="76.6"/>
+                            <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="1" truncation_ratio="0" vehicle_type="Car"/>
                         </target>
                     </target_list>
                 </frame>
