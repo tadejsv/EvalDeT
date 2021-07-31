@@ -216,7 +216,7 @@ def test_error_convert_number_mot_cvat():
 
 
 def test_read_mot_cvat(sample_tracks):
-    tracks = Tracks.from_mot_cvat("tests/data/cvat_mot_sample.csv")
+    tracks = Tracks.from_mot_cvat("tests/data/tracks/cvat_mot_sample.csv")
 
     assert tracks.frames == sample_tracks.frames
 
@@ -246,7 +246,7 @@ def test_read_mot_cvat(sample_tracks):
 
 
 def test_read_mot(sample_tracks):
-    tracks = Tracks.from_mot("tests/data/mot_sample.csv")
+    tracks = Tracks.from_mot("tests/data/tracks/mot_sample.csv")
 
     assert tracks.frames == sample_tracks.frames
 
@@ -274,18 +274,18 @@ def test_read_mot(sample_tracks):
 def test_error_ua_detrac_no_class_list():
     with pytest.raises(ValueError, match="If you provide `classes_attr_name`,"):
         Tracks.from_ua_detrac(
-            "tests/data/ua_detrac_sample.xml",
+            "tests/data/tracks/ua_detrac_sample.xml",
             classes_attr_name="vehicle_type",
         )
 
 
 def test_read_ua_detrac(sample_tracks):
     tracks = Tracks.from_ua_detrac(
-        "tests/data/ua_detrac_sample.xml",
+        "tests/data/tracks/ua_detrac_sample.xml",
         classes_attr_name="vehicle_type",
         classes_list=["Taxi", "Bike", "Car"],
     )
-    tracks_no_cls = Tracks.from_ua_detrac("tests/data/ua_detrac_sample.xml")
+    tracks_no_cls = Tracks.from_ua_detrac("tests/data/tracks/ua_detrac_sample.xml")
 
     assert tracks.frames == sample_tracks.frames
     assert tracks_no_cls.frames == sample_tracks.frames
@@ -321,7 +321,7 @@ def test_read_ua_detrac(sample_tracks):
 
 def test_read_cvat_video(sample_tracks):
     tracks = Tracks.from_cvat_video(
-        "tests/data/cvat_video_sample.xml", classes_list=["Taxi", "Bike", "Car"]
+        "tests/data/tracks/cvat_video_sample.xml", classes_list=["Taxi", "Bike", "Car"]
     )
 
     assert tracks.frames == sample_tracks.frames
