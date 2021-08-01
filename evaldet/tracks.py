@@ -476,10 +476,10 @@ class Tracks:
         """Get the frame with number ``idx``.
 
         Returns:
-            return_dict: A dictionary with the key ``'ids'``, ``'detections'``
-                and ``'classes'`` (if available). The values are a list
-                (for ids and classes) or a numpy array (for detections)
-                with the values for each item in the frame.
+            A dictionary with the key ``'ids'``, ``'detections'``
+            and ``'classes'`` (if available). The values are a list
+            (for ids and classes) or a numpy array (for detections)
+            with the values for each item in the frame.
         """
         if idx not in self:
             raise KeyError(f"The frame {idx} does not exist.")

@@ -33,8 +33,11 @@ def calculate_clearmot_metrics(
             ground_truths += len(ground_truth[frame])
         else:
             # Delete from correspondence missing gt/detections
-            for missing_key in set(correspondence.keys()) - set(ground_truth[frame]):
-                pass
+            for missing_key in set(correspondence.keys()) - set(ground_truth[frame]['ids']):
+                del correspondence[missing_key]
+
+            for missing_val in set(correspondence.values()) - set(detections[frame]['ids']):
+                del correspondence[missing_key]
 
             # For remaining correspondence, chech that dist below threshold
             correspond_gt = []
