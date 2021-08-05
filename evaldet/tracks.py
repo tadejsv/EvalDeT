@@ -15,10 +15,10 @@ class Tracks:
     but also provides convenience class methods to initialize it from
     a file, the following formats are currently supported
 
-    - MOT format (as described `here <https://motchallenge.net/instructions/>`_)
-    - CVAT's version of the MOT format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/formats/format-mot/>`_)
-    - CVAT for Video format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/xml_format/>`_)
-    - UA-DETRAC XML format (you can download an example `here <https://detrac-db.rit.albany.edu/Tracking>`_)
+    - MOT format (as described `here <https://motchallenge.net/instructions/>`__)
+    - CVAT's version of the MOT format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/formats/format-mot/>`__)
+    - CVAT for Video format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/xml_format/>`__)
+    - UA-DETRAC XML format (you can download an example `here <https://detrac-db.rit.albany.edu/Tracking>`__)
     """
 
     @classmethod
