@@ -25,7 +25,7 @@ class Tracks:
     def from_mot(cls, file_path: Union[Path, str]):
         """Creates a Tracks object from detections file in the MOT format.
 
-        The format should look like this: ::
+        The format should look like this::
 
             <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
 
@@ -102,7 +102,7 @@ class Tracks:
     def from_mot_cvat(cls, file_path: Union[Path, str]) -> Tracks:
         """Creates a Tracks object from detections file in the CVAT's MOT format.
 
-        The format should look like this: ::
+        The format should look like this::
 
             <frame_id>, <track_id>, <x>, <y>, <w>, <h>, <not ignored>, <class_id>, <visibility>, <skipped>
 
