@@ -442,7 +442,9 @@ class Tracks:
             )
 
         if len(set(ids)) != len(ids):
-            raise ValueError("The `ids` must be unique.")
+            raise ValueError(
+                f"The `ids` must be unique - got non-unique ids on frame {frame_num}"
+            )
 
         # If all ok, add objects to collections
         self._detections[frame_num] = detections.copy()
