@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 import pytest
 
-from evaldet.dist import iou_dist_pairwise, iou_dist
+from evaldet.dist import iou_dist, iou_dist_pairwise
 
 
 @pytest.fixture
