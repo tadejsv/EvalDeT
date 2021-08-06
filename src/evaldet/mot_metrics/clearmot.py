@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
-from scipy.optimize import linear_sum_assignment
+from scipy.optimize import linear_sum_assignment  # type: ignore
 
 from ..dist import iou_dist, iou_dist_pairwise
 from ..tracks import Tracks
