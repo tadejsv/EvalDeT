@@ -50,6 +50,11 @@ def calculate_clearmot_metrics(
 
     matches_dist = []
     matching: Dict[int, int] = {}
+
+    # This is here because, contrary to what is said in the paper,
+    # matching, for the purpose of counting mismatches, actually persists:
+    # even if a gt looses its hypotheses, it is still "bound" to it until
+    # it matches to another one - then this becomes a mismatch
     matching_persist: Dict[int, int] = {}
 
     for frame in all_frames:

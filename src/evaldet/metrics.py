@@ -22,6 +22,7 @@ def compute_mot_metrics(
             - FP (false positives)
             - FN (false negatives)
             - IDS (identity switches/mismatches)
+
         - ID metrics
 
             - IDP (ID Precision)
