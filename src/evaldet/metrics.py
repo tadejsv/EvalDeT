@@ -16,12 +16,14 @@ def compute_mot_metrics(
     Right now, the following metrics can be computed
 
         - CLEARMOT metrics
+
             - MOTA (MOT Accuracy)
             - MOTP (MOT Precision)
             - FP (false positives)
             - FN (false negatives)
             - IDS (identity switches/mismatches)
         - ID metrics
+
             - IDP (ID Precision)
             - IDR (ID Recall)
             - IDF1 (ID F1)
