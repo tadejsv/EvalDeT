@@ -23,10 +23,7 @@ def calculate_id_metrics(
     # LAP problem minimize the actual loss, including for unmatched entries
     matching = np.zeros((max(n_gt, n_hyp), max(n_gt, n_hyp)), dtype=np.int32)
 
-    for frame in sorted(set(ground_truth.frames + hypotheses.frames)):
-        if frame not in ground_truth or frame not in hypotheses:
-            continue
-
+    for frame in sorted(set(ground_truth.frames).intersection(hypotheses.frames)):
         dist_matrix = iou_dist(
             ground_truth[frame]["detections"], hypotheses[frame]["detections"]
         )
