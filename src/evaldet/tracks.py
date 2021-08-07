@@ -377,6 +377,7 @@ class Tracks:
         self._classes = dict()
 
         self._all_classes = set()
+        self._ids_count = {}
 
     def add_frame(
         self,
@@ -450,6 +451,9 @@ class Tracks:
         self._detections[frame_num] = detections.copy()
         self._ids[frame_num] = ids.copy()
 
+        for _id in ids:
+            self._ids_count[_id] = self._ids_count.get(_id, 0) + 1
+
         if classes is not None:
             self._classes[frame_num] = classes.copy()
             self._all_classes.update(classes)
@@ -461,6 +465,21 @@ class Tracks:
     def all_classes(self) -> Set[int]:
         """Get a set of all classes in the collection."""
         return self._all_classes.copy()
+
+    @property
+    def all_ids(self) -> Set[int]:
+        """Get a set of all track ids in the collection."""
+        return set(self._ids_count.keys())
+
+    @property
+    def ids_count(self) -> Dict[int, int]:
+        """Get the number of frames that each id is present in.
+
+        Returns:
+            A dictionary where keys are the track ids, and values
+            are the numbers of frames they appear in.
+        """
+        return self._ids_count.copy()
 
     @property
     def frames(self) -> List[int]:

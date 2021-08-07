@@ -8,13 +8,14 @@ from evaldet.mot_metrics.clearmot import calculate_clearmot_metrics
 def test_empty_hypotheses():
     gt = Tracks()
     gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
+    gt.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
 
     hyp = Tracks()
+    hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
     metrics = calculate_clearmot_metrics(gt, hyp)
 
-    assert np.isnan(metrics["MOTP"])
-    assert metrics["FN"] == 1
-    assert metrics["FP"] == 0
+    assert metrics["FN_CLEAR"] == 1
+    assert metrics["FP_CLEAR"] == 0
     assert metrics["IDS"] == 0
 
 
@@ -28,8 +29,23 @@ def test_missing_frame_gt():
     metrics = calculate_clearmot_metrics(gt, hyp)
 
     assert metrics["IDS"] == 0
-    assert metrics["FN"] == 0
-    assert metrics["FP"] == 1
+    assert metrics["FN_CLEAR"] == 0
+    assert metrics["FP_CLEAR"] == 1
+
+
+def test_no_association_made():
+    gt = Tracks()
+    gt.add_frame(0, [0], np.array([[10, 10, 11, 11]]))
+
+    hyp = Tracks()
+    hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
+    metrics = calculate_clearmot_metrics(gt, hyp)
+
+    assert metrics["IDS"] == 0
+    assert metrics["FN_CLEAR"] == 1
+    assert metrics["FP_CLEAR"] == 1
+    assert metrics["MOTA"] == -1  # Stange but ok
+    assert np.isnan(metrics["MOTP"])
 
 
 def test_missing_frame_hypotheses():
@@ -42,8 +58,8 @@ def test_missing_frame_hypotheses():
     metrics = calculate_clearmot_metrics(gt, hyp)
 
     assert metrics["IDS"] == 0
-    assert metrics["FN"] == 1
-    assert metrics["FP"] == 0
+    assert metrics["FN_CLEAR"] == 1
+    assert metrics["FP_CLEAR"] == 0
 
 
 @pytest.mark.parametrize("threshold", [0.3, 0.5, 0.7])
@@ -65,7 +81,7 @@ def test_dist_threshold(threshold: float):
     fn_res = {0.3: 3, 0.5: 2, 0.7: 1}
 
     metrics = calculate_clearmot_metrics(gt, hyp, dist_threshold=threshold)
-    assert fn_res[threshold] == metrics["FN"]
+    assert fn_res[threshold] == metrics["FN_CLEAR"]
 
 
 def test_sticky_association():
@@ -81,9 +97,9 @@ def test_sticky_association():
     hyp.add_frame(1, [0, 1], np.array([[0.1, 0.1, 1.1, 1.1], [0, 0, 1, 1]]))
 
     metrics = calculate_clearmot_metrics(gt, hyp)
-    assert metrics["FN"] == 0
+    assert metrics["FN_CLEAR"] == 0
     assert metrics["IDS"] == 0
-    assert metrics["FP"] == 1
+    assert metrics["FP_CLEAR"] == 1
 
 
 def test_mismatch():
@@ -96,9 +112,9 @@ def test_mismatch():
     hyp.add_frame(1, [1], np.array([[0, 0, 1, 1]]))
 
     metrics = calculate_clearmot_metrics(gt, hyp)
-    assert metrics["FN"] == 0
+    assert metrics["FN_CLEAR"] == 0
     assert metrics["IDS"] == 1
-    assert metrics["FP"] == 0
+    assert metrics["FP_CLEAR"] == 0
 
 
 def test_persistent_mismatch():
@@ -115,9 +131,9 @@ def test_persistent_mismatch():
     hyp.add_frame(2, [1], np.array([[0, 0, 1, 1]]))
 
     metrics = calculate_clearmot_metrics(gt, hyp)
-    assert metrics["FN"] == 1
+    assert metrics["FN_CLEAR"] == 1
     assert metrics["IDS"] == 1
-    assert metrics["FP"] == 0
+    assert metrics["FP_CLEAR"] == 0
 
 
 def test_simple_case():
@@ -133,8 +149,8 @@ def test_simple_case():
     hyp.add_frame(2, [2, 1], np.array([[0.05, 0.05, 1.05, 1.05], [2, 2, 3, 3]]))
 
     metrics = calculate_clearmot_metrics(gt, hyp)
-    assert metrics["FN"] == 1
+    assert metrics["FN_CLEAR"] == 1
     assert metrics["IDS"] == 1
-    assert metrics["FP"] == 1
+    assert metrics["FP_CLEAR"] == 1
     assert metrics["MOTA"] == 0.5
     assert metrics["MOTP"] == 0.0994008537355717

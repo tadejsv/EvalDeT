@@ -117,7 +117,7 @@ def calculate_clearmot_metrics(
     return {
         "MOTP": motp,
         "MOTA": mota,
-        "FP": false_positives,
-        "FN": false_negatives,
+        "FP_CLEAR": false_positives,
+        "FN_CLEAR": false_negatives,
         "IDS": mismatches,
     }

@@ -133,6 +133,8 @@ def test_add_one_observation(empty_tracks: Tracks):
     assert len(empty_tracks) == 1
     assert empty_tracks.frames == [0]
     assert empty_tracks.all_classes == set([1])
+    assert empty_tracks.all_ids == set([0])
+    assert empty_tracks.ids_count == {0: 1}
     assert empty_tracks._last_frame == 0
 
 
@@ -142,6 +144,8 @@ def test_add_one_observation_no_class(empty_tracks: Tracks):
     assert len(empty_tracks) == 1
     assert empty_tracks.frames == [0]
     assert empty_tracks.all_classes == set()
+    assert empty_tracks.all_ids == set([0])
+    assert empty_tracks.ids_count == {0: 1}
     assert empty_tracks._last_frame == 0
 
 
@@ -151,6 +155,8 @@ def test_add_more_observations(empty_tracks: Tracks):
     assert len(empty_tracks) == 1
     assert empty_tracks.frames == [0]
     assert empty_tracks.all_classes == set([1])
+    assert empty_tracks.all_ids == set([0, 1])
+    assert empty_tracks.ids_count == {0: 1, 1: 1}
     assert empty_tracks._last_frame == 0
 
 
@@ -185,6 +191,8 @@ def test_add_second_observation(tracks_with_one_item: Tracks):
     assert tracks_with_one_item.frames == [0, 2]
     assert tracks_with_one_item.all_classes == set([1, 3])
     assert tracks_with_one_item._last_frame == 2
+    assert tracks_with_one_item.all_ids == set([0, 2])
+    assert tracks_with_one_item.ids_count == {0: 1, 2: 1}
 
 
 def test_add_second_observation_no_class(tracks_with_one_item: Tracks):
@@ -194,6 +202,8 @@ def test_add_second_observation_no_class(tracks_with_one_item: Tracks):
     assert tracks_with_one_item.frames == [0, 2]
     assert tracks_with_one_item.all_classes == set([1])
     assert tracks_with_one_item._last_frame == 2
+    assert tracks_with_one_item.all_ids == set([0, 2])
+    assert tracks_with_one_item.ids_count == {0: 1, 2: 1}
 
 
 ##############################

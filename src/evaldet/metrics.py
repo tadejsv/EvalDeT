@@ -1,10 +1,11 @@
 from typing import Dict, Sequence, Union
 
 from .mot_metrics.clearmot import calculate_clearmot_metrics
+from .mot_metrics.identity import calculate_id_metrics
 from .tracks import Tracks
 
-_CLEARMOT_METRICS = ("MOTA", "MOTP", "FN", "FP", "IDS")
-_ID_METRICS = ("IDP", "IDR", "IDF1")
+_CLEARMOT_METRICS = ("MOTA", "MOTP", "FN_CLEAR", "FP_CLEAR", "IDS")
+_ID_METRICS = ("IDP", "IDR", "IDF1", "IDFP", "IDFN", "IDTP")
 _ALLOWED_MOT_METRICS = _CLEARMOT_METRICS + _ID_METRICS
 
 
@@ -28,6 +29,9 @@ def compute_mot_metrics(
             - IDP (ID Precision)
             - IDR (ID Recall)
             - IDF1 (ID F1)
+            - IDFP (ID false positives)
+            - IDFN (ID false negatives)
+            - IDTP (ID true positives)
 
     Args:
         metrics: A sequence with the names of the metrics to compute. Allowed
@@ -35,12 +39,15 @@ def compute_mot_metrics(
 
             - ``'MOTA'``: MOTA metric
             - ``'MOTP'``: MOTP metric
-            - ``'FP'``: False positive detections (from CLEARMOT)
-            - ``'FN'``: False negative detections (from CLEARMOT)
+            - ``'FP_CLEAR'``: False positive detections (from CLEARMOT)
+            - ``'FN_CLEAR'``: False negative detections (from CLEARMOT)
             - ``'IDS'``: Identity switches/mismatches (from CLEARMOT)
-            - ``'idp'``: ID Precision metric
-            - ``'idr'``: ID Recall metric
-            - ``'idf1'``: ID F1 metric
+            - ``'IDP'``: ID Precision metric
+            - ``'IDR'``: ID Recall metric
+            - ``'IDF1'``: ID F1 metric
+            - ``'IDFP'``: ID false positives
+            - ``'IDFN'``: ID false negatives
+            - ``'IDTP'``: ID true positives
         ground_truth: A :class:`evaldet.tracks.Tracks` object, representing ground
             truth annotations.
         detections: A :class:`evaldet.tracks.Tracks` object, representing detection
@@ -67,8 +74,14 @@ def compute_mot_metrics(
 
     mot_metrics = set(_CLEARMOT_METRICS).intersection(metrics)
     if mot_metrics:
-        mot_metrics_results = calculate_clearmot_metrics(ground_truth, detections)
+        clearmot_metrics_results = calculate_clearmot_metrics(ground_truth, detections)
         for metric_name in mot_metrics:
-            results[metric_name] = mot_metrics_results[metric_name]
+            results[metric_name] = clearmot_metrics_results[metric_name]
+
+    id_metrics = set(_ID_METRICS).intersection(metrics)
+    if id_metrics:
+        id_metrics_results = calculate_id_metrics(ground_truth, detections)
+        for metric_name in id_metrics:
+            results[metric_name] = id_metrics_results[metric_name]
 
     return results
