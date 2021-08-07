@@ -14,6 +14,7 @@ def compute_mot_metrics(
     """Compute multi-object tracking (MOT) metrics.
 
     Right now, the following metrics can be computed
+
         - CLEARMOT metrics
             - MOTA (MOT Accuracy)
             - MOTP (MOT Precision)
