@@ -4,8 +4,9 @@ API Reference
 .. toctree::
    :hidden:
 
-   tracks
    dist
+   metrics
+   tracks
 
 .. currentmodule:: evaldet
 
@@ -16,6 +17,13 @@ Distance
 
    dist.iou_dist
    dist.iou_dist_pairwise
+
+Metrics
+-------
+
+.. autosummary::
+
+   calculate_mot_metrics
 
 
 Tracks
