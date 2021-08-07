@@ -1,4 +1,4 @@
-Distance
-========
+Metrics
+=======
 
-.. autofunction:: evaldet.calculate_mot_metrics
+.. autofunction:: evaldet.compute_mot_metrics

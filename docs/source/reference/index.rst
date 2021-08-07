@@ -23,7 +23,7 @@ Metrics
 
 .. autosummary::
 
-   calculate_mot_metrics
+   compute_mot_metrics
 
 
 Tracks
