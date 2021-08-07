@@ -13,21 +13,22 @@ def compute_mot_metrics(
 ) -> Dict[str, Union[int, float]]:
     """Compute multi-object tracking (MOT) metrics.
 
-    Right now, the following metrics can be computed:
-        - CLEARMOT metrics:
+    Right now, the following metrics can be computed
+        - CLEARMOT metrics
             - MOTA (MOT Accuracy)
             - MOTP (MOT Precision)
             - FP (false positives)
             - FN (false negatives)
             - IDS (identity switches/mismatches)
-        - ID metrics:
+        - ID metrics
             - IDP (ID Precision)
             - IDR (ID Recall)
             - IDF1 (ID F1)
 
     Args:
         metrics: A sequence with the names of the metrics to compute. Allowed
-            values for elements of this iterable are:
+            values for elements of this iterable are
+
             - ``'MOTA'``: MOTA metric
             - ``'MOTP'``: MOTP metric
             - ``'FP'``: False positive detections (from CLEARMOT)
@@ -42,8 +43,7 @@ def compute_mot_metrics(
             annotations ().
 
     Returns:
-        metrics_results: A dictionary with metric names as keys, and their values as
-            values
+        A dictionary with metric names as keys, and their values as values
     """
 
     if not set(metrics).issubset(_ALLOWED_MOT_METRICS):
