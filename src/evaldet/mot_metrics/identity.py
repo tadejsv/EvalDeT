@@ -1,4 +1,3 @@
-import logging
 from typing import Dict, Union
 
 import numpy as np
@@ -7,8 +6,6 @@ from scipy.optimize import linear_sum_assignment  # type: ignore
 from ..dist import iou_dist
 from ..tracks import Tracks
 
-logger = logging.getLogger(__name__)
-
 
 def calculate_id_metrics(
     ground_truth: Tracks, hypotheses: Tracks, dist_threshold: float = 0.5
@@ -16,9 +13,15 @@ def calculate_id_metrics(
     pass
 
     gts = tuple(ground_truth.ids_count.keys())
+    gts_counts = tuple(ground_truth.ids_count.values())
     hyps = tuple(hypotheses.ids_count.keys())
+    hyps_counts = tuple(hypotheses.ids_count.values())
     n_gt, n_hyp = len(gts), len(hyps)
-    matching = np.zeros((n_gt, n_hyp), dtype=np.int32)
+
+    # The "real" shape is [n_gt, n_hyp], the rest is for fictional
+    # entries that are needed for FP and FN matrix to make the
+    # LAP problem minimize the actual loss, including for unmatched entries
+    matching = np.zeros((max(n_gt, n_hyp), max(n_gt, n_hyp)), dtype=np.int32)
 
     for frame in sorted(set(ground_truth.frames + hypotheses.frames)):
         if frame not in ground_truth or frame not in hypotheses:
@@ -33,25 +36,17 @@ def calculate_id_metrics(
                 hyps.index(hypotheses[frame]["ids"][hyp_ind]),
             ] += 1
 
-    fn_matrix = np.tile(list(ground_truth.ids_count.values()), (n_hyp, 1)).T
-    fp_matrix = np.tile(list(hypotheses.ids_count.values()), (n_gt, 1))
+    fn_matrix, fp_matrix = np.zeros_like(matching), np.zeros_like(matching)
+    fp_matrix[:, :n_hyp] = np.tile(hyps_counts, (max(n_hyp, n_gt), 1))
+    fn_matrix[:n_gt, :] = np.tile(gts_counts, (max(n_hyp, n_gt), 1)).T
+
     cost_matrix = fp_matrix + fn_matrix - 2 * matching
 
-    # Calculate matching as a LAP, get FN and FP from matched entries
-    remaining_gts, remaining_hyps = list(range(n_gt)), list(range(n_hyp))
-    false_positive, false_negative, true_positive = 0, 0, 0
-    for row_ind, col_ind in zip(*linear_sum_assignment(cost_matrix)):
-        false_negative += fn_matrix[row_ind, 0] - matching[row_ind, col_ind]
-        false_positive += fp_matrix[0, col_ind] - matching[row_ind, col_ind]
-        true_positive += matching[row_ind, col_ind]
-        remaining_gts.remove(row_ind)
-        remaining_hyps.remove(col_ind)
-
-    # Add false negatives / positives for unmatches indices
-    for non_matched_gt in remaining_gts:
-        false_negative += fn_matrix[non_matched_gt, 0]
-    for non_matched_hyp in remaining_hyps:
-        false_positive += fp_matrix[0, non_matched_hyp]
+    # Calculate matching as a LAP, get FN, FP and TP from matched entries
+    matching_inds = linear_sum_assignment(cost_matrix)
+    true_positive = matching[matching_inds].sum()
+    false_negative = fn_matrix[matching_inds].sum() - true_positive
+    false_positive = fp_matrix[matching_inds].sum() - true_positive
 
     # Calculate the final results
     idp = true_positive / (true_positive + false_positive)

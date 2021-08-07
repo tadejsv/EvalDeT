@@ -5,7 +5,7 @@ from evaldet import Tracks
 from evaldet.mot_metrics.clearmot import calculate_clearmot_metrics
 
 
-def test_empty_hypotheses():
+def test_missing_frame_hyp():
     gt = Tracks()
     gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
     gt.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
@@ -46,20 +46,6 @@ def test_no_association_made():
     assert metrics["FP_CLEAR"] == 1
     assert metrics["MOTA"] == -1  # Stange but ok
     assert np.isnan(metrics["MOTP"])
-
-
-def test_missing_frame_hypotheses():
-    gt = Tracks()
-    gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-    gt.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
-    metrics = calculate_clearmot_metrics(gt, hyp)
-
-    assert metrics["IDS"] == 0
-    assert metrics["FN_CLEAR"] == 1
-    assert metrics["FP_CLEAR"] == 0
 
 
 @pytest.mark.parametrize("threshold", [0.3, 0.5, 0.7])
