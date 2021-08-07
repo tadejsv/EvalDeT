@@ -110,8 +110,8 @@ def calculate_clearmot_metrics(
     mota = 1 - (false_negatives + false_positives + mismatches) / ground_truths
 
     return {
-        "motp": motp,
-        "mota": mota,
+        "MOTP": motp,
+        "MOTA": mota,
         "FP": false_positives,
         "FN": false_negatives,
         "IDS": mismatches,

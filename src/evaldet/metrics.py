@@ -3,8 +3,8 @@ from typing import Dict, Sequence, Union
 from .mot_metrics.clearmot import calculate_clearmot_metrics
 from .tracks import Tracks
 
-_CLEARMOT_METRICS = ("mota", "motp")
-_ID_METRICS = ("idp", "idr", "idf1")
+_CLEARMOT_METRICS = ("MOTA", "MOTP", "FN", "FP", "IDS")
+_ID_METRICS = ("IDP", "IDR", "IDF1")
 _ALLOWED_MOT_METRICS = _CLEARMOT_METRICS + _ID_METRICS
 
 
@@ -17,6 +17,9 @@ def compute_mot_metrics(
         - CLEARMOT metrics:
             - MOTA (MOT Accuracy)
             - MOTP (MOT Precision)
+            - FP (false positives)
+            - FN (false negatives)
+            - IDS (identity switches/mismatches)
         - ID metrics:
             - IDP (ID Precision)
             - IDR (ID Recall)
@@ -25,8 +28,11 @@ def compute_mot_metrics(
     Args:
         metrics: A sequence with the names of the metrics to compute. Allowed
             values for elements of this iterable are:
-            - ``'mota'``: MOTA metric
-            - ``'motp'``: MOTP metric
+            - ``'MOTA'``: MOTA metric
+            - ``'MOTP'``: MOTP metric
+            - ``'FP'``: False positive detections (from CLEARMOT)
+            - ``'FN'``: False negative detections (from CLEARMOT)
+            - ``'IDS'``: Identity switches/mismatches (from CLEARMOT)
             - ``'idp'``: ID Precision metric
             - ``'idr'``: ID Recall metric
             - ``'idf1'``: ID F1 metric
