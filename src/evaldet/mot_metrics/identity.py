@@ -10,7 +10,6 @@ from ..tracks import Tracks
 def calculate_id_metrics(
     ground_truth: Tracks, hypotheses: Tracks, dist_threshold: float = 0.5
 ) -> Dict[str, Union[float, int]]:
-    pass
 
     gts = tuple(ground_truth.ids_count.keys())
     gts_counts = tuple(ground_truth.ids_count.values())
