@@ -1,17 +1,31 @@
 from typing import Dict, Sequence, Union
 
+import numpy as np
+
 from .mot_metrics.clearmot import calculate_clearmot_metrics
+from .mot_metrics.hota import calculate_hota_metrics
 from .mot_metrics.identity import calculate_id_metrics
 from .tracks import Tracks
 
 _CLEARMOT_METRICS = ("MOTA", "MOTP", "FN_CLEAR", "FP_CLEAR", "IDS")
 _ID_METRICS = ("IDP", "IDR", "IDF1", "IDFP", "IDFN", "IDTP")
-_ALLOWED_MOT_METRICS = _CLEARMOT_METRICS + _ID_METRICS
+_HOTA_METRICS = (
+    "HOTA",
+    "DetA",
+    "AssA",
+    "LocA",
+    "alphas_HOTA",
+    "HOTA_alpha",
+    "DetA_alpha",
+    "AssA_alpha",
+    "LocA_alpha",
+)
+_ALLOWED_MOT_METRICS = _CLEARMOT_METRICS + _ID_METRICS + _HOTA_METRICS
 
 
 def compute_mot_metrics(
     metrics: Sequence[str], ground_truth: Tracks, detections: Tracks
-) -> Dict[str, Union[int, float]]:
+) -> Dict[str, Union[int, float, np.ndarray]]:
     """Compute multi-object tracking (MOT) metrics.
 
     Right now, the following metrics can be computed
@@ -33,6 +47,13 @@ def compute_mot_metrics(
             - IDFN (ID false negatives)
             - IDTP (ID true positives)
 
+        - HOTA metrics (both average and individual alpha values)
+
+            - HOTA
+            - AssA
+            - DetA
+            - LocA
+
     Args:
         metrics: A sequence with the names of the metrics to compute. Allowed
             values for elements of this iterable are
@@ -48,6 +69,16 @@ def compute_mot_metrics(
             - ``'IDFP'``: ID false positives
             - ``'IDFN'``: ID false negatives
             - ``'IDTP'``: ID true positives
+            - ``'HOTA'``: The HOTA metric
+            - ``'AssA'``: The AssA metric (from HOTA)
+            - ``'DetA'``: The DetA metric (from HOTA)
+            - ``'LocA'``: The LocA metric (from HOTA)
+            - ``'alphas_HOTA'``: The alpha values used in HOTA calculation
+            - ``'HOTA_alpha'``: An array of HOTA values for each alpha
+            - ``'AssA_alpha'``: An array of AssA values for each alpha
+            - ``'DetA_alpha'``: An array of DetA values for each alpha
+            - ``'LocA_alpha'``: An array of LocA values for each alpha
+
         ground_truth: A :class:`evaldet.tracks.Tracks` object, representing ground
             truth annotations.
         detections: A :class:`evaldet.tracks.Tracks` object, representing detection
@@ -70,7 +101,7 @@ def compute_mot_metrics(
     if not len(ground_truth):
         raise ValueError("No objects in ``ground_truths``, nothing to compute.")
 
-    results = {}
+    results: Dict[str, Union[int, float, np.ndarray]] = {}
 
     mot_metrics = set(_CLEARMOT_METRICS).intersection(metrics)
     if mot_metrics:
@@ -83,5 +114,11 @@ def compute_mot_metrics(
         id_metrics_results = calculate_id_metrics(ground_truth, detections)
         for metric_name in id_metrics:
             results[metric_name] = id_metrics_results[metric_name]
+
+    hota_metrics = set(_HOTA_METRICS).intersection(metrics)
+    if hota_metrics:
+        hota_metrics_results = calculate_hota_metrics(ground_truth, detections)
+        for metric_name in hota_metrics:
+            results[metric_name] = hota_metrics_results[metric_name]
 
     return results
