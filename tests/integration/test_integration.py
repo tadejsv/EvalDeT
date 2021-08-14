@@ -32,10 +32,10 @@ def test_tud_campus():
         "IDP": 0.730,
         "IDR": 0.451,
         "IDF1": 0.558,
-        "HOTA": 0.393,  # Does not correspond exactly to iriginal
-        "DetA": 0.425,  # Does not correspond exactly to iriginal
-        "AssA": 0.365,  # Does not correspond exactly to iriginal
-        "LocA": 0.768,  # Does not correspond exactly to iriginal
+        "HOTA": 0.393,  # Does not correspond exactly to original
+        "DetA": 0.425,  # Does not correspond exactly to original
+        "AssA": 0.365,  # Does not correspond exactly to original
+        "LocA": 0.768,  # Does not correspond exactly to original
     }
 
     for key in results:
@@ -70,10 +70,10 @@ def test_tud_stadtmitte():
         "IDP": 0.820,
         "IDR": 0.531,
         "IDF1": 0.645,
-        "HOTA": 0.399,  # Does not correspond exactly to iriginal
-        "DetA": 0.399,  # Does not correspond exactly to iriginal
-        "AssA": 0.404,  # Does not correspond exactly to iriginal
-        "LocA": 0.733,  # Does not correspond exactly to iriginal
+        "HOTA": 0.399,  # Does not correspond exactly to original
+        "DetA": 0.399,  # Does not correspond exactly to original
+        "AssA": 0.404,  # Does not correspond exactly to original
+        "LocA": 0.733,  # Does not correspond exactly to original
     }
 
     for key in results:
