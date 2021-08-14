@@ -67,7 +67,7 @@ def test_alphas():
     np.testing.assert_almost_equal(metrics["HOTA"], 0.5952316356188, 5)
     np.testing.assert_almost_equal(metrics["LocA"], 0.7317558602388, 5)
 
-    for a_ind, alpha in enumerate(metrics["alphas"]):
+    for a_ind, alpha in enumerate(metrics["alphas_HOTA"]):
         if alpha < 0.31932773:
             assert metrics["HOTA_alpha"][a_ind] == 0
             assert metrics["AssA_alpha"][a_ind] == 0
