@@ -90,11 +90,48 @@ def test_alphas():
 
 
 def test_priority_matching_1():
-    pass
+    """Test that priority is making TPs, when possible (and take association
+    into account only AFTER that).
+
+    Inspired from https://github.com/JonathonLuiten/TrackEval/issues/22
+    """
+
+    gt = Tracks()
+    for i in range(10):
+        gt.add_frame(i, [0], np.array([[0, 0, 1, 1]]))
+    gt.add_frame(10, [0, 1], np.array([[0, 0, 1, 1 + 1e-5], [0, 0, 1, 1 - 1e-5]]))
+
+    hyp = Tracks()
+    for i in range(10):
+        hyp.add_frame(i, [0], np.array([[0, 0, 1, 1]]))
+
+    # This is set up in a way that dist from 0 will be just above 0.5,
+    # and distance from 1 below 0.5
+    hyp.add_frame(10, [0], np.array([[0, 0, 1, 0.5]]))
+
+    metrics = calculate_hota_metrics(gt, hyp)
+
+    np.testing.assert_array_almost_equal(metrics["AssA_alpha"][9], 0.7658, 3)
+    np.testing.assert_array_almost_equal(metrics["DetA_alpha"][9], 11 / 12, 3)
+    np.testing.assert_array_almost_equal(metrics["HOTA_alpha"][9], 0.8378, 3)
 
 
 def test_priority_matching_2():
-    pass
+    """Test that when we have two equally viable matches, the preference is
+    taken by what has highe A(c), and not what has higher similarity."""
+
+    gt = Tracks()
+    gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
+    gt.add_frame(1, [0, 1], np.array([[0, 0, 1, 0.7], [0, 0, 1, 1]]))
+
+    hyp = Tracks()
+    hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
+    hyp.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
+    metrics = calculate_hota_metrics(gt, hyp)
+
+    assert metrics["AssA_alpha"][9] == 1
+    assert metrics["DetA_alpha"][9] == 2 / 3
+    np.testing.assert_array_almost_equal(metrics["HOTA_alpha"][9], 0.8164, 3)
 
 
 def test_example_1a():
@@ -158,18 +195,3 @@ def test_example_1c():
     np.testing.assert_array_almost_equal(metrics["AssA"], 0.25, 2)
     np.testing.assert_array_almost_equal(metrics["DetA"], 1, 2)
     assert metrics["LocA"] == 1.0
-
-
-def test_simple_case():
-    """Test a simple case with 3 frames and 2 detections/gts per frame."""
-    gt = Tracks()
-    gt.add_frame(0, [0, 1], np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
-    gt.add_frame(1, [0, 1], np.array([[0, 0, 1, 1], [2, 2, 3, 3]]))
-    gt.add_frame(2, [0, 1], np.array([[0, 0, 1, 1], [2, 2, 3, 3]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0, 1], np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
-    hyp.add_frame(1, [0, 1], np.array([[0.1, 0.1, 1.1, 1.1], [1, 1, 2, 2]]))
-    hyp.add_frame(2, [2, 1], np.array([[0.05, 0.05, 1.05, 1.05], [2, 2, 3, 3]]))
-
-    # metrics = calculate_hota_metrics(gt, hyp)
