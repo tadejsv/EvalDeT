@@ -47,7 +47,11 @@ def compute_mot_metrics(
             - IDFN (ID false negatives)
             - IDTP (ID true positives)
 
-        - HOTA metrics (both average and individual alpha values)
+        - HOTA metrics (both average and individual alpha values). Note that I use
+          the matching algorithm from the paper, which differs from what the official
+          repository (TrackEval) is using - see
+          `this issue <https://github.com/JonathonLuiten/TrackEval/issues/22>`__
+          for more details
 
             - HOTA
             - AssA
