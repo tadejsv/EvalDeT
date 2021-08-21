@@ -45,7 +45,6 @@ def _add_to_tracks_accumulator(
         if class_key:
             current_frame["classes"] = [class_id]
 
-        current_frame["confs"] = [conf]
         current_frame["ids"] = [track_id]
         current_frame["detections"] = [[xmin, ymin, xmax, ymax]]
         frames[frame_num] = current_frame
@@ -66,6 +65,49 @@ class Tracks:
     """
 
     @classmethod
+    def from_csv(
+        cls,
+        csv_file: Union[str, Path],
+        fieldnames: List[str],
+        conf_key: Optional[str] = None,
+        class_key: Optional[str] = None,
+    ):
+        tracks = cls()
+        with open(csv_file, newline="") as file:
+            csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
+            frames: Dict[int, Any] = {}
+
+            for line_num, line in enumerate(csv_reader):
+                try:
+                    _add_to_tracks_accumulator(
+                        frames, line, conf_key=conf_key, class_key=class_key
+                    )
+
+                except ValueError as e:
+                    raise ValueError(
+                        "Error when converting values to numbers on line"
+                        f" {line_num}. Please check that all the values are numeric"
+                        " and that the file follows the MOT format."
+                    ) from e
+
+            list_frames = sorted(list(frames.keys()))
+            for frame in list_frames:
+                extra_vals = {}
+                if conf_key is not None:
+                    extra_vals["confs"] = frames[frame]["confs"]
+                if class_key is not None:
+                    extra_vals["classes"] = frames[frame]["classes"]
+
+                tracks.add_frame(
+                    frame,
+                    ids=frames[frame]["ids"],
+                    detections=np.array(frames[frame]["detections"]),
+                    **extra_vals,
+                )
+
+        return tracks
+
+    @classmethod
     def from_mot(cls, file_path: Union[Path, str]):
         """Creates a Tracks object from detections file in the MOT format.
 
@@ -81,43 +123,18 @@ class Tracks:
                 in the format described above, and should not have a header.
         """
 
-        tracks = cls()
+        fieldnames = [
+            "frame",
+            "id",
+            "xmin",
+            "ymin",
+            "width",
+            "height",
+            "conf",
+            "_",
+        ]
 
-        with open(file_path, newline="") as file:
-            fieldnames = [
-                "frame",
-                "id",
-                "xmin",
-                "ymin",
-                "width",
-                "height",
-                "conf",
-                "_",
-            ]
-            csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
-            frames: Dict[int, Any] = {}
-
-            for line_num, line in enumerate(csv_reader):
-                try:
-                    _add_to_tracks_accumulator(frames, line, conf_key="conf")
-
-                except ValueError as e:
-                    raise ValueError(
-                        "Error when converting values to numbers on line"
-                        f" {line_num}. Please check that all the values are numeric"
-                        " and that the file follows the MOT format."
-                    ) from e
-
-            list_frames = sorted(list(frames.keys()))
-            for frame in list_frames:
-                tracks.add_frame(
-                    frame,
-                    ids=frames[frame]["ids"],
-                    detections=np.array(frames[frame]["detections"]),
-                    confs=frames[frame]["confs"],
-                )
-
-        return tracks
+        return cls.from_csv(file_path, fieldnames, conf_key="conf")
 
     @classmethod
     def from_mot_gt(cls, file_path: Union[Path, str]):
@@ -136,47 +153,19 @@ class Tracks:
                 in the format described above, and should not have a header.
         """
 
-        tracks = cls()
+        fieldnames = [
+            "frame",
+            "id",
+            "xmin",
+            "ymin",
+            "width",
+            "height",
+            "conf",
+            "class",
+            "visibility",
+        ]
 
-        with open(file_path, newline="") as file:
-            fieldnames = [
-                "frame",
-                "id",
-                "xmin",
-                "ymin",
-                "width",
-                "height",
-                "conf",
-                "class",
-                "visibility",
-            ]
-            csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
-            frames: Dict[int, Any] = {}
-
-            for line_num, line in enumerate(csv_reader):
-                try:
-                    _add_to_tracks_accumulator(
-                        frames, line, conf_key="conf", class_key="class"
-                    )
-
-                except ValueError as e:
-                    raise ValueError(
-                        "Error when converting values to numbers on line"
-                        f" {line_num}. Please check that all the values are numeric"
-                        " and that the file follows the MOT format."
-                    ) from e
-
-            list_frames = sorted(list(frames.keys()))
-            for frame in list_frames:
-                tracks.add_frame(
-                    frame,
-                    ids=frames[frame]["ids"],
-                    detections=np.array(frames[frame]["detections"]),
-                    classes=frames[frame]["classes"],
-                    confs=frames[frame]["confs"],
-                )
-
-        return tracks
+        return cls.from_csv(file_path, fieldnames, conf_key="conf", class_key="class")
 
     @classmethod
     def from_mot_cvat(cls, file_path: Union[Path, str]) -> Tracks:
@@ -196,61 +185,18 @@ class Tracks:
                 in the format described above, and should not have a header.
         """
 
-        tracks = cls()
+        fieldnames = [
+            "frame",
+            "id",
+            "xmin",
+            "ymin",
+            "width",
+            "height",
+            "_",
+            "class_id",
+        ]
 
-        with open(file_path, newline="") as file:
-            fieldnames = ["frame_id", "track_id", "x", "y", "w", "h", "_", "class_id"]
-            csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
-
-            current_frame = -1
-            detections: List[List[float]] = []
-            classes: List[int] = []
-            ids: List[int] = []
-
-            for line_num, line in enumerate(csv_reader):
-                try:
-                    frame_num = int(line["frame_id"])
-                    track_id, class_id = int(line["track_id"]), int(line["class_id"])
-
-                    xmin, ymin = float(line["x"]), float(line["y"])
-                    xmax, ymax = xmin + float(line["w"]), ymin + float(line["h"])
-                except ValueError:
-                    raise ValueError(
-                        "Error when converting values to numbers on line"
-                        f" {line_num}. Please check that all the values are numeric"
-                        " and that the file follows the CVAT-MOT format."
-                    )
-
-                if frame_num > current_frame:
-                    # Flush current frame
-                    if current_frame > -1:
-                        tracks.add_frame(
-                            current_frame,
-                            ids=ids,
-                            detections=np.array(detections, dtype=np.float32),
-                            classes=classes,
-                        )
-
-                    # Reset frame accumulator objects
-                    current_frame = frame_num
-                    detections = []
-                    classes = []
-                    ids = []
-
-                # Add to frame accumulator objects
-                detections.append([xmin, ymin, xmax, ymax])
-                classes.append(class_id)
-                ids.append(track_id)
-
-            # Flush final frame
-            tracks.add_frame(
-                current_frame,
-                ids=ids,
-                detections=np.array(detections, dtype=np.float32),
-                classes=classes,
-            )
-
-        return tracks
+        return cls.from_csv(file_path, fieldnames, class_key="class_id")
 
     @classmethod
     def from_ua_detrac(
