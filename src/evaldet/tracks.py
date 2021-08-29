@@ -7,42 +7,42 @@ from typing import Any, Dict, List, Optional, Set, Union
 
 import numpy as np
 
+_ID_KEY = "id"
+_FRAME_KEY = "frame"
+_CONF_KEY = "conf"
+_CLASS_KEY = "class"
+_XMIN_KEY = "xmin"
+_YMIN_KEY = "ymin"
+_WIDTH_KEY = "width"
+_HEIGHT_KEY = "height"
 
-def _add_to_tracks_accumulator(
-    frames: Dict,
-    new_obj: Dict,
-    frame_num_key: str = "frame",
-    id_key: str = "id",
-    xmin_key: str = "xmin",
-    ymin_key: str = "ymin",
-    width_key: str = "width",
-    height_key: str = "height",
-    class_key: Optional[str] = None,
-    conf_key: Optional[str] = None,
-):
-    frame_num, track_id = int(new_obj[frame_num_key]), int(float(new_obj[id_key]))
 
-    xmin, ymin = float(new_obj[xmin_key]), float(new_obj[ymin_key])
-    xmax, ymax = xmin + float(new_obj[width_key]), ymin + float(new_obj[height_key])
+def _add_to_tracks_accumulator(frames: Dict, new_obj: Dict):
+    frame_num, track_id = int(new_obj[_FRAME_KEY]), int(float(new_obj[_ID_KEY]))
 
-    if conf_key:
-        conf = float(new_obj[conf_key])
-    if class_key:
-        class_id = int(new_obj[class_key])
+    xmin, ymin = float(new_obj[_XMIN_KEY]), float(new_obj[_YMIN_KEY])
+    xmax, ymax = xmin + float(new_obj[_WIDTH_KEY]), ymin + float(new_obj[_HEIGHT_KEY])
+
+    if _CONF_KEY in new_obj:
+        conf = float(new_obj[_CONF_KEY])
+    if _CLASS_KEY in new_obj:
+        class_id = int(new_obj[_CLASS_KEY])
 
     current_frame = frames.get(frame_num, {})
+
+    # If some detections already exist for the current frame
     if current_frame:
-        if conf_key:
+        if _CONF_KEY in new_obj:
             current_frame["confs"].append(conf)
-        if class_key:
+        if _CLASS_KEY in new_obj:
             current_frame["classes"].append(class_id)
 
         current_frame["ids"].append(track_id)
         current_frame["detections"].append([xmin, ymin, xmax, ymax])
     else:
-        if conf_key:
+        if _CONF_KEY in new_obj:
             current_frame["confs"] = [conf]
-        if class_key:
+        if _CLASS_KEY in new_obj:
             current_frame["classes"] = [class_id]
 
         current_frame["ids"] = [track_id]
@@ -69,9 +69,27 @@ class Tracks:
         cls,
         csv_file: Union[str, Path],
         fieldnames: List[str],
-        conf_key: Optional[str] = None,
-        class_key: Optional[str] = None,
-    ):
+    ) -> Tracks:
+        """Get detections from a CSV file.
+
+        The CSV file should have a normal comma (,) as a separator, and should not
+        include a header.
+
+        Args:
+            csv_file: path to the CSV file
+            filednames: The names of the fields. This will be passed to
+                ``csv.DictReader``. It should contain the names of the fields, in order
+                that they appear. The following names will be used (others will be
+                disregarded):
+                - ``xmin``
+                - ``ymin``
+                - ``height``
+                - ``width``
+                - ``conf``: for the confidence of the item
+                - ``class``: for the class label of the item
+                - ``id``: for the id of the item
+                - ``frame``: for the frame number
+        """
         tracks = cls()
         with open(csv_file, newline="") as file:
             csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
@@ -79,9 +97,7 @@ class Tracks:
 
             for line_num, line in enumerate(csv_reader):
                 try:
-                    _add_to_tracks_accumulator(
-                        frames, line, conf_key=conf_key, class_key=class_key
-                    )
+                    _add_to_tracks_accumulator(frames, line)
 
                 except ValueError as e:
                     raise ValueError(
@@ -93,9 +109,9 @@ class Tracks:
             list_frames = sorted(list(frames.keys()))
             for frame in list_frames:
                 extra_vals = {}
-                if conf_key is not None:
+                if _CONF_KEY in fieldnames:
                     extra_vals["confs"] = frames[frame]["confs"]
-                if class_key is not None:
+                if _CLASS_KEY in fieldnames:
                     extra_vals["classes"] = frames[frame]["classes"]
 
                 tracks.add_frame(
@@ -113,7 +129,7 @@ class Tracks:
 
         The format should look like this::
 
-            <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
+            <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <conf>, <x>, <y>, <z>
 
         Note that all values above are expected to be **numeric** - string values will
         cause an error. The values for ``x``, ``y`` and ``z`` will be ignored.
@@ -124,17 +140,17 @@ class Tracks:
         """
 
         fieldnames = [
-            "frame",
-            "id",
-            "xmin",
-            "ymin",
-            "width",
-            "height",
-            "conf",
+            _FRAME_KEY,
+            _ID_KEY,
+            _XMIN_KEY,
+            _YMIN_KEY,
+            _WIDTH_KEY,
+            _HEIGHT_KEY,
+            _CONF_KEY,
             "_",
         ]
 
-        return cls.from_csv(file_path, fieldnames, conf_key="conf")
+        return cls.from_csv(file_path, fieldnames)
 
     @classmethod
     def from_mot_gt(cls, file_path: Union[Path, str]):
@@ -143,7 +159,7 @@ class Tracks:
 
         The format should look like this::
 
-            <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <class>, <visibility>
+            <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <conf>, <class>, <visibility>
 
         Note that all values above are expected to be **numeric** - string values will
         cause an error. The value for ``visibility`` will be ignored.
@@ -154,18 +170,18 @@ class Tracks:
         """
 
         fieldnames = [
-            "frame",
-            "id",
-            "xmin",
-            "ymin",
-            "width",
-            "height",
-            "conf",
-            "class",
+            _FRAME_KEY,
+            _ID_KEY,
+            _XMIN_KEY,
+            _YMIN_KEY,
+            _WIDTH_KEY,
+            _HEIGHT_KEY,
+            _CONF_KEY,
+            _CLASS_KEY,
             "visibility",
         ]
 
-        return cls.from_csv(file_path, fieldnames, conf_key="conf", class_key="class")
+        return cls.from_csv(file_path, fieldnames)
 
     @classmethod
     def from_mot_cvat(cls, file_path: Union[Path, str]) -> Tracks:
@@ -173,7 +189,7 @@ class Tracks:
 
         The format should look like this::
 
-            <frame_id>, <track_id>, <x>, <y>, <w>, <h>, <not ignored>, <class_id>, <visibility>, <skipped>
+            <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <not ignored>, <class>, <visibility>, <skipped>
 
         Note that all values above are expected to be **numeric** - string values will
         cause an error. The last two elements (``visibility`` and ``skipped``) are
@@ -186,17 +202,17 @@ class Tracks:
         """
 
         fieldnames = [
-            "frame",
-            "id",
-            "xmin",
-            "ymin",
-            "width",
-            "height",
+            _FRAME_KEY,
+            _ID_KEY,
+            _XMIN_KEY,
+            _YMIN_KEY,
+            _WIDTH_KEY,
+            _HEIGHT_KEY,
             "_",
-            "class_id",
+            _CLASS_KEY,
         ]
 
-        return cls.from_csv(file_path, fieldnames, class_key="class_id")
+        return cls.from_csv(file_path, fieldnames)
 
     @classmethod
     def from_ua_detrac(
@@ -268,7 +284,7 @@ class Tracks:
         root = xml_tree.getroot()
         tracks = cls()
 
-        frames = root.findall("frame")
+        frames = root.findall(_FRAME_KEY)
         for frame in frames:
             tracks_f = frame.find("target_list").findall("target")  # type: ignore
 
@@ -279,12 +295,12 @@ class Tracks:
 
             for track in tracks_f:
                 # Get track attributes
-                ids.append(int(track.attrib["id"]))
+                ids.append(int(track.attrib[_ID_KEY]))
 
                 box = track.find("box")
                 xmin, ymin = float(box.attrib["left"]), float(box.attrib["top"])  # type: ignore
-                xmax = xmin + float(box.attrib["width"])  # type: ignore
-                ymax = ymin + float(box.attrib["height"])  # type: ignore
+                xmax = xmin + float(box.attrib[_WIDTH_KEY])  # type: ignore
+                ymax = ymin + float(box.attrib[_HEIGHT_KEY])  # type: ignore
                 detections.append([xmin, ymin, xmax, ymax])
 
                 if classes_attr_name:
@@ -358,11 +374,11 @@ class Tracks:
         frames: Dict[int, Any] = {}
         tracks_cvat = root.findall("track")
         for track_cvat in tracks_cvat:
-            track_id = int(track_cvat.attrib["id"])
+            track_id = int(track_cvat.attrib[_ID_KEY])
             track_class = classes_list.index(track_cvat.attrib["label"])
 
             for box in track_cvat.findall("box"):
-                frame_num = int(box.attrib["frame"])
+                frame_num = int(box.attrib[_FRAME_KEY])
                 xmin, ymin = float(box.attrib["xtl"]), float(box.attrib["ytl"])
                 xmax, ymax = float(box.attrib["xbr"]), float(box.attrib["ybr"])
 
@@ -494,7 +510,7 @@ class Tracks:
         Args:
             frame_num: number of the frame to filter
             filter: A boolean array indicating which entries to keep
-                (where it equals True). Should have the same shape as ids
+                (where it equals ``True``). Should have the same shape as ids
                 of the frame it is trying to filter.
         """
         frame = self[frame_num]
@@ -514,6 +530,9 @@ class Tracks:
             del self[frame_num]
             return
 
+        if filter.min() == 1:
+            return
+
         self._detections[frame_num] = frame["detections"][filter]
         self._ids[frame_num] = frame["ids"][filter]
 
@@ -524,6 +543,15 @@ class Tracks:
             self._classes[frame_num] = frame["classes"][filter]
 
     def filter_by_class(self, classes: List[int]):
+        """Filter all frames by classes
+
+        This will keep the detections with class label corresponding to one of the
+        classes passed in ``classes``. If a frame does not have class labels, or
+        would have filtered out all the items, it is deleted.
+
+        Args:
+            classes: A list of which class labels to keep.
+        """
         if not self._classes:
             raise ValueError("Can not filter by class, no class data")
 
@@ -535,6 +563,16 @@ class Tracks:
                 self.filter_frame(frame, filter_cls)
 
     def filter_by_conf(self, lower_bound: float):
+        """Filter all frames by confidence
+
+        This will keep the detections with confidence value higher or equal to
+        the ``lower_bound``. If a frame does not have confidence labels, or
+        would have filtered out all the items, it is deleted.
+
+        Args:
+            lower_bound: The lower bound on the confidence value of the items,
+                so that they are not filtered out.
+        """
         if not self._confs:
             raise ValueError("Can not filter by confidence, no confidence data")
 
