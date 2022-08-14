@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: 3.9
       - name: Install package with test dependencies
-        run: pip install .[tests]
+        run: pip install -e .[tests]
       - name: Run Flake8
         run: flake8 .
       - name: Run mypy
