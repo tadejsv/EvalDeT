@@ -10,11 +10,12 @@ from ..tracks import Tracks
 logger = logging.getLogger(__name__)
 
 
-def _indices_present(big_list: List, candidates: List) -> List[int]:
-    return [big_list.index(i) for i in candidates]
+def _indices_present(big_list: np.ndarray, candidates: List) -> List[int]:
+    big_list_list = big_list.tolist()
+    return [big_list_list.index(i) for i in candidates]
 
 
-def _indices_non_present(big_list: List, candidates: List) -> List[int]:
+def _indices_non_present(big_list: np.ndarray, candidates: List) -> List[int]:
     return [i for i, val in enumerate(big_list) if val not in candidates]
 
 
@@ -41,7 +42,7 @@ def calculate_clearmot_metrics(
     ground_truth: Tracks, hypotheses: Tracks, dist_threshold: float = 0.5
 ) -> Dict[str, Union[float, int]]:
 
-    all_frames = sorted(set(ground_truth.frames + hypotheses.frames))
+    all_frames = sorted(ground_truth.frames.union(hypotheses.frames))
 
     false_negatives = 0
     false_positives = 0
