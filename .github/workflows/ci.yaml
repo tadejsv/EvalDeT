@@ -16,7 +16,9 @@ jobs:
       fail-fast: false
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+      with:
+        lfs: true
     - name: Setup conda
       uses: actions/setup-python@v2
       with:
