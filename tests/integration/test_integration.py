@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from evaldet import Tracks, compute_mot_metrics
 from evaldet.utils import preprocess_mot_1720
@@ -144,8 +143,8 @@ def test_mot20_03():
     exp_results = {
         "MOTA": 0.78031,
         "MOTP": 1 - 0.81614,
-        "FP_CLEAR": 3083, # Original is 3977, unexplained diff
-        "FN_CLEAR": 65542, # Original is 65536, unexplained diff 
+        "FP_CLEAR": 3083,  # Original is 3977, unexplained diff
+        "FN_CLEAR": 65542,  # Original is 65536, unexplained diff
         "IDS": 293,  # Original is 294, unexplained diff
         "IDP": 0.88783,
         "IDR": 0.71104,
