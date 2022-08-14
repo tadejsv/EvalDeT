@@ -19,7 +19,7 @@ jobs:
       - name: Install package with test dependencies
         run: pip install .[tests]
       - name: Run Flake8
-        run: flake8
+        run: flake8 .
       - name: Run mypy
         run: mypy .
       - name: Run Black
@@ -27,24 +27,24 @@ jobs:
       - name: Run isort
         run: isort --check-only .
 
-  test:
-    name: Test
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-        python-version: [3.8, 3.9]
-      fail-fast: false
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          lfs: true
-      - name: Setup conda
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install package with test dependencies
-        run: pip install .[tests]
-      - name: Run PyTest
-        run: pytest
+  # test:
+  #   name: Test
+  #   runs-on: ${{ matrix.operating-system }}
+  #   strategy:
+  #     matrix:
+  #       operating-system: [ubuntu-latest, macos-latest]
+  #       python-version: [3.8, 3.9]
+  #     fail-fast: false
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #       with:
+  #         lfs: true
+  #     - name: Setup conda
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - name: Install package with test dependencies
+  #       run: pip install .[tests]
+  #     - name: Run PyTest
+  #       run: pytest
