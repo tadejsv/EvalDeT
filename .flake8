@@ -1,0 +1,5 @@
+max-line-length = 88
+extend-ignore = E203
+extend-exclude =
+  docs/source/conf.py,
+  build/*

@@ -9,42 +9,43 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup conda
-        uses: actions/setup-python@v2
+      - name: Setup mamba
+        uses: mamba-org/provision-with-micromamba@main
         with:
-          python-version: 3.9
-      - name: Install package with test dependencies
-        run: pip install -e .[tests]
-      - name: Run Flake8
-        run: flake8 .
-      - name: Run mypy
-        run: mypy .
-      - name: Run Black
-        run: black --check .
-      - name: Run isort
-        run: isort --check-only .
+          environment-file: env.yaml
+      - name: Install package with requirements
+        run: poetry install
+      - name: Lint
+        run: make lint
 
   test:
     name: Test
     runs-on: ${{ matrix.operating-system }}
+    defaults:
+      run:
+        shell: bash -l {0}
     strategy:
       matrix:
         operating-system: [ubuntu-latest, macos-latest]
-        python-version: [3.8, 3.9]
+        python-version: [3.9, 3.10]
       fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           lfs: true
-      - name: Setup conda
-        uses: actions/setup-python@v2
+      - name: Setup mamba
+        uses: mamba-org/provision-with-micromamba@main
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install package with test dependencies
-        run: pip install .[tests]
+          environment-file: env.yaml
+          extra-specs: python=${{ matrix.python-version }}
+      - name: Install package with requirements
+        run: poetry install
       - name: Run PyTest
         run: pytest

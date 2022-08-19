@@ -7,20 +7,18 @@ on:
 jobs:
   upload:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - name: Setup mamba
+      uses: mamba-org/provision-with-micromamba@main
       with:
-        python-version: '3.8'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine build
+        environment-file: env.yaml
+    - name: Install package with requirements
+      run: poetry install --no-dev
     - name: Build and publish
       env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        python -m build
-        twine upload dist/*
+        POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+      run: poetry publish --build

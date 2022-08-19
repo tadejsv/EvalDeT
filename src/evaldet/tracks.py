@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -17,7 +17,7 @@ _WIDTH_KEY = "width"
 _HEIGHT_KEY = "height"
 
 
-def _add_to_tracks_accumulator(frames: Dict, new_obj: Dict):
+def _add_to_tracks_accumulator(frames: dict, new_obj: dict) -> None:
     frame_num, track_id = int(new_obj[_FRAME_KEY]), int(float(new_obj[_ID_KEY]))
 
     xmin, ymin = float(new_obj[_XMIN_KEY]), float(new_obj[_YMIN_KEY])
@@ -68,7 +68,7 @@ class Tracks:
     def from_csv(
         cls,
         csv_file: Union[str, Path],
-        fieldnames: List[str],
+        fieldnames: list[str],
     ) -> Tracks:
         """Get detections from a CSV file.
 
@@ -93,7 +93,7 @@ class Tracks:
         tracks = cls()
         with open(csv_file, newline="") as file:
             csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
-            frames: Dict[int, Any] = {}
+            frames: dict[int, Any] = {}
 
             for line_num, line in enumerate(csv_reader):
                 try:
@@ -124,7 +124,7 @@ class Tracks:
         return tracks
 
     @classmethod
-    def from_mot(cls, file_path: Union[Path, str]):
+    def from_mot(cls, file_path: Union[Path, str]) -> Tracks:
         """Creates a Tracks object from detections file in the MOT format.
 
         The format should look like this::
@@ -153,7 +153,7 @@ class Tracks:
         return cls.from_csv(file_path, fieldnames)
 
     @classmethod
-    def from_mot_gt(cls, file_path: Union[Path, str]):
+    def from_mot_gt(cls, file_path: Union[Path, str]) -> Tracks:
         """Creates a Tracks object from detections file in the MOT ground truth format.
         This format has some more information compared to the normal
 
@@ -219,7 +219,7 @@ class Tracks:
         cls,
         file_path: Union[Path, str],
         classes_attr_name: Optional[str] = None,
-        classes_list: Optional[List[str]] = None,
+        classes_list: Optional[list[str]] = None,
     ) -> Tracks:
         """Creates a Tracks object from detections file in the UA-DETRAC XML format.
 
@@ -289,9 +289,9 @@ class Tracks:
             tracks_f = frame.find("target_list").findall("target")  # type: ignore
 
             current_frame = int(frame.attrib["num"])
-            detections: List[List[float]] = []
-            classes: List[int] = []
-            ids: List[int] = []
+            detections: list[list[float]] = []
+            classes: list[int] = []
+            ids: list[int] = []
 
             for track in tracks_f:
                 # Get track attributes
@@ -322,7 +322,7 @@ class Tracks:
     def from_cvat_video(
         cls,
         file_path: Union[Path, str],
-        classes_list: List[str],
+        classes_list: list[str],
     ) -> Tracks:
         """Creates a Tracks object from detections file in the CVAT for Video XML
         format.
@@ -371,7 +371,7 @@ class Tracks:
         root = xml_tree.getroot()
         tracks = cls()
 
-        frames: Dict[int, Any] = {}
+        frames: dict[int, Any] = {}
         tracks_cvat = root.findall("track")
         for track_cvat in tracks_cvat:
             track_id = int(track_cvat.attrib[_ID_KEY])
@@ -404,22 +404,22 @@ class Tracks:
 
         return tracks
 
-    def __init__(self):
+    def __init__(self) -> None:
 
-        self._frame_nums = set()
-        self._detections = dict()
-        self._ids = dict()
-        self._classes = dict()
-        self._confs = dict()
+        self._frame_nums: set[int] = set()
+        self._detections: dict[int, np.ndarray] = dict()
+        self._ids: dict[int, np.ndarray] = dict()
+        self._classes: dict[int, np.ndarray] = dict()
+        self._confs: dict[int, np.ndarray] = dict()
 
     def add_frame(
         self,
         frame_num: int,
-        ids: Union[List[int], np.ndarray],
+        ids: Union[list[int], np.ndarray],
         detections: np.ndarray,
-        classes: Optional[Union[List[int], np.ndarray]] = None,
-        confs: Optional[Union[List[float], np.ndarray]] = None,
-    ):
+        classes: Optional[Union[list[int], np.ndarray]] = None,
+        confs: Optional[Union[list[float], np.ndarray]] = None,
+    ) -> None:
         """Add a frame to the collection. Can overwrite existing frame.
 
         Args:
@@ -485,7 +485,7 @@ class Tracks:
         # If all ok, add objects to collections
         self._detections[frame_num] = detections.copy()
 
-        def _to_numpy(x: Union[List, np.ndarray], is_int: bool = True) -> np.ndarray:
+        def _to_numpy(x: Union[list, np.ndarray], is_int: bool = True) -> np.ndarray:
             if isinstance(x, list):
                 return np.array(x).astype(np.int64 if is_int else np.float64)
             else:
@@ -501,7 +501,7 @@ class Tracks:
 
         self._frame_nums.add(frame_num)
 
-    def filter_frame(self, frame_num: int, filter: np.ndarray):
+    def filter_frame(self, frame_num: int, filter: np.ndarray) -> None:
         """Filters a frame and all its objects according to the filter array.
 
         If the result would be that all objects in the frame are filtered out,
@@ -542,7 +542,7 @@ class Tracks:
         if "classes" in frame:
             self._classes[frame_num] = frame["classes"][filter]
 
-    def filter_by_class(self, classes: List[int]):
+    def filter_by_class(self, classes: list[int]) -> None:
         """Filter all frames by classes
 
         This will keep the detections with class label corresponding to one of the
@@ -562,7 +562,7 @@ class Tracks:
                 filter_cls = np.in1d(self._classes[frame], classes)
                 self.filter_frame(frame, filter_cls)
 
-    def filter_by_conf(self, lower_bound: float):
+    def filter_by_conf(self, lower_bound: float) -> None:
         """Filter all frames by confidence
 
         This will keep the detections with confidence value higher or equal to
@@ -584,9 +584,9 @@ class Tracks:
                 self.filter_frame(frame, filter_conf)
 
     @property
-    def all_classes(self) -> Set[int]:
+    def all_classes(self) -> set[int]:
         """Get a set of all classes in the collection."""
-        classes = set()
+        classes: set[int] = set()
         for frame in self._frame_nums:
             if frame in self._classes:
                 classes.update(self._classes[frame])
@@ -594,14 +594,14 @@ class Tracks:
         return classes
 
     @property
-    def ids_count(self) -> Dict[int, int]:
+    def ids_count(self) -> dict[int, int]:
         """Get the number of frames that each id is present in.
 
         Returns:
             A dictionary where keys are the track ids, and values
             are the numbers of frames they appear in.
         """
-        ids_count: Dict[int, int] = dict()
+        ids_count: dict[int, int] = dict()
         for frame in self._frame_nums:
             for _id in self._ids[frame]:
                 ids_count[_id] = ids_count.get(_id, 0) + 1
@@ -609,7 +609,7 @@ class Tracks:
         return ids_count
 
     @property
-    def frames(self) -> Set[int]:
+    def frames(self) -> set[int]:
         """Get an ordered list of all frame numbers in the collection."""
         return self._frame_nums.copy()
 
@@ -620,7 +620,7 @@ class Tracks:
         """Whether the frame ``idx`` is present in the collection."""
         return idx in self._frame_nums
 
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
+    def __getitem__(self, idx: int) -> dict[str, Any]:
         """Get the frame with number ``idx``.
 
         Returns:
@@ -643,7 +643,7 @@ class Tracks:
 
         return return_dict
 
-    def __delitem__(self, frame_num: int):
+    def __delitem__(self, frame_num: int) -> None:
         """Remove the frame with number ``frame_num``"""
 
         if frame_num not in self:

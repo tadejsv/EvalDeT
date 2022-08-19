@@ -1,11 +1,11 @@
 import numpy as np
-from scipy.optimize import linear_sum_assignment  # type: ignore
+from scipy.optimize import linear_sum_assignment
 
 from . import Tracks
 from .dist import iou_dist
 
 
-def preprocess_mot_1720(gt: Tracks, hyp: Tracks, mot_20: bool = True):
+def preprocess_mot_1720(gt: Tracks, hyp: Tracks, mot_20: bool = True) -> None:
     distractor_cls_ids = [2, 7, 8, 12]
     if mot_20:
         distractor_cls_ids.append(6)
