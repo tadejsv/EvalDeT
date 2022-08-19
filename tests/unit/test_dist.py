@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 import pytest
 
@@ -7,7 +5,7 @@ from evaldet.dist import iou_dist, iou_dist_pairwise
 
 
 @pytest.fixture
-def sample_inputs() -> Tuple[np.ndarray, np.ndarray]:
+def sample_inputs() -> tuple[np.ndarray, np.ndarray]:
     inputs_1 = np.array(
         [
             [0, 0, 1, 1],
@@ -30,7 +28,7 @@ def sample_inputs() -> Tuple[np.ndarray, np.ndarray]:
     return inputs_1, inputs_2
 
 
-def test_pairwise_distance(sample_inputs: Tuple[np.ndarray, np.ndarray]):
+def test_pairwise_distance(sample_inputs: tuple[np.ndarray, np.ndarray]):
     inputs_1, inputs_2 = sample_inputs
     exp_results = np.array([0, 1, 1, 0.75, 0.937931])
 
@@ -41,7 +39,7 @@ def test_pairwise_distance(sample_inputs: Tuple[np.ndarray, np.ndarray]):
     np.testing.assert_array_almost_equal(exp_results, iou2)
 
 
-def test_matrix_dist(sample_inputs: Tuple[np.ndarray, np.ndarray]):
+def test_matrix_dist(sample_inputs: tuple[np.ndarray, np.ndarray]):
     inputs_1, inputs_2 = sample_inputs
     line_results = np.array([0, 1, 1, 0.75, 0.937931])
     exp_results1 = np.tile(line_results, (inputs_1.shape[0], 1))

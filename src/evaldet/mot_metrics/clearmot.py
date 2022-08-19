@@ -1,8 +1,8 @@
 import logging
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Union
 
 import numpy as np
-from scipy.optimize import linear_sum_assignment  # type: ignore
+from scipy.optimize import linear_sum_assignment
 
 from ..dist import iou_dist, iou_dist_pairwise
 from ..tracks import Tracks
@@ -10,21 +10,21 @@ from ..tracks import Tracks
 logger = logging.getLogger(__name__)
 
 
-def _indices_present(big_list: np.ndarray, candidates: List) -> List[int]:
+def _indices_present(big_list: np.ndarray, candidates: list) -> list[int]:
     big_list_list = big_list.tolist()
     return [big_list_list.index(i) for i in candidates]
 
 
-def _indices_non_present(big_list: np.ndarray, candidates: List) -> List[int]:
+def _indices_non_present(big_list: np.ndarray, candidates: list) -> list[int]:
     return [i for i, val in enumerate(big_list) if val not in candidates]
 
 
 def _get_detections_part(
-    matching: Dict[int, int],
-    gt: Dict[str, Any],
-    hyp: Dict[str, Any],
+    matching: dict[int, int],
+    gt: dict[str, Any],
+    hyp: dict[str, Any],
     matching_part: bool = True,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     if not matching_part:
         ind_gt = _indices_non_present(gt["ids"], list(matching.keys()))
         ind_hyp = _indices_non_present(hyp["ids"], list(matching.values()))
@@ -40,7 +40,7 @@ def _get_detections_part(
 
 def calculate_clearmot_metrics(
     ground_truth: Tracks, hypotheses: Tracks, dist_threshold: float = 0.5
-) -> Dict[str, Union[float, int]]:
+) -> dict[str, Union[float, int]]:
 
     all_frames = sorted(ground_truth.frames.union(hypotheses.frames))
 
@@ -50,13 +50,13 @@ def calculate_clearmot_metrics(
     ground_truths = 0
 
     matches_dist = []
-    matching: Dict[int, int] = {}
+    matching: dict[int, int] = {}
 
     # This is here because, contrary to what is said in the paper,
     # matching, for the purpose of counting mismatches, actually persists:
     # even if a gt looses its hypotheses, it is still "bound" to it until
     # it matches to another one - then this becomes a mismatch
-    matching_persist: Dict[int, int] = {}
+    matching_persist: dict[int, int] = {}
 
     for frame in all_frames:
         if frame not in ground_truth:

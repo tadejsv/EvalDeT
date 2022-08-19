@@ -1,4 +1,4 @@
-from typing import Dict, Sequence, Union
+from typing import Sequence, Union
 
 import numpy as np
 
@@ -25,7 +25,7 @@ _ALLOWED_MOT_METRICS = _CLEARMOT_METRICS + _ID_METRICS + _HOTA_METRICS
 
 def compute_mot_metrics(
     metrics: Sequence[str], ground_truth: Tracks, detections: Tracks
-) -> Dict[str, Union[int, float, np.ndarray]]:
+) -> dict[str, Union[int, float, np.ndarray]]:
     """Compute multi-object tracking (MOT) metrics.
 
     Right now, the following metrics can be computed
@@ -105,7 +105,7 @@ def compute_mot_metrics(
     if not len(ground_truth):
         raise ValueError("No objects in ``ground_truths``, nothing to compute.")
 
-    results: Dict[str, Union[int, float, np.ndarray]] = {}
+    results: dict[str, Union[int, float, np.ndarray]] = {}
 
     mot_metrics = set(_CLEARMOT_METRICS).intersection(metrics)
     if mot_metrics:

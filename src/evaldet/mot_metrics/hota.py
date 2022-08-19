@@ -1,7 +1,7 @@
-from typing import Dict, Union
+from typing import Union
 
 import numpy as np
-from scipy.optimize import linear_sum_assignment  # type: ignore
+from scipy.optimize import linear_sum_assignment
 
 from ..dist import iou_dist
 from ..tracks import Tracks
@@ -11,7 +11,7 @@ _EPS = 1 / 1000
 
 def calculate_hota_metrics(
     ground_truth: Tracks, hypotheses: Tracks
-) -> Dict[str, Union[float, np.ndarray]]:
+) -> dict[str, Union[float, np.ndarray]]:
 
     gts = tuple(ground_truth.ids_count.keys())
     gts_counts = tuple(ground_truth.ids_count.values())
@@ -57,7 +57,7 @@ def calculate_hota_metrics(
         for a_ind in range(len(alphas)):
             opt_matrix = ((dist_matrix < alphas[a_ind]) / _EPS).astype(np.float64)
             opt_matrix += A_max[a_ind][np.ix_(gt_idx_ids, hyp_idx_ids)]
-            opt_matrix += (1 - dist_matrix) * _EPS  # type: ignore
+            opt_matrix += (1 - dist_matrix) * _EPS
 
             # Calculate matching as a LAP
             matching_inds = linear_sum_assignment(opt_matrix, maximize=True)
