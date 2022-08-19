@@ -16,7 +16,7 @@ def test_missing_frame_hyp():
 
     assert metrics["FN_CLEAR"] == 1
     assert metrics["FP_CLEAR"] == 0
-    assert metrics["IDS"] == 0
+    assert metrics["IDSW"] == 0
 
 
 def test_missing_frame_gt():
@@ -28,7 +28,7 @@ def test_missing_frame_gt():
     hyp.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
     metrics = calculate_clearmot_metrics(gt, hyp)
 
-    assert metrics["IDS"] == 0
+    assert metrics["IDSW"] == 0
     assert metrics["FN_CLEAR"] == 0
     assert metrics["FP_CLEAR"] == 1
 
@@ -41,7 +41,7 @@ def test_no_association_made():
     hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
     metrics = calculate_clearmot_metrics(gt, hyp)
 
-    assert metrics["IDS"] == 0
+    assert metrics["IDSW"] == 0
     assert metrics["FN_CLEAR"] == 1
     assert metrics["FP_CLEAR"] == 1
     assert metrics["MOTA"] == -1  # Stange but ok
@@ -84,7 +84,7 @@ def test_sticky_association():
 
     metrics = calculate_clearmot_metrics(gt, hyp)
     assert metrics["FN_CLEAR"] == 0
-    assert metrics["IDS"] == 0
+    assert metrics["IDSW"] == 0
     assert metrics["FP_CLEAR"] == 1
 
 
@@ -99,7 +99,7 @@ def test_mismatch():
 
     metrics = calculate_clearmot_metrics(gt, hyp)
     assert metrics["FN_CLEAR"] == 0
-    assert metrics["IDS"] == 1
+    assert metrics["IDSW"] == 1
     assert metrics["FP_CLEAR"] == 0
 
 
@@ -118,7 +118,7 @@ def test_persistent_mismatch():
 
     metrics = calculate_clearmot_metrics(gt, hyp)
     assert metrics["FN_CLEAR"] == 1
-    assert metrics["IDS"] == 1
+    assert metrics["IDSW"] == 1
     assert metrics["FP_CLEAR"] == 0
 
 
@@ -136,7 +136,7 @@ def test_simple_case():
 
     metrics = calculate_clearmot_metrics(gt, hyp)
     assert metrics["FN_CLEAR"] == 1
-    assert metrics["IDS"] == 1
+    assert metrics["IDSW"] == 1
     assert metrics["FP_CLEAR"] == 1
     assert metrics["MOTA"] == 0.5
     assert metrics["MOTP"] == 0.0994008537355717

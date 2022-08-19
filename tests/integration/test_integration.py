@@ -3,33 +3,24 @@ import numpy as np
 from evaldet import Tracks, compute_mot_metrics
 from evaldet.utils import preprocess_mot_1720
 
-_TUD_METRICS = (
-    "MOTA",
-    "MOTP",
-    "FP_CLEAR",
-    "FN_CLEAR",
-    "IDS",
-    "IDP",
-    "IDR",
-    "IDF1",
-    "HOTA",
-    "DetA",
-    "AssA",
-    "LocA",
-)
-
 
 def test_tud_campus():
     gt = Tracks.from_mot("tests/data/integration/tud_campus_gt.csv")
     hyp = Tracks.from_mot("tests/data/integration/tud_campus_hyp.csv")
 
-    results = compute_mot_metrics(metrics=_TUD_METRICS, ground_truth=gt, detections=hyp)
+    results = compute_mot_metrics(
+        clearmot_metrics=True,
+        hota_metrics=True,
+        id_metrics=True,
+        ground_truth=gt,
+        detections=hyp,
+    )
     exp_results = {
         "MOTA": 0.526,
         "MOTP": 0.277,
         "FP_CLEAR": 13,
         "FN_CLEAR": 150,
-        "IDS": 7,
+        "IDSW": 7,
         "IDP": 0.730,
         "IDR": 0.451,
         "IDF1": 0.558,
@@ -39,7 +30,7 @@ def test_tud_campus():
         "LocA": 0.768,  # Does not correspond exactly to original
     }
 
-    for key in results:
+    for key in exp_results:
         np.testing.assert_array_almost_equal(results[key], exp_results[key], decimal=3)
 
     # Check that the results are similar to those obtained with TrackEval
@@ -61,13 +52,19 @@ def test_tud_stadtmitte():
     gt = Tracks.from_mot("tests/data/integration/tud_stadtmitte_gt.csv")
     hyp = Tracks.from_mot("tests/data/integration/tud_stadtmitte_hyp.csv")
 
-    results = compute_mot_metrics(metrics=_TUD_METRICS, ground_truth=gt, detections=hyp)
+    results = compute_mot_metrics(
+        clearmot_metrics=True,
+        hota_metrics=True,
+        id_metrics=True,
+        ground_truth=gt,
+        detections=hyp,
+    )
     exp_results = {
         "MOTA": 0.564,
         "MOTP": 0.346,
         "FP_CLEAR": 45,
         "FN_CLEAR": 452,
-        "IDS": 7,
+        "IDSW": 7,
         "IDP": 0.820,
         "IDR": 0.531,
         "IDF1": 0.645,
@@ -77,7 +74,7 @@ def test_tud_stadtmitte():
         "LocA": 0.733,  # Does not correspond exactly to original
     }
 
-    for key in results:
+    for key in exp_results:
         np.testing.assert_array_almost_equal(results[key], exp_results[key], decimal=3)
 
     # Check that the results are similar to those obtained with TrackEval
@@ -100,13 +97,19 @@ def test_mot20_01():
     hyp = Tracks.from_mot("tests/data/integration/MOT20-01_MPNTrack_hyp.csv")
     preprocess_mot_1720(gt, hyp)
 
-    results = compute_mot_metrics(metrics=_TUD_METRICS, ground_truth=gt, detections=hyp)
+    results = compute_mot_metrics(
+        clearmot_metrics=True,
+        hota_metrics=True,
+        id_metrics=True,
+        ground_truth=gt,
+        detections=hyp,
+    )
     exp_results = {
         "MOTA": 0.659,
         "MOTP": 1 - 0.833,
         "FP_CLEAR": 391,
         "FN_CLEAR": 6338,
-        "IDS": 53,
+        "IDSW": 53,
         "IDP": 0.822,
         "IDR": 0.576,
         "IDF1": 0.677,
@@ -116,7 +119,7 @@ def test_mot20_01():
         "LocA": 0.844,  # Does not correspond exactly to original
     }
 
-    for key in results:
+    for key in exp_results:
         np.testing.assert_array_almost_equal(results[key], exp_results[key], decimal=3)
 
     # Check that the results are similar to those obtained with TrackEval
@@ -139,13 +142,19 @@ def test_mot20_03():
     hyp = Tracks.from_mot("tests/data/integration/MOT20-03_MPNTrack_hyp.csv")
     preprocess_mot_1720(gt, hyp)
 
-    results = compute_mot_metrics(metrics=_TUD_METRICS, ground_truth=gt, detections=hyp)
+    results = compute_mot_metrics(
+        clearmot_metrics=True,
+        hota_metrics=True,
+        id_metrics=True,
+        ground_truth=gt,
+        detections=hyp,
+    )
     exp_results = {
         "MOTA": 0.78031,
         "MOTP": 1 - 0.81614,
         "FP_CLEAR": 3083,  # Original is 3977, unexplained diff
         "FN_CLEAR": 65542,  # Original is 65536, unexplained diff
-        "IDS": 293,  # Original is 294, unexplained diff
+        "IDSW": 293,  # Original is 294, unexplained diff
         "IDP": 0.88783,
         "IDR": 0.71104,
         "IDF1": 0.78966,
@@ -155,7 +164,7 @@ def test_mot20_03():
         "LocA": 0.8318,  # Does not correspond exactly to original
     }
 
-    for key in results:
+    for key in exp_results:
         np.testing.assert_array_almost_equal(results[key], exp_results[key], decimal=3)
 
     # Check that the results are similar to those obtained with TrackEval
