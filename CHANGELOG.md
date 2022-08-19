@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [Unreleased]
+
+### Changed
+
+* Increase minimum Python version to 3.9  ([#16](https://github.com/sasp-ai/EvalDeT/pull/12))
+* Switch packaging system to Poetry  ([#16](https://github.com/sasp-ai/EvalDeT/pull/12))
+
 ## [0.1.2] - 2022-08-14
 
 ### Added
