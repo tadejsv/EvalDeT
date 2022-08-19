@@ -1,4 +1,4 @@
-from typing import Union
+import typing as t
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -9,9 +9,19 @@ from ..tracks import Tracks
 _EPS = 1 / 1000
 
 
-def calculate_hota_metrics(
-    ground_truth: Tracks, hypotheses: Tracks
-) -> dict[str, Union[float, np.ndarray]]:
+class HOTAResults(t.TypedDict, total=False):
+    HOTA: float
+    DetA: float
+    AssA: float
+    LocA: float
+    alphas_HOTA: np.ndarray
+    HOTA_alpha: np.ndarray
+    DetA_alpha: np.ndarray
+    AssA_alpha: np.ndarray
+    LocA_alpha: np.ndarray
+
+
+def calculate_hota_metrics(ground_truth: Tracks, hypotheses: Tracks) -> HOTAResults:
 
     gts = tuple(ground_truth.ids_count.keys())
     gts_counts = tuple(ground_truth.ids_count.values())

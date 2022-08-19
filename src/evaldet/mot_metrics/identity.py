@@ -1,4 +1,4 @@
-from typing import Union
+import typing as t
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -7,9 +7,18 @@ from ..dist import iou_dist
 from ..tracks import Tracks
 
 
+class IDResults(t.TypedDict, total=False):
+    IDTP: float
+    IDFP: float
+    IDFN: float
+    IDP: float
+    IDR: float
+    IDF1: float
+
+
 def calculate_id_metrics(
     ground_truth: Tracks, hypotheses: Tracks, dist_threshold: float = 0.5
-) -> dict[str, Union[float, int]]:
+) -> IDResults:
 
     gts = tuple(ground_truth.ids_count.keys())
     gts_counts = tuple(ground_truth.ids_count.values())

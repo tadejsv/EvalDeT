@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Union
+from typing import Any, TypedDict
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -38,9 +38,17 @@ def _get_detections_part(
     return det_gt, det_hyp
 
 
+class CLEARMOTResults(TypedDict, total=False):
+    MOTP: float
+    MOTA: float
+    FP_CLEAR: float
+    FN_CLEAR: float
+    IDSW: float
+
+
 def calculate_clearmot_metrics(
     ground_truth: Tracks, hypotheses: Tracks, dist_threshold: float = 0.5
-) -> dict[str, Union[float, int]]:
+) -> CLEARMOTResults:
 
     all_frames = sorted(ground_truth.frames.union(hypotheses.frames))
 
@@ -120,5 +128,5 @@ def calculate_clearmot_metrics(
         "MOTA": mota,
         "FP_CLEAR": false_positives,
         "FN_CLEAR": false_negatives,
-        "IDS": mismatches,
+        "IDSW": mismatches,
     }

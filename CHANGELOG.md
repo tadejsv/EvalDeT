@@ -9,22 +9,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-* Increase minimum Python version to 3.9  ([#16](https://github.com/sasp-ai/EvalDeT/pull/12))
-* Switch packaging system to Poetry  ([#16](https://github.com/sasp-ai/EvalDeT/pull/12))
+* MOT Metrics are now computed using the `MOTMetrics` class, which enables efficient sharing of pre-computed IoU distances across metrics ([#17](https://github.com/tadejsv/EvalDeT/pull/12))
+* Increase minimum Python version to 3.9  ([#16](https://github.com/tadejsv/EvalDeT/pull/12))
+* Switch packaging system to Poetry  ([#16](https://github.com/tadejsv/EvalDeT/pull/12))
 
 ## [0.1.2] - 2022-08-14
 
 ### Added
 
-* More integration tests (though for some reason, there are discrepancies with official results at times) ([#12](https://github.com/sasp-ai/EvalDeT/pull/12))
-* Filtering method for tracks (`filter_by_class`, `filter_by_conf`) ([#12](https://github.com/sasp-ai/EvalDeT/pull/12))
-* General method for reading CSV file (`from_csv`), reading MOT gt files (`from_mot_gt`) ([#12](https://github.com/sasp-ai/EvalDeT/pull/12))
+* More integration tests (though for some reason, there are discrepancies with official results at times) ([#12](https://github.com/tadejsv/EvalDeT/pull/12))
+* Filtering method for tracks (`filter_by_class`, `filter_by_conf`) ([#12](https://github.com/tadejsv/EvalDeT/pull/12))
+* General method for reading CSV file (`from_csv`), reading MOT gt files (`from_mot_gt`) ([#12](https://github.com/tadejsv/EvalDeT/pull/12))
 
 
 ### Changed
 
-* Version large files for integration tests with `git-lfs` ([#12](https://github.com/sasp-ai/EvalDeT/pull/12))
-* All `Track` class methods for reading CSV files become just a wrapper around `from_csv` ([#12](https://github.com/sasp-ai/EvalDeT/pull/12))
+* Version large files for integration tests with `git-lfs` ([#12](https://github.com/tadejsv/EvalDeT/pull/12))
+* All `Track` class methods for reading CSV files become just a wrapper around `from_csv` ([#12](https://github.com/tadejsv/EvalDeT/pull/12))
 
 ## [0.1.1] - 2021-08-14
 
