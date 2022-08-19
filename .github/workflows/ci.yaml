@@ -33,7 +33,7 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest, macos-latest]
-        python-version: [3.9, 3.10]
+        python-version: ["3.9", "3.10"]
       fail-fast: false
     steps:
       - name: Checkout
