@@ -14,7 +14,7 @@ def preprocess_mot_1720(gt: Tracks, hyp: Tracks, mot_20: bool = True) -> None:
 
     all_frames = sorted(set(gt.frames).intersection(hyp.frames))
     for frame in all_frames:
-        dist_matrix = iou_dist(gt[frame]["detections"], hyp[frame]["detections"])
+        dist_matrix = iou_dist(gt[frame].detections, hyp[frame].detections)
         dist_matrix[dist_matrix > 0.5] = 1
         matches_row, matches_col = linear_sum_assignment(dist_matrix)
 
@@ -22,11 +22,13 @@ def preprocess_mot_1720(gt: Tracks, hyp: Tracks, mot_20: bool = True) -> None:
         matches_row = matches_row[matches_filter]
         matches_col = matches_col[matches_filter]
 
+        classes = gt[frame].classes
+        assert classes is not None
         is_distractor = np.in1d(
-            gt[frame]["classes"][matches_row], distractor_cls_ids, assume_unique=True
+            classes[matches_row], distractor_cls_ids, assume_unique=True
         )
         to_remove_hyp = np.in1d(
-            np.arange(len(hyp[frame]["ids"])),
+            np.arange(len(hyp[frame].ids)),
             matches_col[is_distractor],
             assume_unique=True,
         )

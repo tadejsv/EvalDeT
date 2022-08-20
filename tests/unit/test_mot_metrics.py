@@ -4,7 +4,7 @@ from evaldet import Tracks, compute_mot_metrics
 
 
 def test_error_empty_metrics():
-    with pytest.raises(ValueError, match=r"The ``metrics`` sequence is empty"):
+    with pytest.raises(ValueError, match="You must select some metrics"):
         compute_mot_metrics(
             Tracks(),
             Tracks(),
