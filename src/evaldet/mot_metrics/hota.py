@@ -22,7 +22,7 @@ class HOTAResults(t.TypedDict):
 
 
 class HOTAMetrics(MOTMetricBase):
-    def calculate_hota_metrics(
+    def _calculate_hota_metrics(
         self, ground_truth: Tracks, hypotheses: Tracks
     ) -> HOTAResults:
 

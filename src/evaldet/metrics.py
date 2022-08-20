@@ -104,21 +104,21 @@ class MOTMetrics(CLEARMOTMetrics, IDMetrics, HOTAMetrics):
         self._precompute_iou(ground_truth, hypotheses)
 
         if clearmot_metrics:
-            clrmt_metrics = self.calculate_clearmot_metrics(
+            clrmt_metrics = self._calculate_clearmot_metrics(
                 ground_truth, hypotheses, self._clearmot_dist_threshold
             )
         else:
             clrmt_metrics = None
 
         if id_metrics:
-            id_metrics_res = self.calculate_id_metrics(
+            id_metrics_res = self._calculate_id_metrics(
                 ground_truth, hypotheses, self._id_dist_threshold
             )
         else:
             id_metrics_res = None
 
         if hota_metrics:
-            hota_metrics_res = self.calculate_hota_metrics(ground_truth, hypotheses)
+            hota_metrics_res = self._calculate_hota_metrics(ground_truth, hypotheses)
         else:
             hota_metrics_res = None
 

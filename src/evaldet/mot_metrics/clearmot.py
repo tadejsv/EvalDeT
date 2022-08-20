@@ -19,7 +19,7 @@ class CLEARMOTResults(t.TypedDict):
 
 
 class CLEARMOTMetrics(MOTMetricBase):
-    def calculate_clearmot_metrics(
+    def _calculate_clearmot_metrics(
         self, ground_truth: Tracks, hypotheses: Tracks, dist_threshold: float = 0.5
     ) -> CLEARMOTResults:
 

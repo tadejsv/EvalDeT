@@ -17,7 +17,7 @@ class IDResults(t.TypedDict):
 
 
 class IDMetrics(MOTMetricBase):
-    def calculate_id_metrics(
+    def _calculate_id_metrics(
         self, ground_truth: Tracks, hypotheses: Tracks, dist_threshold: float = 0.5
     ) -> IDResults:
 
