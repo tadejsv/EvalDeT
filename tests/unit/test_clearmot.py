@@ -153,14 +153,14 @@ def test_simple_case():
     m = MOTMetrics()
 
     gt = Tracks()
-    gt.add_frame(0, [0, 1], np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
-    gt.add_frame(1, [0, 1], np.array([[0, 0, 1, 1], [2, 2, 3, 3]]))
-    gt.add_frame(2, [0, 1], np.array([[0, 0, 1, 1], [2, 2, 3, 3]]))
+    gt.add_frame(0, [0, 1], np.array([[0, 0, 1, 1], [1, 1, 1, 1]]))
+    gt.add_frame(1, [0, 1], np.array([[0, 0, 1, 1], [2, 2, 1, 1]]))
+    gt.add_frame(2, [0, 1], np.array([[0, 0, 1, 1], [2, 2, 1, 1]]))
 
     hyp = Tracks()
-    hyp.add_frame(0, [0, 1], np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
-    hyp.add_frame(1, [0, 1], np.array([[0.1, 0.1, 1.1, 1.1], [1, 1, 2, 2]]))
-    hyp.add_frame(2, [2, 1], np.array([[0.05, 0.05, 1.05, 1.05], [2, 2, 3, 3]]))
+    hyp.add_frame(0, [0, 1], np.array([[0, 0, 1, 1], [1, 1, 1, 1]]))
+    hyp.add_frame(1, [0, 1], np.array([[0.1, 0.1, 1, 1], [1, 1, 1, 1]]))
+    hyp.add_frame(2, [2, 1], np.array([[0.05, 0.05, 1, 1], [2, 2, 1, 1]]))
 
     metrics = m.compute(
         gt, hyp, clearmot_metrics=True, id_metrics=False, hota_metrics=False

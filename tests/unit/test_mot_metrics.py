@@ -1,11 +1,12 @@
 import pytest
 
-from evaldet import Tracks, compute_mot_metrics
+from evaldet import MOTMetrics, Tracks
 
 
 def test_error_empty_metrics():
+    m = MOTMetrics()
     with pytest.raises(ValueError, match="You must select some metrics"):
-        compute_mot_metrics(
+        m.compute(
             Tracks(),
             Tracks(),
             clearmot_metrics=False,
@@ -15,5 +16,6 @@ def test_error_empty_metrics():
 
 
 def test_error_empty_ground_truth():
+    m = MOTMetrics()
     with pytest.raises(ValueError, match=r"No objects in ``ground_truths``"):
-        compute_mot_metrics(Tracks(), Tracks())
+        m.compute(Tracks(), Tracks())
