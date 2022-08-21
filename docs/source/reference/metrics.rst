@@ -1,4 +1,8 @@
 Metrics
 =======
 
-.. autofunction:: evaldet.compute_mot_metrics
+.. autoclass:: evaldet::MOTMetrics
+    :members:
+
+.. autoclass:: evaldet::metrics.MOTMetricsResults
+    :members:

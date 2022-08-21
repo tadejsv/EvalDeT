@@ -28,8 +28,12 @@ class HOTAMetrics(MOTMetricBase):
 
         gts = tuple(ground_truth.ids_count.keys())
         gts_counts = tuple(ground_truth.ids_count.values())
+        gts_id_ind_dict = {_id: ind for ind, _id in enumerate(gts)}
+
         hyps = tuple(hypotheses.ids_count.keys())
         hyps_counts = tuple(hypotheses.ids_count.values())
+        hyps_id_ind_dict = {_id: ind for ind, _id in enumerate(hyps)}
+
         n_gt, n_hyp = len(gts), len(hyps)
 
         alphas = np.arange(0.05, 0.96, 0.05)  # from 0.05 to 0.95 inclusive
@@ -48,33 +52,34 @@ class HOTAMetrics(MOTMetricBase):
         for frame in sorted(set(ground_truth.frames).intersection(hypotheses.frames)):
             dist_matrix = self._get_iou_frame(frame)
 
-            gt_idx_ids = [gts.index(x) for x in ground_truth[frame].ids]
-            hyp_idx_ids = [hyps.index(x) for x in hypotheses[frame].ids]
+            gt_frame_inds = [gts_id_ind_dict[_id] for _id in ground_truth[frame].ids]
+            hyp_frame_inds = [hyps_id_ind_dict[_id] for _id in hypotheses[frame].ids]
 
             for a_ind in range(len(alphas)):
                 for row_ind, col_ind in np.argwhere(dist_matrix < alphas[a_ind]):
-                    TPA_max[a_ind, gt_idx_ids[row_ind], hyp_idx_ids[col_ind]] += 1
+                    TPA_max[a_ind, gt_frame_inds[row_ind], hyp_frame_inds[col_ind]] += 1
 
         # Compute optimistic A_max, to be used for actual matching
         A_max = TPA_max / (FNA_max + FPA_max - TPA_max)
-
         # Do the actual matching
         for frame in sorted(set(ground_truth.frames).intersection(hypotheses.frames)):
             dist_matrix = self._get_iou_frame(frame)
 
-            gt_idx_ids = [gts.index(x) for x in ground_truth[frame].ids]
-            hyp_idx_ids = [hyps.index(x) for x in hypotheses[frame].ids]
+            gt_ids_f = ground_truth[frame].ids
+            hyp_ids_f = hypotheses[frame].ids
+            gt_frame_inds = [gts_id_ind_dict[_id] for _id in gt_ids_f]
+            hyp_frame_inds = [hyps_id_ind_dict[_id] for _id in hyp_ids_f]
 
             for a_ind in range(len(alphas)):
                 opt_matrix = ((dist_matrix < alphas[a_ind]) / _EPS).astype(np.float64)
-                opt_matrix += A_max[a_ind][np.ix_(gt_idx_ids, hyp_idx_ids)]
+                opt_matrix += A_max[a_ind][np.ix_(gt_frame_inds, hyp_frame_inds)]
                 opt_matrix += (1 - dist_matrix) * _EPS
 
                 # Calculate matching as a LAP
                 matching_inds = linear_sum_assignment(opt_matrix, maximize=True)
                 for row_ind, col_ind in zip(*matching_inds):
                     if dist_matrix[row_ind, col_ind] < alphas[a_ind]:
-                        TPA[a_ind, gt_idx_ids[row_ind], hyp_idx_ids[col_ind]] += 1
+                        TPA[a_ind, gt_frame_inds[row_ind], hyp_frame_inds[col_ind]] += 1
                         LocAs[a_ind] += 1 - dist_matrix[row_ind, col_ind]
 
         # Compute proper scores

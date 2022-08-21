@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from . import Tracks
-from .dist import iou_dist
+from evaldet import Tracks
+from evaldet.dist import iou_dist
 
 
 def preprocess_mot_1720(gt: Tracks, hyp: Tracks, mot_20: bool = True) -> None:

@@ -37,12 +37,11 @@ class IDMetrics(MOTMetricBase):
 
         for frame in sorted(set(ground_truth.frames).intersection(hypotheses.frames)):
             dist_matrix = self._get_iou_frame(frame)
+            gt_frame_inds = [gts_id_ind_dict[_id] for _id in ground_truth[frame].ids]
+            htp_frame_inds = [hyps_id_ind_dict[_id] for _id in hypotheses[frame].ids]
 
             for gt_ind, hyp_ind in np.argwhere(dist_matrix < dist_threshold):
-                matching[
-                    gts_id_ind_dict[ground_truth[frame].ids[gt_ind]],
-                    hyps_id_ind_dict[hypotheses[frame].ids[hyp_ind]],
-                ] += 1
+                matching[gt_frame_inds[gt_ind], htp_frame_inds[hyp_ind]] += 1
 
         fn_matrix, fp_matrix = np.zeros_like(matching), np.zeros_like(matching)
         fp_matrix[:, :n_hyp] = np.tile(hyps_counts, (max(n_hyp, n_gt), 1))

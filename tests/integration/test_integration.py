@@ -1,7 +1,7 @@
 import numpy as np
 
 from evaldet import MOTMetrics, Tracks
-from evaldet.utils import preprocess_mot_1720
+from evaldet.utils.preprocess import preprocess_mot_1720
 
 
 def test_tud_campus():

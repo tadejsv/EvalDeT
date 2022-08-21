@@ -33,10 +33,8 @@ class CLEARMOTMetrics(MOTMetricBase):
         matches_dist = []
         matching: dict[int, int] = {}
 
-        # This is here because, contrary to what is said in the paper,
-        # matching, for the purpose of counting mismatches, actually persists:
-        # even if a gt looses its hypotheses, it is still "bound" to it until
-        # it matches to another one - then this becomes a mismatch
+        # This is the persistent matching dictionary, used to check for mismatches
+        # when a previously matched hypothesis is re-matched with a ground truth
         matching_persist: dict[int, int] = {}
 
         for frame in all_frames:
@@ -68,12 +66,10 @@ class CLEARMOTMetrics(MOTMetricBase):
                         matches_dist.append(dist_match)
 
                 # For remaining (non-matching) gts/detections, compute matching as a LAP
-                inds_nm_gt = np.where(
-                    np.isin(gt.ids, tuple(matching.keys()), invert=True)
-                )[0]
-                inds_nm_hyp = np.where(
-                    np.isin(hyp.ids, tuple(matching.values()), invert=True)
-                )[0]
+                match_gt_ids = tuple(matching.keys())
+                match_hyp_ids = tuple(matching.values())
+                inds_nm_gt = np.where(np.isin(gt.ids, match_gt_ids, invert=True))[0]
+                inds_nm_hyp = np.where(np.isin(hyp.ids, match_hyp_ids, invert=True))[0]
                 dist_matrix = ious[np.ix_(inds_nm_gt, inds_nm_hyp)]
 
                 for row_ind, col_ind in zip(*linear_sum_assignment(dist_matrix)):

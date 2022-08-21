@@ -16,14 +16,13 @@ Distance
 .. autosummary::
 
    dist.iou_dist
-   dist.iou_dist_pairwise
 
 Metrics
 -------
 
 .. autosummary::
 
-   compute_mot_metrics
+   MOTMetrics
 
 
 Tracks
