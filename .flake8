@@ -1,5 +1,8 @@
+[flake8]
 max-line-length = 88
 extend-ignore = E203
 extend-exclude =
   docs/source/conf.py,
   build/*
+per-file-ignores =
+    src/evaldet/tracks.py:E501

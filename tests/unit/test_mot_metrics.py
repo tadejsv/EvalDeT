@@ -1,18 +1,21 @@
 import pytest
 
-from evaldet import Tracks, compute_mot_metrics
-
-
-def test_error_not_allowed_metrics():
-    with pytest.raises(ValueError, match=r"These .* \[\'wrong\'\]"):
-        compute_mot_metrics(["wrong", "MOTA"], Tracks(), Tracks())
+from evaldet import MOTMetrics, Tracks
 
 
 def test_error_empty_metrics():
-    with pytest.raises(ValueError, match=r"The ``metrics`` sequence is empty"):
-        compute_mot_metrics([], Tracks(), Tracks())
+    m = MOTMetrics()
+    with pytest.raises(ValueError, match="You must select some metrics"):
+        m.compute(
+            Tracks(),
+            Tracks(),
+            clearmot_metrics=False,
+            hota_metrics=False,
+            id_metrics=False,
+        )
 
 
 def test_error_empty_ground_truth():
+    m = MOTMetrics()
     with pytest.raises(ValueError, match=r"No objects in ``ground_truths``"):
-        compute_mot_metrics(["MOTA"], Tracks(), Tracks())
+        m.compute(Tracks(), Tracks())

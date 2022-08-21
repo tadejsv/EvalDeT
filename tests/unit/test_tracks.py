@@ -47,9 +47,9 @@ def sample_tracks() -> Tracks:
         ids=[1, 2, 3],
         detections=np.array(
             [
-                [323.83, 104.06, 367.6, 139.49],
-                [273.1, 88.77, 328.69, 113.09],
-                [375.24, 80.43, 401.65, 102.67],
+                [323.83, 104.06, 43.77, 35.43],
+                [273.1, 88.77, 55.59, 24.32],
+                [375.24, 80.43, 26.41, 22.24],
             ]
         ),
         classes=[2, 2, 2],
@@ -59,9 +59,9 @@ def sample_tracks() -> Tracks:
         ids=[1, 2, 3],
         detections=np.array(
             [
-                [320.98, 105.24, 365.65, 140.95],
-                [273.1, 88.88, 328.8, 113.4],
-                [374.69, 80.78, 401.09, 103.01],
+                [320.98, 105.24, 44.67, 35.71],
+                [273.1, 88.88, 55.7, 24.52],
+                [374.69, 80.78, 26.4, 22.23],
             ]
         ),
         classes=[2, 2, 2],
@@ -70,10 +70,7 @@ def sample_tracks() -> Tracks:
         800,
         ids=[2, 4],
         detections=np.array(
-            [
-                [329.27, 96.65, 385.8, 129.1],
-                [0.0, 356.7, 76.6, 479.37],
-            ]
+            [[329.27, 96.65, 56.53, 32.45], [0.0, 356.7, 76.6, 122.67]]
         ),
         classes=[2, 2],
     )
@@ -109,16 +106,6 @@ def test_mismatch_len_ids_classes(empty_tracks: Tracks):
 def test_wrong_num_cols_detections(empty_tracks: Tracks):
     with pytest.raises(ValueError, match="The `detections` should be an Nx4"):
         empty_tracks.add_frame(0, [0], np.array([[0, 0, 1]]))
-
-
-def test_wrong_x_coords(empty_tracks: Tracks):
-    with pytest.raises(ValueError, match="Detections have to be in the .* one of xmax"):
-        empty_tracks.add_frame(0, [0], np.array([[1, 0, 0, 1]]))
-
-
-def test_wrong_y_coords(empty_tracks: Tracks):
-    with pytest.raises(ValueError, match="Detections have to be in the .* one of ymax"):
-        empty_tracks.add_frame(0, [0], np.array([[0, 1, 1, 0]]))
 
 
 def test_non_unique_ids(empty_tracks: Tracks):
@@ -187,7 +174,7 @@ def test_add_one_observation_no_class(empty_tracks: Tracks):
     assert empty_tracks.frames == set([0])
     assert empty_tracks.all_classes == set()
     assert empty_tracks.ids_count == {0: 1}
-    assert empty_tracks[0]["confs"] == [0.5]
+    assert empty_tracks[0].confs == [0.5]
 
 
 def test_add_one_observation_no_conf_no_class(empty_tracks: Tracks):
@@ -220,34 +207,34 @@ def test_contains_false(tracks_with_one_item: Tracks):
 def test_getitem_one_item(tracks_with_one_item: Tracks):
     item = tracks_with_one_item[0]
 
-    assert item["ids"] == [0]
-    assert item["classes"] == [1]
-    np.testing.assert_array_equal(item["detections"], np.array([[0, 0, 1, 1]]))
+    assert item.ids == [0]
+    assert item.classes == [1]
+    np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
 
 
 def test_getitem_one_item_no_class(tracks_with_one_item_no_class: Tracks):
     item = tracks_with_one_item_no_class[0]
 
-    assert item["ids"] == [0]
-    np.testing.assert_array_equal(item["detections"], np.array([[0, 0, 1, 1]]))
-    assert "classes" not in item
+    assert item.ids == [0]
+    np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
+    assert item.classes is None
 
 
 def test_getitem_one_item_no_conf(tracks_with_one_item_no_conf: Tracks):
     item = tracks_with_one_item_no_conf[0]
 
-    assert item["ids"] == [0]
-    np.testing.assert_array_equal(item["detections"], np.array([[0, 0, 1, 1]]))
-    assert "confs" not in item
+    assert item.ids == [0]
+    np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
+    assert item.confs is None
 
 
 def test_getitem_one_item_nothing(tracks_with_one_item_nothing: Tracks):
     item = tracks_with_one_item_nothing[0]
 
-    assert item["ids"] == [0]
-    np.testing.assert_array_equal(item["detections"], np.array([[0, 0, 1, 1]]))
-    assert "classes" not in item
-    assert "confs" not in item
+    assert item.ids == [0]
+    np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
+    assert item.classes is None
+    assert item.confs is None
 
 
 def test_add_second_observation(tracks_with_one_item: Tracks):
@@ -283,7 +270,7 @@ def test_add_frames_not_in_order(empty_tracks: Tracks):
 
     assert len(empty_tracks) == 2
     assert empty_tracks.frames == set([0, 1])
-    np.testing.assert_equal(empty_tracks[0]["detections"], np.array([[0, 0, 1, 1]]))
+    np.testing.assert_equal(empty_tracks[0].detections, np.array([[0, 0, 1, 1]]))
 
 
 def test_overwrite_frame(empty_tracks: Tracks):
@@ -292,7 +279,7 @@ def test_overwrite_frame(empty_tracks: Tracks):
 
     assert len(empty_tracks) == 1
     assert empty_tracks.frames == set([0])
-    np.testing.assert_equal(empty_tracks[0]["detections"], np.array([[0, 0, 1, 1]]))
+    np.testing.assert_equal(empty_tracks[0].detections, np.array([[0, 0, 1, 1]]))
 
 
 def test_filter_frame():
@@ -303,10 +290,10 @@ def test_filter_frame():
 
     tracks.filter_frame(0, np.array([True, False]))
 
-    assert tracks[0]["ids"] == [0]
-    np.testing.assert_array_equal(tracks[0]["detections"], np.array([[0, 0, 2, 2]]))
-    assert tracks[0]["classes"] == [1]
-    assert tracks[0]["confs"] == [0.5]
+    assert tracks[0].ids == [0]
+    np.testing.assert_array_equal(tracks[0].detections, np.array([[0, 0, 2, 2]]))
+    assert tracks[0].classes == [1]
+    assert tracks[0].confs == [0.5]
 
 
 def test_filter_frame_all():
@@ -317,12 +304,12 @@ def test_filter_frame_all():
 
     tracks.filter_frame(0, np.array([True, True]))
 
-    np.testing.assert_array_equal(tracks[0]["ids"], [0, 1])
+    np.testing.assert_array_equal(tracks[0].ids, [0, 1])
     np.testing.assert_array_equal(
-        tracks[0]["detections"], np.array([[0, 0, 2, 2], [1, 1, 2, 2]])
+        tracks[0].detections, np.array([[0, 0, 2, 2], [1, 1, 2, 2]])
     )
-    np.testing.assert_array_equal(tracks[0]["classes"], np.array([1, 2]))
-    np.testing.assert_array_equal(tracks[0]["confs"], np.array([0.5, 0.6]))
+    np.testing.assert_array_equal(tracks[0].classes, np.array([1, 2]))
+    np.testing.assert_array_equal(tracks[0].confs, np.array([0.5, 0.6]))
 
 
 def test_filter_frame_none():
@@ -344,10 +331,10 @@ def test_filter_by_class():
 
     tracks.filter_by_class([1])
 
-    assert tracks[0]["ids"] == [0]
-    np.testing.assert_array_equal(tracks[0]["detections"], np.array([[0, 0, 2, 2]]))
-    assert tracks[0]["classes"] == [1]
-    assert tracks[0]["confs"] == [0.5]
+    assert tracks[0].ids == [0]
+    np.testing.assert_array_equal(tracks[0].detections, np.array([[0, 0, 2, 2]]))
+    assert tracks[0].classes == [1]
+    assert tracks[0].confs == [0.5]
 
 
 def test_filter_by_conf():
@@ -358,10 +345,10 @@ def test_filter_by_conf():
 
     tracks.filter_by_conf(0.55)
 
-    assert tracks[0]["ids"] == [1]
-    np.testing.assert_array_equal(tracks[0]["detections"], np.array([[1, 1, 2, 2]]))
-    assert tracks[0]["classes"] == [2]
-    assert tracks[0]["confs"] == [0.6]
+    assert tracks[0].ids == [1]
+    np.testing.assert_array_equal(tracks[0].detections, np.array([[1, 1, 2, 2]]))
+    assert tracks[0].classes == [2]
+    assert tracks[0].confs == [0.6]
 
 
 ##############################
@@ -391,33 +378,33 @@ def test_read_csv(sample_tracks):
 
     assert tracks.frames == sample_tracks.frames
 
-    assert set(tracks[660]["ids"]) == set(sample_tracks[660]["ids"])
-    assert set(tracks[661]["ids"]) == set(sample_tracks[661]["ids"])
-    assert set(tracks[800]["ids"]) == set(sample_tracks[800]["ids"])
+    assert set(tracks[660].ids) == set(sample_tracks[660].ids)
+    assert set(tracks[661].ids) == set(sample_tracks[661].ids)
+    assert set(tracks[800].ids) == set(sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
-        tracks[660]["detections"],
-        sample_tracks[660]["detections"],
+        tracks[660].detections,
+        sample_tracks[660].detections,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[661]["detections"],
-        sample_tracks[661]["detections"],
+        tracks[661].detections,
+        sample_tracks[661].detections,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[800]["detections"],
-        sample_tracks[800]["detections"],
+        tracks[800].detections,
+        sample_tracks[800].detections,
         decimal=4,
     )
 
-    assert set(tracks[660]["classes"]) == set(sample_tracks[660]["classes"])
-    assert set(tracks[661]["classes"]) == set(sample_tracks[661]["classes"])
-    assert set(tracks[800]["classes"]) == set(sample_tracks[800]["classes"])
+    assert set(tracks[660].classes) == set(sample_tracks[660].classes)
+    assert set(tracks[661].classes) == set(sample_tracks[661].classes)
+    assert set(tracks[800].classes) == set(sample_tracks[800].classes)
 
-    assert set(tracks[660]["confs"]) == set([0.9])
-    assert set(tracks[661]["confs"]) == set([0.9])
-    assert set(tracks[800]["confs"]) == set([0.9])
+    assert set(tracks[660].confs) == set([0.9])
+    assert set(tracks[661].confs) == set([0.9])
+    assert set(tracks[800].confs) == set([0.9])
 
 
 def test_read_mot_cvat(sample_tracks):
@@ -425,29 +412,29 @@ def test_read_mot_cvat(sample_tracks):
 
     assert tracks.frames == sample_tracks.frames
 
-    assert set(tracks[660]["ids"]) == set(sample_tracks[660]["ids"])
-    assert set(tracks[661]["ids"]) == set(sample_tracks[661]["ids"])
-    assert set(tracks[800]["ids"]) == set(sample_tracks[800]["ids"])
+    assert set(tracks[660].ids) == set(sample_tracks[660].ids)
+    assert set(tracks[661].ids) == set(sample_tracks[661].ids)
+    assert set(tracks[800].ids) == set(sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
-        tracks[660]["detections"],
-        sample_tracks[660]["detections"],
+        tracks[660].detections,
+        sample_tracks[660].detections,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[661]["detections"],
-        sample_tracks[661]["detections"],
+        tracks[661].detections,
+        sample_tracks[661].detections,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[800]["detections"],
-        sample_tracks[800]["detections"],
+        tracks[800].detections,
+        sample_tracks[800].detections,
         decimal=4,
     )
 
-    assert set(tracks[660]["classes"]) == set(sample_tracks[660]["classes"])
-    assert set(tracks[661]["classes"]) == set(sample_tracks[661]["classes"])
-    assert set(tracks[800]["classes"]) == set(sample_tracks[800]["classes"])
+    assert set(tracks[660].classes) == set(sample_tracks[660].classes)
+    assert set(tracks[661].classes) == set(sample_tracks[661].classes)
+    assert set(tracks[800].classes) == set(sample_tracks[800].classes)
 
 
 def test_read_mot(sample_tracks):
@@ -455,23 +442,23 @@ def test_read_mot(sample_tracks):
 
     assert tracks.frames == sample_tracks.frames
 
-    assert set(tracks[660]["ids"]) == set(sample_tracks[660]["ids"])
-    assert set(tracks[661]["ids"]) == set(sample_tracks[661]["ids"])
-    assert set(tracks[800]["ids"]) == set(sample_tracks[800]["ids"])
+    assert set(tracks[660].ids) == set(sample_tracks[660].ids)
+    assert set(tracks[661].ids) == set(sample_tracks[661].ids)
+    assert set(tracks[800].ids) == set(sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
-        tracks[660]["detections"],
-        sample_tracks[660]["detections"],
+        tracks[660].detections,
+        sample_tracks[660].detections,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[661]["detections"],
-        sample_tracks[661]["detections"],
+        tracks[661].detections,
+        sample_tracks[661].detections,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[800]["detections"],
-        sample_tracks[800]["detections"],
+        tracks[800].detections,
+        sample_tracks[800].detections,
         decimal=4,
     )
 
@@ -495,33 +482,33 @@ def test_read_ua_detrac(sample_tracks):
     assert tracks.frames == sample_tracks.frames
     assert tracks_no_cls.frames == sample_tracks.frames
 
-    assert set(tracks[660]["ids"]) == set(sample_tracks[660]["ids"])
-    assert set(tracks[661]["ids"]) == set(sample_tracks[661]["ids"])
-    assert set(tracks[800]["ids"]) == set(sample_tracks[800]["ids"])
+    assert set(tracks[660].ids) == set(sample_tracks[660].ids)
+    assert set(tracks[661].ids) == set(sample_tracks[661].ids)
+    assert set(tracks[800].ids) == set(sample_tracks[800].ids)
 
-    assert set(tracks_no_cls[660]["ids"]) == set(sample_tracks[660]["ids"])
-    assert set(tracks_no_cls[661]["ids"]) == set(sample_tracks[661]["ids"])
-    assert set(tracks_no_cls[800]["ids"]) == set(sample_tracks[800]["ids"])
+    assert set(tracks_no_cls[660].ids) == set(sample_tracks[660].ids)
+    assert set(tracks_no_cls[661].ids) == set(sample_tracks[661].ids)
+    assert set(tracks_no_cls[800].ids) == set(sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
-        tracks[660]["detections"],
-        sample_tracks[660]["detections"],
+        tracks[660].detections,
+        sample_tracks[660].detections,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[661]["detections"],
-        sample_tracks[661]["detections"],
+        tracks[661].detections,
+        sample_tracks[661].detections,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[800]["detections"],
-        sample_tracks[800]["detections"],
+        tracks[800].detections,
+        sample_tracks[800].detections,
         decimal=4,
     )
 
-    assert set(tracks[660]["classes"]) == set(sample_tracks[660]["classes"])
-    assert set(tracks[661]["classes"]) == set(sample_tracks[661]["classes"])
-    assert set(tracks[800]["classes"]) == set(sample_tracks[800]["classes"])
+    assert set(tracks[660].classes) == set(sample_tracks[660].classes)
+    assert set(tracks[661].classes) == set(sample_tracks[661].classes)
+    assert set(tracks[800].classes) == set(sample_tracks[800].classes)
 
 
 def test_read_cvat_video(sample_tracks):
@@ -531,26 +518,26 @@ def test_read_cvat_video(sample_tracks):
 
     assert tracks.frames == sample_tracks.frames
 
-    assert set(tracks[660]["ids"]) == set(sample_tracks[660]["ids"])
-    assert set(tracks[661]["ids"]) == set(sample_tracks[661]["ids"])
-    assert set(tracks[800]["ids"]) == set(sample_tracks[800]["ids"])
+    assert set(tracks[660].ids) == set(sample_tracks[660].ids)
+    assert set(tracks[661].ids) == set(sample_tracks[661].ids)
+    assert set(tracks[800].ids) == set(sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
-        tracks[660]["detections"],
-        sample_tracks[660]["detections"],
+        tracks[660].detections,
+        sample_tracks[660].detections,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[661]["detections"],
-        sample_tracks[661]["detections"],
+        tracks[661].detections,
+        sample_tracks[661].detections,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[800]["detections"],
-        sample_tracks[800]["detections"],
+        tracks[800].detections,
+        sample_tracks[800].detections,
         decimal=4,
     )
 
-    assert set(tracks[660]["classes"]) == set(sample_tracks[660]["classes"])
-    assert set(tracks[661]["classes"]) == set(sample_tracks[661]["classes"])
-    assert set(tracks[800]["classes"]) == set(sample_tracks[800]["classes"])
+    assert set(tracks[660].classes) == set(sample_tracks[660].classes)
+    assert set(tracks[661].classes) == set(sample_tracks[661].classes)
+    assert set(tracks[800].classes) == set(sample_tracks[800].classes)

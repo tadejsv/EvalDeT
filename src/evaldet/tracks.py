@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import csv
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, NamedTuple, Optional, Union
 
 import numpy as np
 
@@ -17,37 +15,11 @@ _WIDTH_KEY = "width"
 _HEIGHT_KEY = "height"
 
 
-def _add_to_tracks_accumulator(frames: dict, new_obj: dict) -> None:
-    frame_num, track_id = int(new_obj[_FRAME_KEY]), int(float(new_obj[_ID_KEY]))
-
-    xmin, ymin = float(new_obj[_XMIN_KEY]), float(new_obj[_YMIN_KEY])
-    xmax, ymax = xmin + float(new_obj[_WIDTH_KEY]), ymin + float(new_obj[_HEIGHT_KEY])
-
-    if _CONF_KEY in new_obj:
-        conf = float(new_obj[_CONF_KEY])
-    if _CLASS_KEY in new_obj:
-        class_id = int(new_obj[_CLASS_KEY])
-
-    current_frame = frames.get(frame_num, {})
-
-    # If some detections already exist for the current frame
-    if current_frame:
-        if _CONF_KEY in new_obj:
-            current_frame["confs"].append(conf)
-        if _CLASS_KEY in new_obj:
-            current_frame["classes"].append(class_id)
-
-        current_frame["ids"].append(track_id)
-        current_frame["detections"].append([xmin, ymin, xmax, ymax])
-    else:
-        if _CONF_KEY in new_obj:
-            current_frame["confs"] = [conf]
-        if _CLASS_KEY in new_obj:
-            current_frame["classes"] = [class_id]
-
-        current_frame["ids"] = [track_id]
-        current_frame["detections"] = [[xmin, ymin, xmax, ymax]]
-        frames[frame_num] = current_frame
+class FrameTracks(NamedTuple):
+    detections: np.ndarray
+    ids: np.ndarray
+    classes: Optional[np.ndarray]
+    confs: Optional[np.ndarray]
 
 
 class Tracks:
@@ -69,7 +41,7 @@ class Tracks:
         cls,
         csv_file: Union[str, Path],
         fieldnames: list[str],
-    ) -> Tracks:
+    ) -> "Tracks":
         """Get detections from a CSV file.
 
         The CSV file should have a normal comma (,) as a separator, and should not
@@ -97,7 +69,7 @@ class Tracks:
 
             for line_num, line in enumerate(csv_reader):
                 try:
-                    _add_to_tracks_accumulator(frames, line)
+                    cls._add_to_tracks_accumulator(frames, line)
 
                 except ValueError as e:
                     raise ValueError(
@@ -124,7 +96,7 @@ class Tracks:
         return tracks
 
     @classmethod
-    def from_mot(cls, file_path: Union[Path, str]) -> Tracks:
+    def from_mot(cls, file_path: Union[Path, str]) -> "Tracks":
         """Creates a Tracks object from detections file in the MOT format.
 
         The format should look like this::
@@ -153,7 +125,7 @@ class Tracks:
         return cls.from_csv(file_path, fieldnames)
 
     @classmethod
-    def from_mot_gt(cls, file_path: Union[Path, str]) -> Tracks:
+    def from_mot_gt(cls, file_path: Union[Path, str]) -> "Tracks":
         """Creates a Tracks object from detections file in the MOT ground truth format.
         This format has some more information compared to the normal
 
@@ -184,7 +156,7 @@ class Tracks:
         return cls.from_csv(file_path, fieldnames)
 
     @classmethod
-    def from_mot_cvat(cls, file_path: Union[Path, str]) -> Tracks:
+    def from_mot_cvat(cls, file_path: Union[Path, str]) -> "Tracks":
         """Creates a Tracks object from detections file in the CVAT's MOT format.
 
         The format should look like this::
@@ -220,7 +192,7 @@ class Tracks:
         file_path: Union[Path, str],
         classes_attr_name: Optional[str] = None,
         classes_list: Optional[list[str]] = None,
-    ) -> Tracks:
+    ) -> "Tracks":
         """Creates a Tracks object from detections file in the UA-DETRAC XML format.
 
         Here's how this file might look like:
@@ -299,9 +271,9 @@ class Tracks:
 
                 box = track.find("box")
                 xmin, ymin = float(box.attrib["left"]), float(box.attrib["top"])  # type: ignore
-                xmax = xmin + float(box.attrib[_WIDTH_KEY])  # type: ignore
-                ymax = ymin + float(box.attrib[_HEIGHT_KEY])  # type: ignore
-                detections.append([xmin, ymin, xmax, ymax])
+                width = float(box.attrib[_WIDTH_KEY])  # type: ignore
+                height = float(box.attrib[_HEIGHT_KEY])  # type: ignore
+                detections.append([xmin, ymin, width, height])
 
                 if classes_attr_name:
                     attrs = track.find("attribute")
@@ -323,7 +295,7 @@ class Tracks:
         cls,
         file_path: Union[Path, str],
         classes_list: list[str],
-    ) -> Tracks:
+    ) -> "Tracks":
         """Creates a Tracks object from detections file in the CVAT for Video XML
         format.
 
@@ -380,17 +352,18 @@ class Tracks:
             for box in track_cvat.findall("box"):
                 frame_num = int(box.attrib[_FRAME_KEY])
                 xmin, ymin = float(box.attrib["xtl"]), float(box.attrib["ytl"])
-                xmax, ymax = float(box.attrib["xbr"]), float(box.attrib["ybr"])
+                width = float(box.attrib["xbr"]) - xmin
+                height = float(box.attrib["ybr"]) - ymin
 
                 current_frame = frames.get(frame_num, {})
                 if current_frame:
                     current_frame["classes"].append(track_class)
                     current_frame["ids"].append(track_id)
-                    current_frame["detections"].append([xmin, ymin, xmax, ymax])
+                    current_frame["detections"].append([xmin, ymin, width, height])
                 else:
                     current_frame["classes"] = [track_class]
                     current_frame["ids"] = [track_id]
-                    current_frame["detections"] = [[xmin, ymin, xmax, ymax]]
+                    current_frame["detections"] = [[xmin, ymin, width, height]]
                     frames[frame_num] = current_frame
 
         list_frames = sorted(list(frames.keys()))
@@ -403,6 +376,39 @@ class Tracks:
             )
 
         return tracks
+
+    @staticmethod
+    def _add_to_tracks_accumulator(frames: dict, new_obj: dict) -> None:
+        frame_num, track_id = int(new_obj[_FRAME_KEY]), int(float(new_obj[_ID_KEY]))
+
+        xmin, ymin = float(new_obj[_XMIN_KEY]), float(new_obj[_YMIN_KEY])
+        width, height = float(new_obj[_WIDTH_KEY]), float(new_obj[_HEIGHT_KEY])
+
+        if _CONF_KEY in new_obj:
+            conf = float(new_obj[_CONF_KEY])
+        if _CLASS_KEY in new_obj:
+            class_id = int(new_obj[_CLASS_KEY])
+
+        current_frame = frames.get(frame_num, {})
+
+        # If some detections already exist for the current frame
+        if current_frame:
+            if _CONF_KEY in new_obj:
+                current_frame["confs"].append(conf)
+            if _CLASS_KEY in new_obj:
+                current_frame["classes"].append(class_id)
+
+            current_frame["ids"].append(track_id)
+            current_frame["detections"].append([xmin, ymin, width, height])
+        else:
+            if _CONF_KEY in new_obj:
+                current_frame["confs"] = [conf]
+            if _CLASS_KEY in new_obj:
+                current_frame["classes"] = [class_id]
+
+            current_frame["ids"] = [track_id]
+            current_frame["detections"] = [[xmin, ymin, width, height]]
+            frames[frame_num] = current_frame
 
     def __init__(self) -> None:
 
@@ -426,7 +432,7 @@ class Tracks:
             frame_num: A non-negative frame number
             ids: A list or a numpy array with ids of the objects in the frame.
             detections: An Nx4 array describing the bounding boxes of objects in
-                the frame. It should be in the ``[xmin, ymin, xmax, ymax]`` format.
+                the frame. It should be in the ``xywh`` format.
             classes: An optional list (or numpy array) of classes for the objects.
                 If passed all objects in the frame must be assigned a class.
             confs: An optional list (or numpy array) of confidence scores for the
@@ -463,18 +469,6 @@ class Tracks:
             raise ValueError(
                 "The `detections` should be an Nx4 array, but got"
                 f" shape Nx{detections.shape[1]}"
-            )
-
-        if not (detections[:, 2] - detections[:, 0] > 0).all():
-            raise ValueError(
-                "Detections have to be in the format [xmin, ymin, xmax, ymax],"
-                " but one of xmax values is smaller than or equal to its xmin value."
-            )
-
-        if not (detections[:, 3] - detections[:, 1] > 0).all():
-            raise ValueError(
-                "Detections have to be in the format [xmin, ymin, xmax, ymax],"
-                " but one of ymax values is smaller than or equal to its ymin value."
             )
 
         if len(set(ids)) != len(ids):
@@ -515,9 +509,9 @@ class Tracks:
         """
         frame = self[frame_num]
 
-        if filter.shape != frame["ids"].shape:
+        if filter.shape != frame.ids.shape:
             raise ValueError(
-                f"Filter must be the same shape as ids, {frame['ids'].shape},"
+                f"Filter must be the same shape as ids, {frame.ids.shape},"
                 f" but got {filter.shape}"
             )
 
@@ -533,14 +527,14 @@ class Tracks:
         if filter.min() == 1:
             return
 
-        self._detections[frame_num] = frame["detections"][filter]
-        self._ids[frame_num] = frame["ids"][filter]
+        self._detections[frame_num] = frame.detections[filter]
+        self._ids[frame_num] = frame.ids[filter]
 
-        if "confs" in frame:
-            self._confs[frame_num] = frame["confs"][filter]
+        if frame.confs is not None:
+            self._confs[frame_num] = frame.confs[filter]
 
-        if "classes" in frame:
-            self._classes[frame_num] = frame["classes"][filter]
+        if frame.classes is not None:
+            self._classes[frame_num] = frame.classes[filter]
 
     def filter_by_class(self, classes: list[int]) -> None:
         """Filter all frames by classes
@@ -620,7 +614,7 @@ class Tracks:
         """Whether the frame ``idx`` is present in the collection."""
         return idx in self._frame_nums
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:
+    def __getitem__(self, idx: int) -> FrameTracks:
         """Get the frame with number ``idx``.
 
         Returns:
@@ -631,17 +625,20 @@ class Tracks:
         if idx not in self:
             raise KeyError(f"The frame {idx} does not exist.")
 
-        return_dict = {
-            "ids": self._ids[idx],
-            "detections": self._detections[idx],
-        }
+        classes = None
         if idx in self._classes:
-            return_dict["classes"] = self._classes[idx]
+            classes = self._classes[idx]
 
+        confs = None
         if idx in self._confs:
-            return_dict["confs"] = self._confs[idx]
+            confs = self._confs[idx]
 
-        return return_dict
+        return FrameTracks(
+            ids=self._ids[idx],
+            detections=self._detections[idx],
+            classes=classes,
+            confs=confs,
+        )
 
     def __delitem__(self, frame_num: int) -> None:
         """Remove the frame with number ``frame_num``"""
