@@ -1,6 +1,8 @@
+import collections as co
 import typing as t
 
 import numpy as np
+from scipy import sparse
 from scipy.optimize import linear_sum_assignment
 
 from ..tracks import Tracks
@@ -19,6 +21,16 @@ class HOTAResults(t.TypedDict):
     DetA_alpha: np.ndarray
     AssA_alpha: np.ndarray
     LocA_alpha: np.ndarray
+
+
+def _create_coo_array(
+    vals_list: dict[tuple[int, int], int], shape: tuple[int, int]
+) -> sparse.coo_array:
+    row_inds = np.array(tuple(x[0] for x in vals_list.keys()))
+    col_inds = np.array(tuple(x[1] for x in vals_list.keys()))
+    vals = np.array(tuple(vals_list.values()))
+
+    return sparse.coo_array((vals, (row_inds, col_inds)), shape=shape)
 
 
 class HOTAMetrics(MOTMetricBase):
@@ -42,6 +54,9 @@ class HOTAMetrics(MOTMetricBase):
         TPA_max = np.zeros((len(alphas), n_gt, n_hyp), dtype=np.int32)
         FPA_max = np.tile(np.tile(hyps_counts, (n_gt, 1)), (len(alphas), 1, 1))
         FNA_max = np.tile(np.tile(gts_counts, (n_hyp, 1)).T, (len(alphas), 1, 1))
+        TPA_max_vals: list[dict[tuple[int, int], int]] = [
+            co.defaultdict(int) for _ in range(len(alphas))
+        ]
 
         TPA, FPA, FNA = TPA_max.copy(), FPA_max.copy(), FNA_max.copy()
         FP = np.ones((len(alphas),)) * sum(hyps_counts)
@@ -57,13 +72,25 @@ class HOTAMetrics(MOTMetricBase):
 
             for a_ind in range(len(alphas)):
                 for row_ind, col_ind in np.argwhere(dist_matrix < alphas[a_ind]):
-                    TPA_max[a_ind, gt_frame_inds[row_ind], hyp_frame_inds[col_ind]] += 1
+                    TPA_max_vals[a_ind][
+                        (gt_frame_inds[row_ind], hyp_frame_inds[col_ind])
+                    ] += 1
+
+        for a_ind in range(len(alphas)):
+            TPA_max[a_ind] = _create_coo_array(
+                TPA_max_vals[a_ind], (n_gt, n_hyp)
+            ).toarray()
 
         # Compute optimistic A_max, to be used for actual matching
         A_max = TPA_max / (FNA_max + FPA_max - TPA_max)
+
         # Do the actual matching
+        TPA_vals: list[dict[tuple[int, int], int]] = [
+            co.defaultdict(int) for _ in range(len(alphas))
+        ]
         for frame in sorted(set(ground_truth.frames).intersection(hypotheses.frames)):
             dist_matrix = self._get_iou_frame(frame)
+            dist_cost = (1 - dist_matrix) * _EPS
 
             gt_ids_f = ground_truth[frame].ids
             hyp_ids_f = hypotheses[frame].ids
@@ -73,14 +100,20 @@ class HOTAMetrics(MOTMetricBase):
             for a_ind in range(len(alphas)):
                 opt_matrix = ((dist_matrix < alphas[a_ind]) / _EPS).astype(np.float64)
                 opt_matrix += A_max[a_ind][np.ix_(gt_frame_inds, hyp_frame_inds)]
-                opt_matrix += (1 - dist_matrix) * _EPS
+                opt_matrix += dist_cost
 
                 # Calculate matching as a LAP
                 matching_inds = linear_sum_assignment(opt_matrix, maximize=True)
+
                 for row_ind, col_ind in zip(*matching_inds):
                     if dist_matrix[row_ind, col_ind] < alphas[a_ind]:
-                        TPA[a_ind, gt_frame_inds[row_ind], hyp_frame_inds[col_ind]] += 1
+                        TPA_vals[a_ind][
+                            (gt_frame_inds[row_ind], hyp_frame_inds[col_ind])
+                        ] += 1
                         LocAs[a_ind] += 1 - dist_matrix[row_ind, col_ind]
+
+        for a_ind in range(len(alphas)):
+            TPA[a_ind] = _create_coo_array(TPA_vals[a_ind], (n_gt, n_hyp)).toarray()
 
         # Compute proper scores
         TP = TPA.sum(axis=(1, 2))
