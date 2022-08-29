@@ -4,14 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.4] - 2022-08-29
+
+### Changed
+* Performance improvement for HOTA metrics using sparse matrices ([#19](https://github.com/tadejsv/EvalDeT/pull/19))
 
 ## [0.1.3] - 2022-08-21
 
 ### Changed
 
 * MOT Metrics are now computed using the `MOTMetrics` class, which enables efficient sharing of pre-computed IoU distances across metrics ([#17](https://github.com/tadejsv/EvalDeT/pull/12))
-* Increase minimum Python version to 3.9  ([#16](https://github.com/tadejsv/EvalDeT/pull/12))
-* Switch packaging system to Poetry  ([#16](https://github.com/tadejsv/EvalDeT/pull/12))
+* Increase minimum Python version to 3.9  ([#16](https://github.com/tadejsv/EvalDeT/pull/16))
+* Switch packaging system to Poetry  ([#16](https://github.com/tadejsv/EvalDeT/pull/16))
 
 ## [0.1.2] - 2022-08-14
 
