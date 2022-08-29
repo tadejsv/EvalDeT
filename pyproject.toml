@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "evaldet"
-version = "0.1.3"
+version = "0.1.4"
 description = "Evaluation for Detection and Tracking"
 license = "Apache-2.0"
 authors = ["Tadej Svetina <tadej.svetina@gmail.com>"]
@@ -45,7 +45,7 @@ profile = "black"
 exclude = ['^tests/.*\.py', 'docs/source/conf.py']
 disallow_untyped_defs = true
 ignore_missing_imports = true
-disallow_any_unimported = true
+# disallow_any_unimported = true
 no_implicit_optional = true
 check_untyped_defs = true
 warn_unused_ignores = true
