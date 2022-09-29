@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.6] - 2022-09-29
+
+## Changed
+
+* Fix publishing with `hatch` ([#21](https://github.com/tadejsv/EvalDeT/pull/21))
+
 ## [0.1.5] - 2022-09-29
 
 ## Changed
