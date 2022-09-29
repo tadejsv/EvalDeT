@@ -8,7 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Changed
 
-* Fix correct 1-indexe frame handling for MOT-based files ([#2](https://github.com/tadejsv/EvalDeT/pull/20))
+* Fix correct 1-index frame handling for MOT-based files ([#20](https://github.com/tadejsv/EvalDeT/pull/20))
+* Fix handling of "outside" detections in CVAT format ([#20](https://github.com/tadejsv/EvalDeT/pull/20))
+
 * Switch to `hatch` for packaging ([#20](https://github.com/tadejsv/EvalDeT/pull/20))
 
 
