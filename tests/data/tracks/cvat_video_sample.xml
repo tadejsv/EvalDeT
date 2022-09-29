@@ -15,6 +15,7 @@
     <track id="3" label="Car" source="manual">
         <box frame="660" outside="0" occluded="0" keyframe="1" xtl="375.24" ytl="80.43" xbr="401.65" ybr="102.67" z_order="0"> </box>
         <box frame="661" outside="0" occluded="0" keyframe="1" xtl="374.69" ytl="80.78" xbr="401.09" ybr="103.01" z_order="0"> </box>
+        <box frame="662" outside="1" occluded="0" keyframe="1" xtl="374.69" ytl="80.78" xbr="401.09" ybr="103.01" z_order="0"> </box>
     </track>
     <track id="4" label="Car" source="manual">
         <box frame="800" outside="0" occluded="0" keyframe="1" xtl="0.0" ytl="356.7" xbr="76.6" ybr="479.37" z_order="0"> </box>

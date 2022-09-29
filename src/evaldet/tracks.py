@@ -34,6 +34,9 @@ class Tracks:
     - CVAT's version of the MOT format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/formats/format-mot/>`__)
     - CVAT for Video format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/xml_format/>`__)
     - UA-DETRAC XML format (you can download an example `here <https://detrac-db.rit.albany.edu/Tracking>`__)
+
+    The frame numbers will be zero-indexed internally, so for the MOT files 1 will be
+    subtracted from all frame numbers.
     """
 
     @classmethod
@@ -41,6 +44,7 @@ class Tracks:
         cls,
         csv_file: Union[str, Path],
         fieldnames: list[str],
+        zero_indexed: bool = True,
     ) -> "Tracks":
         """Get detections from a CSV file.
 
@@ -61,6 +65,9 @@ class Tracks:
                 - ``class``: for the class label of the item
                 - ``id``: for the id of the item
                 - ``frame``: for the frame number
+            zero_indexed: If the frame numbers are zero indexed. Otherwise they are
+                assumed to be 1 indexed, and 1 will be subtracted from all frame numbers
+                to make them zero indexed.
         """
         tracks = cls()
         with open(csv_file, newline="") as file:
@@ -86,8 +93,13 @@ class Tracks:
                 if _CLASS_KEY in fieldnames:
                     extra_vals["classes"] = frames[frame]["classes"]
 
+                if zero_indexed:
+                    frame_num = frame
+                else:
+                    frame_num = frame - 1
+
                 tracks.add_frame(
-                    frame,
+                    frame_num,
                     ids=frames[frame]["ids"],
                     detections=np.array(frames[frame]["detections"]),
                     **extra_vals,
@@ -106,6 +118,9 @@ class Tracks:
         Note that all values above are expected to be **numeric** - string values will
         cause an error. The values for ``x``, ``y`` and ``z`` will be ignored.
 
+        The frame numbers will be zero-indexed internally, so 1 will be subtracted from
+        all frame numbers.
+
         Args:
             file_path: Path where the detections file is located. The file should be
                 in the format described above, and should not have a header.
@@ -122,7 +137,7 @@ class Tracks:
             "_",
         ]
 
-        return cls.from_csv(file_path, fieldnames)
+        return cls.from_csv(file_path, fieldnames, zero_indexed=False)
 
     @classmethod
     def from_mot_gt(cls, file_path: Union[Path, str]) -> "Tracks":
@@ -135,6 +150,9 @@ class Tracks:
 
         Note that all values above are expected to be **numeric** - string values will
         cause an error. The value for ``visibility`` will be ignored.
+
+        The frame numbers will be zero-indexed internally, so 1 will be subtracted from
+        all frame numbers.
 
         Args:
             file_path: Path where the detections file is located. The file should be
@@ -153,7 +171,7 @@ class Tracks:
             "visibility",
         ]
 
-        return cls.from_csv(file_path, fieldnames)
+        return cls.from_csv(file_path, fieldnames, zero_indexed=False)
 
     @classmethod
     def from_mot_cvat(cls, file_path: Union[Path, str]) -> "Tracks":
@@ -167,6 +185,9 @@ class Tracks:
         cause an error. The last two elements (``visibility`` and ``skipped``) are
         optional. The values for ``not ignored``, ``visibility`` and ``skipped`` will be
         ignored.
+
+        The frame numbers will be zero-indexed internally, so 1 will be subtracted from
+        all frame numbers.
 
         Args:
             file_path: Path where the detections file is located. The file should be
@@ -184,7 +205,7 @@ class Tracks:
             _CLASS_KEY,
         ]
 
-        return cls.from_csv(file_path, fieldnames)
+        return cls.from_csv(file_path, fieldnames, zero_indexed=False)
 
     @classmethod
     def from_ua_detrac(
@@ -332,6 +353,8 @@ class Tracks:
         ``classes_list`` - a list of all possible class values. The class attribute will
         then be replaced by the index of the label in this list.
 
+        Elements with "outside=1" will be ignored.
+
         Args:
             file_path: Path where the detections file is located
             classes_list: The list of all possible class values. The values from that
@@ -350,6 +373,9 @@ class Tracks:
             track_class = classes_list.index(track_cvat.attrib["label"])
 
             for box in track_cvat.findall("box"):
+                if int(box.attrib["outside"]) == 1:
+                    continue
+
                 frame_num = int(box.attrib[_FRAME_KEY])
                 xmin, ymin = float(box.attrib["xtl"]), float(box.attrib["ytl"])
                 width = float(box.attrib["xbr"]) - xmin
