@@ -48,6 +48,14 @@ docs = [
     "sphinx-autodoc-typehints~=1.19.1",
 ]
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.github",
+  "/.vscode",
+  "/docs",
+  "/tests"
+]
+
 [tool.isort]
 profile = "black"
 

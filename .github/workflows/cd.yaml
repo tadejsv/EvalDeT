@@ -16,9 +16,8 @@ jobs:
       uses: mamba-org/provision-with-micromamba@main
       with:
         environment-file: env.yaml
-    - name: Install package with requirements
-      run: poetry install --no-dev
     - name: Build and publish
       env:
-        POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-      run: poetry publish --build
+        HATCH_INDEX_USER: __token__
+        HATCH_INDEX_AUTH: ${{ secrets.PYPI_TOKEN }}
+      run: hatch build && hatch publish
