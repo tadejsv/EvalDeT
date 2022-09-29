@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.5] - 2022-09-29
+
+## Changed
+
+* Fix correct 1-index frame handling for MOT-based files ([#20](https://github.com/tadejsv/EvalDeT/pull/20))
+* Fix handling of "outside" detections in CVAT format ([#20](https://github.com/tadejsv/EvalDeT/pull/20))
+
+* Switch to `hatch` for packaging ([#20](https://github.com/tadejsv/EvalDeT/pull/20))
+
+
 ## [0.1.4] - 2022-08-29
 
 ### Changed
