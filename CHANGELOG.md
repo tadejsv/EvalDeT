@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [0.1.7] - 2022-10-02
+
+## Fixed
+
+* Fix typing for compatibility with Python 3.8 ([#22](https://github.com/tadejsv/EvalDeT/pull/22))
+
 ## [0.1.6] - 2022-09-29
 
 ## Changed
