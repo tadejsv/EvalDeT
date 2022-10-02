@@ -31,11 +31,11 @@ class CLEARMOTMetrics(MOTMetricBase):
         ground_truths = 0
 
         matches_dist = []
-        matching: dict[int, int] = {}
+        matching: t.Dict[int, int] = {}
 
         # This is the persistent matching dictionary, used to check for mismatches
         # when a previously matched hypothesis is re-matched with a ground truth
-        matching_persist: dict[int, int] = {}
+        matching_persist: t.Dict[int, int] = {}
 
         for frame in all_frames:
             if frame not in ground_truth:
