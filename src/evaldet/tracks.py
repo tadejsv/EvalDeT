@@ -439,7 +439,7 @@ class Tracks:
 
     def __init__(self) -> None:
 
-        self._frame_nums: set[int] = set()
+        self._frame_nums: t.Set[int] = set()
         self._detections: t.Dict[int, np.ndarray] = dict()
         self._ids: t.Dict[int, np.ndarray] = dict()
         self._classes: t.Dict[int, np.ndarray] = dict()
@@ -605,9 +605,9 @@ class Tracks:
                 self.filter_frame(frame, filter_conf)
 
     @property
-    def all_classes(self) -> set[int]:
+    def all_classes(self) -> t.Set[int]:
         """Get a set of all classes in the collection."""
-        classes: set[int] = set()
+        classes: t.Set[int] = set()
         for frame in self._frame_nums:
             if frame in self._classes:
                 classes.update(self._classes[frame])
@@ -630,7 +630,7 @@ class Tracks:
         return ids_count
 
     @property
-    def frames(self) -> set[int]:
+    def frames(self) -> t.Set[int]:
         """Get an ordered list of all frame numbers in the collection."""
         return self._frame_nums.copy()
 
