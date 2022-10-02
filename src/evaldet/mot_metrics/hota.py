@@ -24,7 +24,7 @@ class HOTAResults(t.TypedDict):
 
 
 def _create_coo_array(
-    vals_list: dict[tuple[int, int], int], shape: tuple[int, int]
+    vals_list: t.Dict[t.Tuple[int, int], int], shape: t.Tuple[int, int]
 ) -> sparse.coo_array:
     row_inds = np.array(tuple(x[0] for x in vals_list.keys()))
     col_inds = np.array(tuple(x[1] for x in vals_list.keys()))
@@ -54,7 +54,7 @@ class HOTAMetrics(MOTMetricBase):
         TPA_max = np.zeros((len(alphas), n_gt, n_hyp), dtype=np.int32)
         FPA_max = np.tile(np.tile(hyps_counts, (n_gt, 1)), (len(alphas), 1, 1))
         FNA_max = np.tile(np.tile(gts_counts, (n_hyp, 1)).T, (len(alphas), 1, 1))
-        TPA_max_vals: list[dict[tuple[int, int], int]] = [
+        TPA_max_vals: t.List[t.Dict[t.Tuple[int, int], int]] = [
             co.defaultdict(int) for _ in range(len(alphas))
         ]
 
@@ -85,7 +85,7 @@ class HOTAMetrics(MOTMetricBase):
         A_max = TPA_max / (FNA_max + FPA_max - TPA_max)
 
         # Do the actual matching
-        TPA_vals: list[dict[tuple[int, int], int]] = [
+        TPA_vals: t.List[t.Dict[t.Tuple[int, int], int]] = [
             co.defaultdict(int) for _ in range(len(alphas))
         ]
         for frame in sorted(set(ground_truth.frames).intersection(hypotheses.frames)):

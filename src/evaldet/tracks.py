@@ -1,4 +1,5 @@
 import csv
+import typing as t
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, NamedTuple, Optional, Union
@@ -43,7 +44,7 @@ class Tracks:
     def from_csv(
         cls,
         csv_file: Union[str, Path],
-        fieldnames: list[str],
+        fieldnames: t.List[str],
         zero_indexed: bool = True,
     ) -> "Tracks":
         """Get detections from a CSV file.
@@ -72,7 +73,7 @@ class Tracks:
         tracks = cls()
         with open(csv_file, newline="") as file:
             csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
-            frames: dict[int, Any] = {}
+            frames: t.Dict[int, Any] = {}
 
             for line_num, line in enumerate(csv_reader):
                 try:
@@ -212,7 +213,7 @@ class Tracks:
         cls,
         file_path: Union[Path, str],
         classes_attr_name: Optional[str] = None,
-        classes_list: Optional[list[str]] = None,
+        classes_list: Optional[t.List[str]] = None,
     ) -> "Tracks":
         """Creates a Tracks object from detections file in the UA-DETRAC XML format.
 
@@ -282,9 +283,9 @@ class Tracks:
             tracks_f = frame.find("target_list").findall("target")  # type: ignore
 
             current_frame = int(frame.attrib["num"])
-            detections: list[list[float]] = []
-            classes: list[int] = []
-            ids: list[int] = []
+            detections: t.List[t.List[float]] = []
+            classes: t.List[int] = []
+            ids: t.List[int] = []
 
             for track in tracks_f:
                 # Get track attributes
@@ -315,7 +316,7 @@ class Tracks:
     def from_cvat_video(
         cls,
         file_path: Union[Path, str],
-        classes_list: list[str],
+        classes_list: t.List[str],
     ) -> "Tracks":
         """Creates a Tracks object from detections file in the CVAT for Video XML
         format.
@@ -366,7 +367,7 @@ class Tracks:
         root = xml_tree.getroot()
         tracks = cls()
 
-        frames: dict[int, Any] = {}
+        frames: t.Dict[int, Any] = {}
         tracks_cvat = root.findall("track")
         for track_cvat in tracks_cvat:
             track_id = int(track_cvat.attrib[_ID_KEY])
@@ -439,18 +440,18 @@ class Tracks:
     def __init__(self) -> None:
 
         self._frame_nums: set[int] = set()
-        self._detections: dict[int, np.ndarray] = dict()
-        self._ids: dict[int, np.ndarray] = dict()
-        self._classes: dict[int, np.ndarray] = dict()
-        self._confs: dict[int, np.ndarray] = dict()
+        self._detections: t.Dict[int, np.ndarray] = dict()
+        self._ids: t.Dict[int, np.ndarray] = dict()
+        self._classes: t.Dict[int, np.ndarray] = dict()
+        self._confs: t.Dict[int, np.ndarray] = dict()
 
     def add_frame(
         self,
         frame_num: int,
-        ids: Union[list[int], np.ndarray],
+        ids: Union[t.List[int], np.ndarray],
         detections: np.ndarray,
-        classes: Optional[Union[list[int], np.ndarray]] = None,
-        confs: Optional[Union[list[float], np.ndarray]] = None,
+        classes: Optional[Union[t.List[int], np.ndarray]] = None,
+        confs: Optional[Union[t.List[float], np.ndarray]] = None,
     ) -> None:
         """Add a frame to the collection. Can overwrite existing frame.
 
@@ -562,7 +563,7 @@ class Tracks:
         if frame.classes is not None:
             self._classes[frame_num] = frame.classes[filter]
 
-    def filter_by_class(self, classes: list[int]) -> None:
+    def filter_by_class(self, classes: t.List[int]) -> None:
         """Filter all frames by classes
 
         This will keep the detections with class label corresponding to one of the
@@ -614,14 +615,14 @@ class Tracks:
         return classes
 
     @property
-    def ids_count(self) -> dict[int, int]:
+    def ids_count(self) -> t.Dict[int, int]:
         """Get the number of frames that each id is present in.
 
         Returns:
             A dictionary where keys are the track ids, and values
             are the numbers of frames they appear in.
         """
-        ids_count: dict[int, int] = dict()
+        ids_count: t.Dict[int, int] = dict()
         for frame in self._frame_nums:
             for _id in self._ids[frame]:
                 ids_count[_id] = ids_count.get(_id, 0) + 1
