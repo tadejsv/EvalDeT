@@ -26,13 +26,9 @@ class IDMetrics(MOTMetricBase):
         gts_id_ind_dict = {_id: ind for ind, _id in enumerate(gts)}
         hyps = tuple(hypotheses.ids_count.keys())
         hyps_id_ind_dict = {_id: ind for ind, _id in enumerate(hyps)}
-        max_count = max(len(hyps), len(gts))
 
         gts_counts = np.array(tuple(ground_truth.ids_count.values()), dtype=np.int32)
-        gts_counts.resize((max_count,))
-
         hyps_counts = np.array(tuple(hypotheses.ids_count.values()), dtype=np.int32)
-        hyps_counts.resize((max_count,))
 
         matches: t.Dict[t.Tuple[int, int], int] = co.defaultdict(int)
         for frame in sorted(set(ground_truth.frames).intersection(hypotheses.frames)):
