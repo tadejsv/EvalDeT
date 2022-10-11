@@ -1,8 +1,9 @@
 import collections as co
 import csv
+import datetime as dt
+import pathlib
 import typing as t
 import xml.etree.ElementTree as ET
-from pathlib import Path
 
 import numpy as np
 
@@ -46,7 +47,7 @@ class Tracks:
     @classmethod
     def from_csv(
         cls: t.Type[TracksType],
-        csv_file: t.Union[str, Path],
+        csv_file: t.Union[str, pathlib.Path],
         fieldnames: t.List[str],
         zero_indexed: bool = True,
     ) -> TracksType:
@@ -112,7 +113,9 @@ class Tracks:
         return tracks
 
     @classmethod
-    def from_mot(cls: t.Type[TracksType], file_path: t.Union[Path, str]) -> TracksType:
+    def from_mot(
+        cls: t.Type[TracksType], file_path: t.Union[pathlib.Path, str]
+    ) -> TracksType:
         """Creates a Tracks object from detections file in the MOT format.
 
         The format should look like this::
@@ -145,7 +148,7 @@ class Tracks:
 
     @classmethod
     def from_mot_gt(
-        cls: t.Type[TracksType], file_path: t.Union[Path, str]
+        cls: t.Type[TracksType], file_path: t.Union[pathlib.Path, str]
     ) -> TracksType:
         """Creates a Tracks object from detections file in the MOT ground truth format.
         This format has some more information compared to the normal
@@ -181,7 +184,7 @@ class Tracks:
 
     @classmethod
     def from_mot_cvat(
-        cls: t.Type[TracksType], file_path: t.Union[Path, str]
+        cls: t.Type[TracksType], file_path: t.Union[pathlib.Path, str]
     ) -> "Tracks":
         """Creates a Tracks object from detections file in the CVAT's MOT format.
 
@@ -218,7 +221,7 @@ class Tracks:
     @classmethod
     def from_ua_detrac(
         cls: t.Type[TracksType],
-        file_path: t.Union[Path, str],
+        file_path: t.Union[pathlib.Path, str],
         classes_attr_name: t.Optional[str] = None,
         classes_list: t.Optional[t.List[str]] = None,
     ) -> TracksType:
@@ -322,7 +325,7 @@ class Tracks:
     @classmethod
     def from_cvat_video(
         cls: t.Type[TracksType],
-        file_path: t.Union[Path, str],
+        file_path: t.Union[pathlib.Path, str],
         classes_list: t.List[str],
     ) -> TracksType:
         """Creates a Tracks object from detections file in the CVAT for Video XML
@@ -719,3 +722,220 @@ class Tracks:
         del self._detections[frame_num]
         del self._classes[frame_num]
         del self._confs[frame_num]
+
+    # TODO: test
+    # TODO: test empty
+    def to_cvat_video(
+        self,
+        filename: t.Union[pathlib.Path, str],
+        labels: t.Sequence[str],
+        image_size: t.Tuple[int, int] = (1, 1),
+    ) -> None:
+        """Export detections to CVAT for Video 1.1 format.
+
+        More information on the format can be found `here <https://opencv.github.io/cvat/docs/manual/advanced/xml_format/>`_.
+
+        Args:
+            filename: The name of the file to save to - should have an ``.xml`` suffix.
+            labels: A list/tuple of label names. The length should be at least the
+                maximum label index - 1 (the first label corresponds to label at the
+                0-th index).
+            image_size: The size of the image in the ``[w, h]`` format, in pixels.
+        """
+
+        if len(self._id_to_frames) == 0:
+            max_label_ind = 1
+        else:
+            max_label_ind = max(self.all_classes) + 1
+        if len(labels) < max_label_ind:
+            raise ValueError(
+                f"The length of provied labels {len(labels)} is less than the largest"
+                f" label id (+1) among tracklets {max_label_ind}."
+            )
+
+        w, h = image_size
+        if len(self._frames) == 0:
+            max_frame = 1
+        else:
+            max_frame = max(self._frames)
+
+        annotations = ET.Element("annotations")
+        version = ET.SubElement(annotations, "version")
+        version.text = "1.1"
+
+        meta = ET.SubElement(annotations, "meta")
+
+        dumped = ET.SubElement(meta, "dumped")
+        now = dt.datetime.now().replace(tzinfo=None)
+        dumped.text = now.isoformat().replace("T", " ")
+
+        task = ET.SubElement(meta, "task")
+        task_id = ET.SubElement(task, "id")
+        task_id.text = "1"
+        task_name = ET.SubElement(task, "name")
+        task_name.text = "Tracking"
+        task_size = ET.SubElement(task, "size")
+        task_size.text = str(max_frame)
+        task_mode = ET.SubElement(task, "mode")
+        task_mode.text = "interpolation"
+        ET.SubElement(task, "overlap")
+        ET.SubElement(task, "bugtracker")
+        task_flipped = ET.SubElement(task, "flipped")
+        task_flipped.text = "False"
+        task_created = ET.SubElement(task, "created")
+        task_created.text = dumped.text
+        task_updated = ET.SubElement(task, "updated")
+        task_updated.text = dumped.text
+
+        labels_el = ET.SubElement(task, "labels")
+        for label_name in labels:
+            label_el = ET.SubElement(labels_el, "label")
+            label_name_el = ET.SubElement(label_el, "name")
+            label_name_el.text = label_name
+            ET.SubElement(label_el, "attributes")
+
+        owner = ET.SubElement(task, "owner")
+        ET.SubElement(owner, "username")
+        ET.SubElement(owner, "email")
+
+        original_size = ET.SubElement(task, "original_size")
+        original_size_w = ET.SubElement(original_size, "width")
+        original_size_h = ET.SubElement(original_size, "height")
+        original_size_w.text = f"{w}"
+        original_size_h.text = f"{h}"
+
+        segments = ET.SubElement(task, "segments")
+        segment = ET.SubElement(segments, "segment")
+        segment_id = ET.SubElement(segment, "id")
+        segment_id.text = "0"
+        segment_start = ET.SubElement(segment, "start")
+        segment_start.text = "0"
+        segment_stop = ET.SubElement(segment, "stop")
+        segment_stop.text = str(max_frame)
+        ET.SubElement(segment, "url")
+
+        for track_id, track_frames_set in self._id_to_frames.items():
+            track_frames = sorted(list(track_frames_set))
+
+            # Take first label, as only one is supported
+            id_first_ind = np.nonzero(self._ids[track_frames[0]] == track_id)[0][0]
+            label: int = self._classes[track_frames[0]][id_first_ind]
+
+            track_el = ET.SubElement(
+                annotations,
+                "track",
+                id=str(track_id),
+                label=labels[label],
+                source=type(self).__name__,
+            )
+
+            for i, frame_num in enumerate(track_frames):
+                id_frame_ind = np.nonzero(self._ids[frame_num] == track_id)[0][0]
+                bbox = self._detections[frame_num][id_frame_ind]
+                ET.SubElement(
+                    track_el,
+                    "box",
+                    frame=str(frame_num),
+                    xtl=f"{bbox[0]:.2f}",
+                    ytl=f"{bbox[1]:.2f}",
+                    xbr=f"{bbox[0] + bbox[2]:.2f}",
+                    ybr=f"{bbox[1] + bbox[3]:.2f}",
+                    outside="0",
+                    occluded="0",
+                    keyframe="1",
+                )
+
+                # Add fake element with outside=1 to prevent it showing up on CVAT
+                if (i + 1) == len(track_frames) or (frame_num + 1) < track_frames[
+                    i + 1
+                ]:
+                    ET.SubElement(
+                        track_el,
+                        "box",
+                        frame=str(frame_num + 1),
+                        xtl=f"{bbox[0]:.2f}",
+                        ytl=f"{bbox[1]:.2f}",
+                        xbr=f"{bbox[0] + bbox[2]:.2f}",
+                        ybr=f"{bbox[1] + bbox[3]:.2f}",
+                        outside="1",  # Make it outside to precent ghost frames
+                        occluded="0",
+                        keyframe="1",
+                    )
+
+        tree = ET.ElementTree(annotations)
+        tree.write(
+            filename, xml_declaration=True, short_empty_elements=False, encoding="utf-8"
+        )
+
+    # TODO: test
+    # TODO: test empty
+    def to_csv(
+        self,
+        dirname: t.Union[pathlib.Path, str],
+        labels: t.Sequence[str],
+    ) -> None:
+        """Export detections to a simple CSV format. The format comprises of two files:
+        ``dets.csv``, containing the detections, and ``labels.txt``, which contains
+        the names of the labels (corresponding to label indices in ``dets.csv``). The
+        rows in ``dets.csv`` have the following format:
+
+            <frame>, <id>, <x_min>, <y_min>, <width>, <height>, <class>, <conf>
+
+        Note that ``frame`` and ``class`` are both 0 indexed.
+
+        Args:
+            dirname: The name of the directory to save to - will be created if it
+                doesn't already exist.
+            labels: A list/tuple of label names. The length should be at least the
+                maximum label index - 1 (the first label corresponds to label at the
+                0-th index).
+        """
+
+        if len(self._id_to_frames) == 0:
+            max_label_ind = 1
+        else:
+            max_label_ind = max(self.all_classes) + 1
+        if len(labels) < max_label_ind:
+            raise ValueError(
+                f"The length of provied labels {len(labels)} is less than the largest"
+                f" label id (+1) among tracklets {max_label_ind}."
+            )
+
+        # Create directory and write labels file
+        pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
+        with open(pathlib.Path(dirname) / "labels.txt", "w") as f:
+            for label in labels:
+                f.write(label + "\n")
+
+        # Export detections
+        fieldnames = [
+            "frame_id",
+            "track_id",
+            "x_min",
+            "y_min",
+            "w",
+            "h",
+            "class_id",
+            "conf",
+        ]
+        with open(pathlib.Path(dirname) / "dets.csv", "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+
+            for frame in sorted(self._frames):
+                dets = self._detections[frame]
+                ids = self._ids[frame]
+                classes = self._classes[frame]
+                confs = self._confs[frame]
+
+                for det_idx in range(len(dets)):
+                    item: t.Dict[str, t.Union[str, int, float]] = {
+                        "frame_id": frame,
+                        "track_id": ids[det_idx],
+                        "conf": confs[det_idx],
+                        "class_id": classes[det_idx],
+                        "x_min": f"{dets[det_idx][0]:.2f}",
+                        "y_min": f"{dets[det_idx][1]:.2f}",
+                        "w": f"{dets[det_idx][2]:.2f}",
+                        "h": f"{dets[det_idx][3]:.2f}",
+                    }
+                    writer.writerow(item)
