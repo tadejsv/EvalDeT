@@ -723,8 +723,6 @@ class Tracks:
         del self._classes[frame_num]
         del self._confs[frame_num]
 
-    # TODO: test
-    # TODO: test empty
     def to_cvat_video(
         self,
         filename: t.Union[pathlib.Path, str],
@@ -857,7 +855,7 @@ class Tracks:
                         ytl=f"{bbox[1]:.2f}",
                         xbr=f"{bbox[0] + bbox[2]:.2f}",
                         ybr=f"{bbox[1] + bbox[3]:.2f}",
-                        outside="1",  # Make it outside to precent ghost frames
+                        outside="1",  # Make it outside to prevent ghost frames
                         occluded="0",
                         keyframe="1",
                     )
@@ -867,8 +865,6 @@ class Tracks:
             filename, xml_declaration=True, short_empty_elements=False, encoding="utf-8"
         )
 
-    # TODO: test
-    # TODO: test empty
     def to_csv(
         self,
         dirname: t.Union[pathlib.Path, str],
