@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 * Slicing of `Tracks` ([#24](https://github.com/tadejsv/EvalDeT/pull/23))
+* Export of `Tracks` to CVAT for Video and a custom CSV format ([#24](https://github.com/tadejsv/EvalDeT/pull/23))
 
 ### Changed
 
