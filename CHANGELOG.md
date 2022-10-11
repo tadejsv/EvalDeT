@@ -5,28 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [0.2.0] - 2022-10-11
+
+### Added
+
+* Slicing of `Tracks` ([#24](https://github.com/tadejsv/EvalDeT/pull/23))
+* Export of `Tracks` to CVAT for Video and a custom CSV format ([#24](https://github.com/tadejsv/EvalDeT/pull/23))
+
+### Changed
+
+* When creating tracks, if `confs` or `classes` are not provided, they are now given a default value, instead of being `None`. ([#24](https://github.com/tadejsv/EvalDeT/pull/23))
+
 ## [0.1.8] - 2022-10-05
 
-## Changed
+### Changed
 
 * Improve HOTA metrics to use less memory ([#23](https://github.com/tadejsv/EvalDeT/pull/23))
 * Improve ID metrics to use less memory ([#23](https://github.com/tadejsv/EvalDeT/pull/23))
 
 ## [0.1.7] - 2022-10-02
 
-## Fixed
+### Fixed
 
 * Fix typing for compatibility with Python 3.8 ([#22](https://github.com/tadejsv/EvalDeT/pull/22))
 
 ## [0.1.6] - 2022-09-29
 
-## Changed
+### Changed
 
 * Fix publishing with `hatch` ([#21](https://github.com/tadejsv/EvalDeT/pull/21))
 
 ## [0.1.5] - 2022-09-29
 
-## Changed
+### Changed
 
 * Fix correct 1-index frame handling for MOT-based files ([#20](https://github.com/tadejsv/EvalDeT/pull/20))
 * Fix handling of "outside" detections in CVAT format ([#20](https://github.com/tadejsv/EvalDeT/pull/20))

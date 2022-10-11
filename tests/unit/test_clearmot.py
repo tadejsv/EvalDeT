@@ -169,4 +169,4 @@ def test_simple_case():
     assert metrics["clearmot"]["IDSW"] == 1
     assert metrics["clearmot"]["FP_CLEAR"] == 1
     assert metrics["clearmot"]["MOTA"] == 0.5
-    assert metrics["clearmot"]["MOTP"] == 0.0994008537355717
+    assert metrics["clearmot"]["MOTP"] == pytest.approx(0.0994008537355717)

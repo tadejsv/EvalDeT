@@ -41,7 +41,8 @@ ci = [
     "black~=22.0.6",
     "isort~=5.10.1",
     "mypy~=0.971",
-    "pre-commit~=2.20.0"
+    "pre-commit~=2.20.0",
+    "freezegun~=1.2.2"
 ]
 docs = [
     "Shpinx~=5.1.1",
