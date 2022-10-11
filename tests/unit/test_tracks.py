@@ -53,6 +53,7 @@ def sample_tracks() -> Tracks:
             ]
         ),
         classes=[2, 2, 2],
+        confs=[0.9, 0.9, 0.9],
     )
     tracks.add_frame(
         661,
@@ -65,6 +66,7 @@ def sample_tracks() -> Tracks:
             ]
         ),
         classes=[2, 2, 2],
+        confs=[0.9, 0.9, 0.9],
     )
     tracks.add_frame(
         800,
@@ -73,6 +75,7 @@ def sample_tracks() -> Tracks:
             [[329.27, 96.65, 56.53, 32.45], [0.0, 356.7, 76.6, 122.67]]
         ),
         classes=[2, 2],
+        confs=[0.9, 0.9],
     )
 
     return tracks
@@ -118,6 +121,11 @@ def test_non_existent_frame_id(tracks_with_one_item: Tracks):
         tracks_with_one_item[10]
 
 
+def test_negative_frame_id(tracks_with_one_item: Tracks):
+    with pytest.raises(ValueError, match="Indexing with negative values is"):
+        tracks_with_one_item[-1]
+
+
 def test_delete_non_existent_frame(tracks_with_one_item: Tracks):
     with pytest.raises(KeyError):
         del tracks_with_one_item[1]
@@ -133,14 +141,19 @@ def test_filter_frame_not_bool(tracks_with_one_item: Tracks):
         tracks_with_one_item.filter_frame(0, np.ones((1,)))
 
 
-def test_filter_by_class_no_classes(tracks_with_one_item_no_class: Tracks):
-    with pytest.raises(ValueError, match="Can not filter by class"):
-        tracks_with_one_item_no_class.filter_by_class([0])
+def test_get_slice_step_provided(tracks_with_one_item: Tracks):
+    with pytest.raises(ValueError, match="Slicing with the step"):
+        tracks_with_one_item[0:1:1]
 
 
-def test_filter_by_conf_no_confs(tracks_with_one_item_no_conf: Tracks):
-    with pytest.raises(ValueError, match="Can not filter by confidence"):
-        tracks_with_one_item_no_conf.filter_by_conf(0)
+def test_get_slice_negative_start(tracks_with_one_item: Tracks):
+    with pytest.raises(ValueError, match="Slicing with negative indices"):
+        tracks_with_one_item[-1:1]
+
+
+def test_get_slice_negtive_stop(tracks_with_one_item: Tracks):
+    with pytest.raises(ValueError, match="Slicing with negative indices"):
+        tracks_with_one_item[0:-1]
 
 
 ##############################
@@ -155,6 +168,7 @@ def test_add_one_observation(empty_tracks: Tracks):
     assert empty_tracks.frames == set([0])
     assert empty_tracks.all_classes == set([1])
     assert empty_tracks.ids_count == {0: 1}
+    assert empty_tracks.id_to_frames == {0: set([0])}
 
 
 def test_add_one_observation_no_conf(empty_tracks: Tracks):
@@ -164,7 +178,9 @@ def test_add_one_observation_no_conf(empty_tracks: Tracks):
     assert empty_tracks.frames == set([0])
     assert empty_tracks.all_classes == set([1])
     assert empty_tracks.ids_count == {0: 1}
-    assert len(empty_tracks._confs) == 0
+    assert empty_tracks.id_to_frames == {0: set([0])}
+    assert len(empty_tracks._confs) == 1
+    np.testing.assert_array_equal(empty_tracks._confs[0], np.array([1]))
 
 
 def test_add_one_observation_no_class(empty_tracks: Tracks):
@@ -172,8 +188,9 @@ def test_add_one_observation_no_class(empty_tracks: Tracks):
 
     assert len(empty_tracks) == 1
     assert empty_tracks.frames == set([0])
-    assert empty_tracks.all_classes == set()
+    assert empty_tracks.all_classes == set([0])
     assert empty_tracks.ids_count == {0: 1}
+    assert empty_tracks.id_to_frames == {0: set([0])}
     assert empty_tracks[0].confs == [0.5]
 
 
@@ -182,9 +199,11 @@ def test_add_one_observation_no_conf_no_class(empty_tracks: Tracks):
 
     assert len(empty_tracks) == 1
     assert empty_tracks.frames == set([0])
-    assert empty_tracks.all_classes == set()
+    assert empty_tracks.all_classes == set([0])
     assert empty_tracks.ids_count == {0: 1}
-    assert len(empty_tracks._confs) == 0
+    assert empty_tracks.id_to_frames == {0: set([0])}
+    assert len(empty_tracks._confs) == 1
+    np.testing.assert_array_equal(empty_tracks._confs[0], np.array([1]))
 
 
 def test_add_more_observations(empty_tracks: Tracks):
@@ -194,6 +213,7 @@ def test_add_more_observations(empty_tracks: Tracks):
     assert empty_tracks.frames == set([0])
     assert empty_tracks.all_classes == set([1])
     assert empty_tracks.ids_count == {0: 1, 1: 1}
+    assert empty_tracks.id_to_frames == {0: set([0]), 1: set([0])}
 
 
 def test_contains_true(tracks_with_one_item: Tracks):
@@ -217,7 +237,8 @@ def test_getitem_one_item_no_class(tracks_with_one_item_no_class: Tracks):
 
     assert item.ids == [0]
     np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
-    assert item.classes is None
+    np.testing.assert_array_equal(item.classes, np.array([0]))
+    np.testing.assert_array_equal(item.confs, np.array([0.5]))
 
 
 def test_getitem_one_item_no_conf(tracks_with_one_item_no_conf: Tracks):
@@ -225,7 +246,8 @@ def test_getitem_one_item_no_conf(tracks_with_one_item_no_conf: Tracks):
 
     assert item.ids == [0]
     np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
-    assert item.confs is None
+    np.testing.assert_array_equal(item.classes, np.array([1]))
+    np.testing.assert_array_equal(item.confs, np.array([1.0]))
 
 
 def test_getitem_one_item_nothing(tracks_with_one_item_nothing: Tracks):
@@ -233,8 +255,8 @@ def test_getitem_one_item_nothing(tracks_with_one_item_nothing: Tracks):
 
     assert item.ids == [0]
     np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
-    assert item.classes is None
-    assert item.confs is None
+    np.testing.assert_array_equal(item.classes, np.array([0]))
+    np.testing.assert_array_equal(item.confs, np.array([1.0]))
 
 
 def test_add_second_observation(tracks_with_one_item: Tracks):
@@ -244,6 +266,7 @@ def test_add_second_observation(tracks_with_one_item: Tracks):
     assert tracks_with_one_item.frames == set([0, 2])
     assert tracks_with_one_item.all_classes == set([1, 3])
     assert tracks_with_one_item.ids_count == {0: 1, 2: 1}
+    assert tracks_with_one_item.id_to_frames == {0: set([0]), 2: set([2])}
 
 
 def test_add_second_observation_no_class(tracks_with_one_item: Tracks):
@@ -251,8 +274,9 @@ def test_add_second_observation_no_class(tracks_with_one_item: Tracks):
 
     assert len(tracks_with_one_item) == 2
     assert tracks_with_one_item.frames == set([0, 2])
-    assert tracks_with_one_item.all_classes == set([1])
+    assert tracks_with_one_item.all_classes == set([0, 1])  # default class added
     assert tracks_with_one_item.ids_count == {0: 1, 2: 1}
+    assert tracks_with_one_item.id_to_frames == {0: set([0]), 2: set([2])}
 
 
 def test_delete_frame(tracks_with_one_item: Tracks):
@@ -262,6 +286,7 @@ def test_delete_frame(tracks_with_one_item: Tracks):
     assert 0 not in tracks_with_one_item._ids
     assert 0 not in tracks_with_one_item._confs
     assert 0 not in tracks_with_one_item._detections
+    assert tracks_with_one_item.id_to_frames == {}
 
 
 def test_add_frames_not_in_order(empty_tracks: Tracks):
@@ -294,6 +319,7 @@ def test_filter_frame():
     np.testing.assert_array_equal(tracks[0].detections, np.array([[0, 0, 2, 2]]))
     assert tracks[0].classes == [1]
     assert tracks[0].confs == [0.5]
+    assert tracks.id_to_frames == {0: set([0])}
 
 
 def test_filter_frame_all():
@@ -309,7 +335,10 @@ def test_filter_frame_all():
         tracks[0].detections, np.array([[0, 0, 2, 2], [1, 1, 2, 2]])
     )
     np.testing.assert_array_equal(tracks[0].classes, np.array([1, 2]))
-    np.testing.assert_array_equal(tracks[0].confs, np.array([0.5, 0.6]))
+    np.testing.assert_array_equal(
+        tracks[0].confs, np.array([0.5, 0.6], dtype=np.float32)
+    )
+    assert tracks.id_to_frames == {0: set([0]), 1: set([0])}
 
 
 def test_filter_frame_none():
@@ -321,6 +350,7 @@ def test_filter_frame_none():
     tracks.filter_frame(0, np.array([False, False]))
 
     assert len(tracks) == 0
+    assert tracks.id_to_frames == {}
 
 
 def test_filter_by_class():
@@ -335,6 +365,7 @@ def test_filter_by_class():
     np.testing.assert_array_equal(tracks[0].detections, np.array([[0, 0, 2, 2]]))
     assert tracks[0].classes == [1]
     assert tracks[0].confs == [0.5]
+    assert tracks.id_to_frames == {0: set([0])}
 
 
 def test_filter_by_conf():
@@ -347,8 +378,9 @@ def test_filter_by_conf():
 
     assert tracks[0].ids == [1]
     np.testing.assert_array_equal(tracks[0].detections, np.array([[1, 1, 2, 2]]))
-    assert tracks[0].classes == [2]
-    assert tracks[0].confs == [0.6]
+    np.testing.assert_array_equal(tracks[0].classes, np.array([2], dtype=np.int32))
+    np.testing.assert_array_equal(tracks[0].confs, np.array([0.6], dtype=np.float32))
+    assert tracks.id_to_frames == {1: set([0])}
 
 
 ##############################
@@ -378,9 +410,9 @@ def test_read_csv(sample_tracks):
 
     assert tracks.frames == sample_tracks.frames
 
-    assert set(tracks[660].ids) == set(sample_tracks[660].ids)
-    assert set(tracks[661].ids) == set(sample_tracks[661].ids)
-    assert set(tracks[800].ids) == set(sample_tracks[800].ids)
+    np.testing.assert_array_equal(tracks[660].ids, sample_tracks[660].ids)
+    np.testing.assert_array_equal(tracks[661].ids, sample_tracks[661].ids)
+    np.testing.assert_array_equal(tracks[800].ids, sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
         tracks[660].detections,
@@ -398,13 +430,15 @@ def test_read_csv(sample_tracks):
         decimal=4,
     )
 
-    assert set(tracks[660].classes) == set(sample_tracks[660].classes)
-    assert set(tracks[661].classes) == set(sample_tracks[661].classes)
-    assert set(tracks[800].classes) == set(sample_tracks[800].classes)
+    np.testing.assert_array_equal(tracks[660].classes, sample_tracks[660].classes)
+    np.testing.assert_array_equal(tracks[661].classes, sample_tracks[661].classes)
+    np.testing.assert_array_equal(tracks[800].classes, sample_tracks[800].classes)
 
-    assert set(tracks[660].confs) == set([0.9])
-    assert set(tracks[661].confs) == set([0.9])
-    assert set(tracks[800].confs) == set([0.9])
+    np.testing.assert_array_equal(tracks[660].confs, sample_tracks[660].confs)
+    np.testing.assert_array_equal(tracks[661].confs, sample_tracks[661].confs)
+    np.testing.assert_array_equal(tracks[800].confs, sample_tracks[800].confs)
+
+    assert tracks.id_to_frames == sample_tracks.id_to_frames
 
 
 def test_read_mot_cvat(sample_tracks):
@@ -436,6 +470,8 @@ def test_read_mot_cvat(sample_tracks):
     assert set(tracks[661].classes) == set(sample_tracks[661].classes)
     assert set(tracks[800].classes) == set(sample_tracks[800].classes)
 
+    assert tracks.id_to_frames == sample_tracks.id_to_frames
+
 
 def test_read_mot(sample_tracks):
     tracks = Tracks.from_mot("tests/data/tracks/mot_sample.csv")
@@ -461,6 +497,8 @@ def test_read_mot(sample_tracks):
         sample_tracks[800].detections,
         decimal=4,
     )
+
+    assert tracks.id_to_frames == sample_tracks.id_to_frames
 
 
 def test_error_ua_detrac_no_class_list():
@@ -510,6 +548,8 @@ def test_read_ua_detrac(sample_tracks):
     assert set(tracks[661].classes) == set(sample_tracks[661].classes)
     assert set(tracks[800].classes) == set(sample_tracks[800].classes)
 
+    assert tracks.id_to_frames == sample_tracks.id_to_frames
+
 
 def test_read_cvat_video(sample_tracks):
     tracks = Tracks.from_cvat_video(
@@ -541,3 +581,10 @@ def test_read_cvat_video(sample_tracks):
     assert set(tracks[660].classes) == set(sample_tracks[660].classes)
     assert set(tracks[661].classes) == set(sample_tracks[661].classes)
     assert set(tracks[800].classes) == set(sample_tracks[800].classes)
+
+    assert tracks.id_to_frames == sample_tracks.id_to_frames
+
+
+##############################
+# Test saving to file
+##############################

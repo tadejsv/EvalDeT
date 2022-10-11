@@ -1,8 +1,8 @@
+import collections as co
 import csv
 import typing as t
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, NamedTuple, Optional, Union
 
 import numpy as np
 
@@ -16,11 +16,14 @@ _WIDTH_KEY = "width"
 _HEIGHT_KEY = "height"
 
 
-class FrameTracks(NamedTuple):
+class FrameTracks(t.NamedTuple):
     detections: np.ndarray
     ids: np.ndarray
-    classes: Optional[np.ndarray]
-    confs: Optional[np.ndarray]
+    classes: np.ndarray
+    confs: np.ndarray
+
+
+TracksType = t.TypeVar("TracksType", bound="Tracks")
 
 
 class Tracks:
@@ -42,11 +45,11 @@ class Tracks:
 
     @classmethod
     def from_csv(
-        cls,
-        csv_file: Union[str, Path],
+        cls: type[TracksType],
+        csv_file: t.Union[str, Path],
         fieldnames: t.List[str],
         zero_indexed: bool = True,
-    ) -> "Tracks":
+    ) -> TracksType:
         """Get detections from a CSV file.
 
         The CSV file should have a normal comma (,) as a separator, and should not
@@ -73,7 +76,7 @@ class Tracks:
         tracks = cls()
         with open(csv_file, newline="") as file:
             csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
-            frames: t.Dict[int, Any] = {}
+            frames: t.Dict[int, t.Any] = {}
 
             for line_num, line in enumerate(csv_reader):
                 try:
@@ -109,7 +112,7 @@ class Tracks:
         return tracks
 
     @classmethod
-    def from_mot(cls, file_path: Union[Path, str]) -> "Tracks":
+    def from_mot(cls: type[TracksType], file_path: t.Union[Path, str]) -> TracksType:
         """Creates a Tracks object from detections file in the MOT format.
 
         The format should look like this::
@@ -141,7 +144,7 @@ class Tracks:
         return cls.from_csv(file_path, fieldnames, zero_indexed=False)
 
     @classmethod
-    def from_mot_gt(cls, file_path: Union[Path, str]) -> "Tracks":
+    def from_mot_gt(cls: type[TracksType], file_path: t.Union[Path, str]) -> TracksType:
         """Creates a Tracks object from detections file in the MOT ground truth format.
         This format has some more information compared to the normal
 
@@ -175,7 +178,7 @@ class Tracks:
         return cls.from_csv(file_path, fieldnames, zero_indexed=False)
 
     @classmethod
-    def from_mot_cvat(cls, file_path: Union[Path, str]) -> "Tracks":
+    def from_mot_cvat(cls: type[TracksType], file_path: t.Union[Path, str]) -> "Tracks":
         """Creates a Tracks object from detections file in the CVAT's MOT format.
 
         The format should look like this::
@@ -210,11 +213,11 @@ class Tracks:
 
     @classmethod
     def from_ua_detrac(
-        cls,
-        file_path: Union[Path, str],
-        classes_attr_name: Optional[str] = None,
-        classes_list: Optional[t.List[str]] = None,
-    ) -> "Tracks":
+        cls: type[TracksType],
+        file_path: t.Union[Path, str],
+        classes_attr_name: t.Optional[str] = None,
+        classes_list: t.Optional[t.List[str]] = None,
+    ) -> TracksType:
         """Creates a Tracks object from detections file in the UA-DETRAC XML format.
 
         Here's how this file might look like:
@@ -314,10 +317,10 @@ class Tracks:
 
     @classmethod
     def from_cvat_video(
-        cls,
-        file_path: Union[Path, str],
+        cls: type[TracksType],
+        file_path: t.Union[Path, str],
         classes_list: t.List[str],
-    ) -> "Tracks":
+    ) -> TracksType:
         """Creates a Tracks object from detections file in the CVAT for Video XML
         format.
 
@@ -367,7 +370,9 @@ class Tracks:
         root = xml_tree.getroot()
         tracks = cls()
 
-        frames: t.Dict[int, Any] = {}
+        frames: t.Dict[int, t.Dict[str, t.List]] = co.defaultdict(
+            lambda: co.defaultdict(list)
+        )
         tracks_cvat = root.findall("track")
         for track_cvat in tracks_cvat:
             track_id = int(track_cvat.attrib[_ID_KEY])
@@ -382,16 +387,10 @@ class Tracks:
                 width = float(box.attrib["xbr"]) - xmin
                 height = float(box.attrib["ybr"]) - ymin
 
-                current_frame = frames.get(frame_num, {})
-                if current_frame:
-                    current_frame["classes"].append(track_class)
-                    current_frame["ids"].append(track_id)
-                    current_frame["detections"].append([xmin, ymin, width, height])
-                else:
-                    current_frame["classes"] = [track_class]
-                    current_frame["ids"] = [track_id]
-                    current_frame["detections"] = [[xmin, ymin, width, height]]
-                    frames[frame_num] = current_frame
+                current_frame = frames[frame_num]
+                current_frame["classes"].append(track_class)
+                current_frame["ids"].append(track_id)
+                current_frame["detections"].append([xmin, ymin, width, height])
 
         list_frames = sorted(list(frames.keys()))
         for frame in list_frames:
@@ -439,21 +438,22 @@ class Tracks:
 
     def __init__(self) -> None:
 
-        self._frame_nums: t.Set[int] = set()
+        self._frames: t.Set[int] = set()
         self._detections: t.Dict[int, np.ndarray] = dict()
         self._ids: t.Dict[int, np.ndarray] = dict()
         self._classes: t.Dict[int, np.ndarray] = dict()
         self._confs: t.Dict[int, np.ndarray] = dict()
+        self._id_to_frames: t.Dict[int, t.Set[int]] = co.defaultdict(set)
 
     def add_frame(
         self,
         frame_num: int,
-        ids: Union[t.List[int], np.ndarray],
+        ids: t.Union[t.List[int], np.ndarray],
         detections: np.ndarray,
-        classes: Optional[Union[t.List[int], np.ndarray]] = None,
-        confs: Optional[Union[t.List[float], np.ndarray]] = None,
+        classes: t.Optional[t.Union[t.List[int], np.ndarray]] = None,
+        confs: t.Optional[t.Union[t.List[float], np.ndarray]] = None,
     ) -> None:
-        """Add a frame to the collection. Can overwrite existing frame.
+        """Add a frame to the collection. Can overwrite an existing frame.
 
         Args:
             frame_num: A non-negative frame number
@@ -461,10 +461,9 @@ class Tracks:
             detections: An Nx4 array describing the bounding boxes of objects in
                 the frame. It should be in the ``xywh`` format.
             classes: An optional list (or numpy array) of classes for the objects.
-                If passed all objects in the frame must be assigned a class.
+                If not passed all objects in the frame will get a class of 0.
             confs: An optional list (or numpy array) of confidence scores for the
-                objects. If passed all objects in the frame must be assigned a
-                confidence score.
+                objects. If not passed, all detection will get a confidence of 1.
         """
 
         if len(ids) == 0:
@@ -504,23 +503,23 @@ class Tracks:
             )
 
         # If all ok, add objects to collections
-        self._detections[frame_num] = detections.copy()
-
-        def _to_numpy(x: Union[list, np.ndarray], is_int: bool = True) -> np.ndarray:
-            if isinstance(x, list):
-                return np.array(x).astype(np.int64 if is_int else np.float64)
-            else:
-                return x.copy().astype(np.int64 if is_int else np.float64)
-
-        self._ids[frame_num] = _to_numpy(ids)
+        self._detections[frame_num] = np.array(detections, copy=True, dtype=np.float32)
+        self._ids[frame_num] = np.array(ids, copy=True, dtype=np.int32)
 
         if classes is not None:
-            self._classes[frame_num] = _to_numpy(classes)
+            self._classes[frame_num] = np.array(classes, copy=True, dtype=np.int32)
+        else:
+            self._classes[frame_num] = np.full((len(ids),), 0, dtype=np.int32)
 
         if confs is not None:
-            self._confs[frame_num] = _to_numpy(confs, is_int=False)
+            self._confs[frame_num] = np.array(confs, copy=True, dtype=np.float32)
+        else:
+            self._confs[frame_num] = np.full((len(ids),), 1, dtype=np.float32)
 
-        self._frame_nums.add(frame_num)
+        self._frames.add(frame_num)
+
+        for _id in ids:
+            self._id_to_frames[_id].add(frame_num)
 
     def filter_frame(self, frame_num: int, filter: np.ndarray) -> None:
         """Filters a frame and all its objects according to the filter array.
@@ -554,14 +553,16 @@ class Tracks:
         if filter.min() == 1:
             return
 
+        for id_out in frame.ids[~filter]:
+            if len(self._id_to_frames[id_out]) == 1:
+                del self._id_to_frames[id_out]
+            else:
+                self._id_to_frames[id_out].remove(frame_num)
+
         self._detections[frame_num] = frame.detections[filter]
         self._ids[frame_num] = frame.ids[filter]
-
-        if frame.confs is not None:
-            self._confs[frame_num] = frame.confs[filter]
-
-        if frame.classes is not None:
-            self._classes[frame_num] = frame.classes[filter]
+        self._confs[frame_num] = frame.confs[filter]
+        self._classes[frame_num] = frame.classes[filter]
 
     def filter_by_class(self, classes: t.List[int]) -> None:
         """Filter all frames by classes
@@ -573,15 +574,9 @@ class Tracks:
         Args:
             classes: A list of which class labels to keep.
         """
-        if not self._classes:
-            raise ValueError("Can not filter by class, no class data")
-
-        for frame in self._frame_nums.copy():
-            if frame not in self._classes:
-                del self[frame]
-            else:
-                filter_cls = np.in1d(self._classes[frame], classes)
-                self.filter_frame(frame, filter_cls)
+        for frame in self._frames.copy():
+            filter_cls = np.in1d(self._classes[frame], classes)
+            self.filter_frame(frame, filter_cls)
 
     def filter_by_conf(self, lower_bound: float) -> None:
         """Filter all frames by confidence
@@ -594,21 +589,15 @@ class Tracks:
             lower_bound: The lower bound on the confidence value of the items,
                 so that they are not filtered out.
         """
-        if not self._confs:
-            raise ValueError("Can not filter by confidence, no confidence data")
-
-        for frame in self._frame_nums.copy():
-            if frame not in self._confs:
-                del self[frame]
-            else:
-                filter_conf = self._confs[frame] >= lower_bound
-                self.filter_frame(frame, filter_conf)
+        for frame in self._frames.copy():
+            filter_conf = self._confs[frame] >= lower_bound
+            self.filter_frame(frame, filter_conf)
 
     @property
     def all_classes(self) -> t.Set[int]:
         """Get a set of all classes in the collection."""
         classes: t.Set[int] = set()
-        for frame in self._frame_nums:
+        for frame in self._frames:
             if frame in self._classes:
                 classes.update(self._classes[frame])
 
@@ -622,63 +611,108 @@ class Tracks:
             A dictionary where keys are the track ids, and values
             are the numbers of frames they appear in.
         """
-        ids_count: t.Dict[int, int] = dict()
-        for frame in self._frame_nums:
-            for _id in self._ids[frame]:
-                ids_count[_id] = ids_count.get(_id, 0) + 1
-
+        ids_count = {k: len(v) for k, v in self._id_to_frames.items()}
         return ids_count
 
     @property
     def frames(self) -> t.Set[int]:
         """Get an ordered list of all frame numbers in the collection."""
-        return self._frame_nums.copy()
+        return self._frames.copy()
+
+    @property
+    def id_to_frames(self) -> t.Dict[int, t.Set[int]]:
+        """Get an ordered list of all frame numbers in the collection."""
+        return {k: v.copy() for k, v in self._id_to_frames.items()}
 
     def __len__(self) -> int:
-        return len(self._frame_nums)
+        return len(self._frames)
 
     def __contains__(self, idx: int) -> bool:
         """Whether the frame ``idx`` is present in the collection."""
-        return idx in self._frame_nums
+        return idx in self._frames
 
+    @t.overload
     def __getitem__(self, idx: int) -> FrameTracks:
         """Get the frame with number ``idx``.
 
-        Returns:
-            A dictionary with the key ``'ids'``, ``'detections'`` and, if available,
-            ``'classes'`` and ``confs``. The values are numpy arrays, with values
-            for each item in the frame.
+        Note that indexing with negative values is not supported.
         """
-        if idx not in self:
-            raise KeyError(f"The frame {idx} does not exist.")
 
-        classes = None
-        if idx in self._classes:
-            classes = self._classes[idx]
+    @t.overload
+    def __getitem__(self, idx: slice) -> "Tracks":
+        """Select only a subset of frames, as defined by the slice.
 
-        confs = None
-        if idx in self._confs:
-            confs = self._confs[idx]
+        Note that the ``step`` argument is not supported and will result in an error
+        being raised if it is supplied. Negative indices for start or stop argument are
+        similarly not supported.
+        """
 
-        return FrameTracks(
-            ids=self._ids[idx],
-            detections=self._detections[idx],
-            classes=classes,
-            confs=confs,
-        )
+    # TODO: test slicing
+    def __getitem__(self, idx: t.Union[int, slice]) -> t.Union[FrameTracks, "Tracks"]:
+
+        if isinstance(idx, int):
+            if idx < 0:
+                raise ValueError("Indexing with negative values is not supported.")
+            if idx not in self:
+                raise KeyError(f"The frame {idx} does not exist.")
+
+            return FrameTracks(
+                ids=self._ids[idx],
+                detections=self._detections[idx],
+                classes=self._classes[idx],
+                confs=self._confs[idx],
+            )
+
+        elif isinstance(idx, slice):
+            start, stop, step = idx.start, idx.stop, idx.step
+            if step is not None:
+                raise ValueError("Slicing with the step argument is not supported.")
+            if start < 0 or stop < 0:
+                raise ValueError("Slicing with negative indices is not supported.")
+
+            keep_frames = set(list(range(start, stop)))
+            keep_frames = self._frames.intersection(keep_frames)
+
+            new_tracks = type(self)()
+
+            new_tracks._frames = keep_frames
+            new_tracks._detections.update(
+                {fnum: self._detections[fnum].copy() for fnum in keep_frames}
+            )
+            new_tracks._ids.update(
+                {fnum: self._ids[fnum].copy() for fnum in keep_frames}
+            )
+            new_tracks._classes.update(
+                {fnum: self._classes[fnum].copy() for fnum in keep_frames}
+            )
+            new_tracks._confs.update(
+                {fnum: self._confs[fnum].copy() for fnum in keep_frames}
+            )
+
+            new_id_to_frames = {
+                k: v.intersection(keep_frames) for k, v in self._id_to_frames.items()
+            }
+            new_tracks._id_to_frames.update(
+                {k: v for k, v in new_id_to_frames.items() if len(v) > 0}
+            )
+            return new_tracks
+        else:
+            raise ValueError("Unrecognized index type")
 
     def __delitem__(self, frame_num: int) -> None:
         """Remove the frame with number ``frame_num``"""
 
         if frame_num not in self:
-            raise KeyError(f"Tracks object does not contain frame {frame_num}")
+            raise KeyError(f"Tracks object does not contain frame {frame_num}.")
 
-        self._frame_nums.remove(frame_num)
+        for id_out in self._ids[frame_num]:
+            if len(self._id_to_frames[id_out]) == 1:
+                del self._id_to_frames[id_out]
+            else:
+                self._id_to_frames[id_out].remove(frame_num)
+
+        self._frames.remove(frame_num)
         del self._ids[frame_num]
         del self._detections[frame_num]
-
-        if frame_num in self._classes:
-            del self._classes[frame_num]
-
-        if frame_num in self._confs:
-            del self._confs[frame_num]
+        del self._classes[frame_num]
+        del self._confs[frame_num]
