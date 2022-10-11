@@ -259,6 +259,64 @@ def test_getitem_one_item_nothing(tracks_with_one_item_nothing: Tracks):
     np.testing.assert_array_equal(item.confs, np.array([1.0]))
 
 
+def test_slice_normal1(sample_tracks: Tracks):
+    sliced_tracks = sample_tracks[660:662]
+    assert sliced_tracks.frames == {660, 661}
+    assert sliced_tracks.all_classes == {2}
+    assert sliced_tracks.id_to_frames == {1: {660, 661}, 2: {660, 661}, 3: {660, 661}}
+    np.testing.assert_almost_equal(
+        sliced_tracks[661].detections,
+        np.array(
+            [
+                [320.98, 105.24, 44.67, 35.71],
+                [273.1, 88.88, 55.7, 24.52],
+                [374.69, 80.78, 26.4, 22.23],
+            ],
+            dtype=np.float32,
+        ),
+    )
+
+
+def test_slice_normal2(sample_tracks: Tracks):
+    sliced_tracks = sample_tracks[660:800]
+    assert sliced_tracks.frames == {660, 661}
+    assert sliced_tracks.all_classes == {2}
+    assert sliced_tracks.id_to_frames == {1: {660, 661}, 2: {660, 661}, 3: {660, 661}}
+    np.testing.assert_almost_equal(
+        sliced_tracks[661].detections,
+        np.array(
+            [
+                [320.98, 105.24, 44.67, 35.71],
+                [273.1, 88.88, 55.7, 24.52],
+                [374.69, 80.78, 26.4, 22.23],
+            ],
+            dtype=np.float32,
+        ),
+    )
+
+
+def test_slice_empty_result(tracks_with_one_item: Tracks):
+    sliced_tracks = tracks_with_one_item[100:111]
+
+    assert len(sliced_tracks._classes) == 0
+    assert len(sliced_tracks._confs) == 0
+    assert len(sliced_tracks._ids) == 0
+    assert len(sliced_tracks._id_to_frames) == 0
+    assert len(sliced_tracks._detections) == 0
+    assert len(sliced_tracks._frames) == 0
+
+
+def test_slice_on_empty_tracks(empty_tracks: Tracks):
+    sliced_tracks = empty_tracks[0:1]
+
+    assert len(sliced_tracks._classes) == 0
+    assert len(sliced_tracks._confs) == 0
+    assert len(sliced_tracks._ids) == 0
+    assert len(sliced_tracks._id_to_frames) == 0
+    assert len(sliced_tracks._detections) == 0
+    assert len(sliced_tracks._frames) == 0
+
+
 def test_add_second_observation(tracks_with_one_item: Tracks):
     tracks_with_one_item.add_frame(2, [2], np.array([[0, 0, 1, 1]]), [3])
 
@@ -583,8 +641,3 @@ def test_read_cvat_video(sample_tracks):
     assert set(tracks[800].classes) == set(sample_tracks[800].classes)
 
     assert tracks.id_to_frames == sample_tracks.id_to_frames
-
-
-##############################
-# Test saving to file
-##############################

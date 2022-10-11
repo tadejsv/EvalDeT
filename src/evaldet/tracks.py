@@ -45,7 +45,7 @@ class Tracks:
 
     @classmethod
     def from_csv(
-        cls: type[TracksType],
+        cls: t.Type[TracksType],
         csv_file: t.Union[str, Path],
         fieldnames: t.List[str],
         zero_indexed: bool = True,
@@ -112,7 +112,7 @@ class Tracks:
         return tracks
 
     @classmethod
-    def from_mot(cls: type[TracksType], file_path: t.Union[Path, str]) -> TracksType:
+    def from_mot(cls: t.Type[TracksType], file_path: t.Union[Path, str]) -> TracksType:
         """Creates a Tracks object from detections file in the MOT format.
 
         The format should look like this::
@@ -144,7 +144,9 @@ class Tracks:
         return cls.from_csv(file_path, fieldnames, zero_indexed=False)
 
     @classmethod
-    def from_mot_gt(cls: type[TracksType], file_path: t.Union[Path, str]) -> TracksType:
+    def from_mot_gt(
+        cls: t.Type[TracksType], file_path: t.Union[Path, str]
+    ) -> TracksType:
         """Creates a Tracks object from detections file in the MOT ground truth format.
         This format has some more information compared to the normal
 
@@ -178,7 +180,9 @@ class Tracks:
         return cls.from_csv(file_path, fieldnames, zero_indexed=False)
 
     @classmethod
-    def from_mot_cvat(cls: type[TracksType], file_path: t.Union[Path, str]) -> "Tracks":
+    def from_mot_cvat(
+        cls: t.Type[TracksType], file_path: t.Union[Path, str]
+    ) -> "Tracks":
         """Creates a Tracks object from detections file in the CVAT's MOT format.
 
         The format should look like this::
@@ -213,7 +217,7 @@ class Tracks:
 
     @classmethod
     def from_ua_detrac(
-        cls: type[TracksType],
+        cls: t.Type[TracksType],
         file_path: t.Union[Path, str],
         classes_attr_name: t.Optional[str] = None,
         classes_list: t.Optional[t.List[str]] = None,
@@ -317,7 +321,7 @@ class Tracks:
 
     @classmethod
     def from_cvat_video(
-        cls: type[TracksType],
+        cls: t.Type[TracksType],
         file_path: t.Union[Path, str],
         classes_list: t.List[str],
     ) -> TracksType:
@@ -647,7 +651,6 @@ class Tracks:
         similarly not supported.
         """
 
-    # TODO: test slicing
     def __getitem__(self, idx: t.Union[int, slice]) -> t.Union[FrameTracks, "Tracks"]:
 
         if isinstance(idx, int):
