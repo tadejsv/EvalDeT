@@ -5,16 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [0.2.1] - 2022-10-11
+
+### Added
+
+* A `py.typed` file to support typing of this library in installations ([#25](https://github.com/tadejsv/EvalDeT/pull/25))
+
 ## [0.2.0] - 2022-10-11
 
 ### Added
 
-* Slicing of `Tracks` ([#24](https://github.com/tadejsv/EvalDeT/pull/23))
-* Export of `Tracks` to CVAT for Video and a custom CSV format ([#24](https://github.com/tadejsv/EvalDeT/pull/23))
+* Slicing of `Tracks` ([#24](https://github.com/tadejsv/EvalDeT/pull/24))
+* Export of `Tracks` to CVAT for Video and a custom CSV format ([#24](https://github.com/tadejsv/EvalDeT/pull/24))
 
 ### Changed
 
-* When creating tracks, if `confs` or `classes` are not provided, they are now given a default value, instead of being `None`. ([#24](https://github.com/tadejsv/EvalDeT/pull/23))
+* When creating tracks, if `confs` or `classes` are not provided, they are now given a default value, instead of being `None`. ([#24](https://github.com/tadejsv/EvalDeT/pull/24))
 
 ## [0.1.8] - 2022-10-05
 
