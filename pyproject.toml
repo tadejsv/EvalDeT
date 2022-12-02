@@ -10,6 +10,7 @@ authors = [
   { name = "Tadej", email = "tadej.svetina@gmail.com" },
 ]
 readme = "README.md"
+requires-python = ">=3.8"
 keywords = ["evaluation", "tracking", "object detection", "computer vision"]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -21,8 +22,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Recognition",
 ]
 dependencies = [
-  "numpy~=1.23.2",
-  "scipy~=1.9.0",
+  "numpy~=1.23",
+  "scipy~=1.9",
+  "pyarrow~=10.0"
 ]
 dynamic = ["version"]
 

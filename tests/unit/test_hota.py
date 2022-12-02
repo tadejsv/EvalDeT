@@ -3,15 +3,10 @@ import numpy as np
 from evaldet import MOTMetrics, Tracks
 
 
-def test_hyp_missing_frame():
+def test_hyp_missing_frame(missing_frame_pair):
     m = MOTMetrics()
 
-    gt = Tracks()
-    gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-    gt.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
+    gt, hyp = missing_frame_pair
     metrics = m.compute(
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
@@ -24,15 +19,10 @@ def test_hyp_missing_frame():
         assert metrics["hota"][m].var() == 0
 
 
-def test_gt_missing_frame():
+def test_gt_missing_frame(missing_frame_pair):
     m = MOTMetrics()
 
-    gt = Tracks()
-    gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-    hyp.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
+    gt, hyp = missing_frame_pair
     metrics = m.compute(
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
@@ -48,11 +38,8 @@ def test_gt_missing_frame():
 def test_no_matches():
     m = MOTMetrics()
 
-    gt = Tracks()
-    gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0], np.array([[1, 1, 1, 1]]))
+    gt = Tracks([0], [0], np.array([[0, 0, 1, 1]]))
+    hyp = Tracks([0], [0], np.array([[1, 1, 1, 1]]))
     metrics = m.compute(
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
@@ -68,11 +55,8 @@ def test_no_matches():
 def test_alphas():
     m = MOTMetrics()
 
-    gt = Tracks()
-    gt.add_frame(0, [0, 1], np.array([[0, 0, 1, 1], [1, 1, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0, 1], np.array([[0.1, 0.1, 1, 1], [1.2, 1.2, 1, 1]]))
+    gt = Tracks([0, 1], [0, 0], np.array([[0, 0, 1, 1], [1, 1, 1, 1]]))
+    hyp = Tracks([0, 1], [0, 0], np.array([[0.1, 0.1, 1, 1], [1.2, 1.2, 1, 1]]))
     metrics = m.compute(
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
@@ -114,18 +98,21 @@ def test_priority_matching_1():
     """
     m = MOTMetrics()
 
-    gt = Tracks()
-    for i in range(10):
-        gt.add_frame(i, [0], np.array([[0, 0, 1, 1]]))
-    gt.add_frame(10, [0, 1], np.array([[0, 0, 1, 1 + 1e-5], [0, 0, 1, 1 - 1e-5]]))
-
-    hyp = Tracks()
-    for i in range(10):
-        hyp.add_frame(i, [0], np.array([[0, 0, 1, 1]]))
+    gt = Tracks(
+        ids=[0] * 10 + [0, 1],
+        frame_nums=list(range(10)) + [10, 10],
+        detections=np.array(
+            [[0, 0, 1, 1]] * 10 + [[0, 0, 1, 1 + 1e-5], [0, 0, 1, 1 - 1e-5]]
+        ),
+    )
 
     # This is set up in a way that dist from 0 will be just above 0.5,
     # and distance from 1 below 0.5
-    hyp.add_frame(10, [0], np.array([[0, 0, 1, 0.5]]))
+    hyp = Tracks(
+        ids=[0] * 10 + [0],
+        frame_nums=list(range(10)) + [10],
+        detections=np.array([[0, 0, 1, 1]] * 10 + [[0, 0, 1, 0.5]]),
+    )
 
     metrics = m.compute(
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
@@ -141,13 +128,10 @@ def test_priority_matching_2():
     taken by what has highe A(c), and not what has higher similarity."""
     m = MOTMetrics()
 
-    gt = Tracks()
-    gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-    gt.add_frame(1, [0, 1], np.array([[0, 0, 1, 0.7], [0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-    hyp.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
+    gt = Tracks(
+        [0, 0, 1], [0, 1, 1], np.array([[0, 0, 1, 1], [0, 0, 1, 0.7], [0, 0, 1, 1]])
+    )
+    hyp = Tracks([0, 0], [0, 1], np.array([[0, 0, 1, 1]] * 2))
     metrics = m.compute(
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
@@ -161,13 +145,8 @@ def test_example_1a():
     """Example A from figure 1 in the paper"""
     m = MOTMetrics()
 
-    gt = Tracks()
-    for i in range(20):
-        gt.add_frame(i, [0], np.array([[0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    for i in range(10):
-        hyp.add_frame(i, [0], np.array([[0, 0, 1, 1]]))
+    gt = Tracks([0] * 20, list(range(20)), np.array([[0, 0, 1, 1]] * 20))
+    hyp = Tracks([0] * 10, list(range(10)), np.array([[0, 0, 1, 1]] * 10))
     metrics = m.compute(
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
@@ -182,16 +161,8 @@ def test_example_1b():
     """Example B from figure 1 in the paper"""
     m = MOTMetrics()
 
-    gt = Tracks()
-    for i in range(20):
-        gt.add_frame(i, [0], np.array([[0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    for i in range(7):
-        hyp.add_frame(i, [0], np.array([[0, 0, 1, 1]]))
-
-    for i in range(7, 14):
-        hyp.add_frame(i, [1], np.array([[0, 0, 1, 1]]))
+    gt = Tracks([0] * 20, list(range(20)), np.array([[0, 0, 1, 1]] * 20))
+    hyp = Tracks([0] * 7 + [1] * 7, list(range(14)), np.array([[0, 0, 1, 1]] * 14))
     metrics = m.compute(
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
@@ -206,22 +177,12 @@ def test_example_1c():
     """Example C from figure 1 in the paper"""
     m = MOTMetrics()
 
-    gt = Tracks()
-    for i in range(20):
-        gt.add_frame(i, [0], np.array([[0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    for i in range(5):
-        hyp.add_frame(i, [0], np.array([[0, 0, 1, 1]]))
-
-    for i in range(5, 10):
-        hyp.add_frame(i, [1], np.array([[0, 0, 1, 1]]))
-
-    for i in range(10, 15):
-        hyp.add_frame(i, [2], np.array([[0, 0, 1, 1]]))
-
-    for i in range(15, 20):
-        hyp.add_frame(i, [3], np.array([[0, 0, 1, 1]]))
+    gt = Tracks([0] * 20, list(range(20)), np.array([[0, 0, 1, 1]] * 20))
+    hyp = Tracks(
+        [0] * 5 + [1] * 5 + [2] * 5 + [3] * 5,
+        list(range(20)),
+        np.array([[0, 0, 1, 1]] * 20),
+    )
     metrics = m.compute(
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )

@@ -4,15 +4,10 @@ import pytest
 from evaldet import MOTMetrics, Tracks
 
 
-def test_empty_frame_hyp():
+def test_empty_frame_hyp(missing_frame_pair):
     m = MOTMetrics()
 
-    gt = Tracks()
-    gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-    gt.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
+    gt, hyp = missing_frame_pair
     metrics = m.compute(
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
@@ -26,15 +21,10 @@ def test_empty_frame_hyp():
     assert metrics["id"]["IDF1"] == 2 / 3
 
 
-def test_missing_frame_gt():
+def test_missing_frame_gt(missing_frame_pair):
     m = MOTMetrics()
 
-    gt = Tracks()
-    gt.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-    hyp.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
+    hyp, gt = missing_frame_pair
     metrics = m.compute(
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
@@ -51,11 +41,8 @@ def test_missing_frame_gt():
 def test_no_association_made():
     m = MOTMetrics()
 
-    gt = Tracks()
-    gt.add_frame(0, [0], np.array([[10, 10, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
+    gt = Tracks(ids=[0], frame_nums=[0], detections=np.array([[10, 10, 1, 1]]))
+    hyp = Tracks(ids=[0], frame_nums=[0], detections=np.array([[0, 0, 1, 1]]))
     metrics = m.compute(
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
@@ -73,18 +60,18 @@ def test_no_association_made():
 def test_dist_threshold(threshold: float):
     m = MOTMetrics(id_dist_threshold=threshold)
 
-    gt = Tracks()
-    gt.add_frame(
-        0,
-        [0, 1, 2, 3],
-        np.array([[0, 0, 1, 1], [0, 0, 1, 1], [0, 0, 1, 1], [0, 0, 1, 1]]),
+    gt = Tracks(
+        ids=[0, 1, 2, 3],
+        frame_nums=[0] * 4,
+        detections=np.array([[0, 0, 1, 1], [0, 0, 1, 1], [0, 0, 1, 1], [0, 0, 1, 1]]),
     )
 
-    hyp = Tracks()
-    hyp.add_frame(
-        0,
-        [0, 1, 2, 3],
-        np.array([[0, 0, 1, 0.2], [0, 0, 1, 0.4], [0, 0, 1, 0.6], [0, 0, 1, 0.8]]),
+    hyp = Tracks(
+        ids=[0, 1, 2, 3],
+        frame_nums=[0] * 4,
+        detections=np.array(
+            [[0, 0, 1, 0.2], [0, 0, 1, 0.4], [0, 0, 1, 0.6], [0, 0, 1, 0.8]]
+        ),
     )
 
     fn_res = {0.3: 3, 0.5: 2, 0.7: 1}
@@ -99,13 +86,12 @@ def test_association():
     """Test that only one hypotheses gets associated to a ground truth"""
     m = MOTMetrics()
 
-    gt = Tracks()
-    gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-    gt.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-    hyp.add_frame(1, [1], np.array([[0, 0, 1, 1]]))
+    gt = Tracks(
+        frame_nums=[0, 1], ids=[0, 0], detections=np.array([[0, 0, 1, 1], [0, 0, 1, 1]])
+    )
+    hyp = Tracks(
+        frame_nums=[0, 1], ids=[0, 1], detections=np.array([[0, 0, 1, 1], [0, 0, 1, 1]])
+    )
 
     metrics = m.compute(
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
@@ -129,16 +115,17 @@ def test_proper_cost_function():
     """
     m = MOTMetrics()
 
-    gt = Tracks()
-    gt.add_frame(0, [0], np.array([[0, 0, 1, 1]]))
-    gt.add_frame(1, [0], np.array([[0, 0, 1, 1]]))
+    gt = Tracks(
+        frame_nums=[0, 1], ids=[0, 0], detections=np.array([[0, 0, 1, 1], [0, 0, 1, 1]])
+    )
 
-    hyp = Tracks()
-    hyp.add_frame(0, [0, 1], np.array([[0, 0, 1, 1], [0, 0, 1, 1]]))
-    hyp.add_frame(1, [0, 1], np.array([[10, 10, 1, 1], [0, 0, 1, 1]]))
-    for i in range(2, 10):
-        hyp.add_frame(i, [1], np.array([[0, 0, 1, 1]]))
-
+    hyp_frame_nums = [0, 0, 1, 1] + list(range(2, 10))
+    hyp_ids = [0, 1, 0, 1] + [1] * len(range(2, 10))
+    hyp_detections = np.array(
+        [[0, 0, 1, 1], [0, 0, 1, 1], [10, 10, 1, 1], [0, 0, 1, 1]]
+        + [[0, 0, 1, 1]] * len(range(2, 10))
+    )
+    hyp = Tracks(ids=hyp_ids, frame_nums=hyp_frame_nums, detections=hyp_detections)
     metrics = m.compute(
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
@@ -147,19 +134,10 @@ def test_proper_cost_function():
     assert metrics["id"]["IDTP"] == 2
 
 
-def test_simple_case():
+def test_simple_case(simple_case):
     """Test a simple case with 3 frames and 2 detections/gts per frame."""
     m = MOTMetrics()
-
-    gt = Tracks()
-    gt.add_frame(0, [0, 1], np.array([[0, 0, 1, 1], [1, 1, 1, 1]]))
-    gt.add_frame(1, [0, 1], np.array([[0, 0, 1, 1], [2, 2, 1, 1]]))
-    gt.add_frame(2, [0, 1], np.array([[0, 0, 1, 1], [2, 2, 1, 1]]))
-
-    hyp = Tracks()
-    hyp.add_frame(0, [0, 1], np.array([[0, 0, 1, 1], [1, 1, 1, 1]]))
-    hyp.add_frame(1, [0, 1], np.array([[0.1, 0.1, 1, 1], [1, 1, 1, 1]]))
-    hyp.add_frame(2, [2, 1], np.array([[0.05, 0.05, 1, 1], [2, 2, 1, 1]]))
+    gt, hyp = simple_case
 
     metrics = m.compute(
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True

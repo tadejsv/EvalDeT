@@ -12,6 +12,9 @@ def preprocess_mot_1720(gt: Tracks, hyp: Tracks, mot_20: bool = True) -> None:
 
     pedestrian_class = [1]
 
+    hyp_filter = np.ones_like(hyp.ids, dtype=np.bool_)
+    gt_filter = np.ones_like(gt.ids, dtype=np.bool_)
+
     all_frames = sorted(set(gt.frames).intersection(hyp.frames))
     for frame in all_frames:
         dist_matrix = iou_dist(gt[frame].detections, hyp[frame].detections)
@@ -33,7 +36,11 @@ def preprocess_mot_1720(gt: Tracks, hyp: Tracks, mot_20: bool = True) -> None:
             assume_unique=True,
         )
 
-        hyp.filter_frame(frame, ~to_remove_hyp)
+        start, end = hyp._frame_ind_dict[frame]
+        hyp_filter[start:end] = ~to_remove_hyp
 
-    gt.filter_by_conf(0.1)
-    gt.filter_by_class(pedestrian_class)
+    gt_filter = gt_filter & (gt.confs >= 0.1)
+    gt_filter = gt_filter & np.isin(gt.classes, pedestrian_class)
+
+    gt.filter(gt_filter)
+    hyp.filter(hyp_filter)

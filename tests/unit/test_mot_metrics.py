@@ -7,8 +7,8 @@ def test_error_empty_metrics():
     m = MOTMetrics()
     with pytest.raises(ValueError, match="You must select some metrics"):
         m.compute(
-            Tracks(),
-            Tracks(),
+            Tracks([], [], []),
+            Tracks([], [], []),
             clearmot_metrics=False,
             hota_metrics=False,
             id_metrics=False,
@@ -18,4 +18,4 @@ def test_error_empty_metrics():
 def test_error_empty_ground_truth():
     m = MOTMetrics()
     with pytest.raises(ValueError, match=r"No objects in ``ground_truths``"):
-        m.compute(Tracks(), Tracks())
+        m.compute(Tracks([], [], []), Tracks([], [], []))
