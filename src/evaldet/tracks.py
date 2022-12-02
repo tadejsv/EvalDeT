@@ -375,7 +375,7 @@ class Tracks:
 
                 det_item = {
                     _ID_KEY: track_id,
-                    _FRAME_KEY: box.attrib["frame_key"],
+                    _FRAME_KEY: box.attrib[_FRAME_KEY],
                     _HEIGHT_KEY: float(box.attrib["ybr"]) - float(box.attrib["ytl"]),
                     _WIDTH_KEY: float(box.attrib["xbr"]) - float(box.attrib["xtl"]),
                     _XMIN_KEY: box.attrib["xtl"],
@@ -442,7 +442,7 @@ class Tracks:
 
         if len(ids) != len(frame_nums):
             raise ValueError(
-                "`detections` and `frame_nums` should contain the same number of items."
+                "`ids` and `frame_nums` should contain the same number of items."
             )
 
         if classes is not None and (len(classes) != len(ids) and len(classes) > 0):
@@ -467,8 +467,8 @@ class Tracks:
             self._frame_nums = np.zeros((0,), dtype=np.int32)
             self._ids = np.zeros((0,), dtype=np.int32)
             self._detections = np.zeros((0, 4), dtype=np.float32)
-            self._classes = np.zeros((0, 4), dtype=np.int32)
-            self._confs = np.zeros((0, 4), dtype=np.float32)
+            self._classes = np.zeros((0,), dtype=np.int32)
+            self._confs = np.zeros((0,), dtype=np.float32)
 
         else:
             frame_nums = np.array(frame_nums)
@@ -526,7 +526,7 @@ class Tracks:
 
         if filter.shape != self.ids.shape:
             raise ValueError(
-                "Shapre of the filter should equal the shape of ids, got"
+                "Shape of the filter should equal the shape of ids, got"
                 f" {filter.shape}"
             )
 
@@ -626,8 +626,11 @@ class Tracks:
                 raise ValueError("Slicing with negative indices is not supported.")
 
             keep_frames = self.frames.intersection(list(range(start, stop)))
+            if len(keep_frames) == 0:
+                return type(self)([], [], [])
+
             start = self._frame_ind_dict[min(keep_frames)][0]
-            start = self._frame_ind_dict[max(keep_frames)][1]
+            end = self._frame_ind_dict[max(keep_frames)][1]
 
             new_tracks = type(self)(
                 ids=self._ids[start:end],
@@ -745,7 +748,7 @@ class Tracks:
                 source=type(self).__name__,
             )
 
-            for ind, frame_num in zip(id_inds, track_frames):
+            for i, (ind, frame_num) in enumerate(zip(id_inds, track_frames)):
                 bbox = self.detections[ind]
                 ET.SubElement(
                     track_el,
@@ -761,7 +764,7 @@ class Tracks:
                 )
 
                 # Add fake element with outside=1 to prevent it showing up on CVAT
-                if frame_num + 1 != track_frames[max(ind + 1, len(track_frames))]:
+                if frame_num + 1 != track_frames[min(i + 1, len(track_frames) - 1)]:
                     ET.SubElement(
                         track_el,
                         "box",

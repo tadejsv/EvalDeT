@@ -2,52 +2,9 @@ import datetime as dt
 import pathlib
 
 import freezegun
-import numpy as np
 import pytest
 
 from evaldet import Tracks
-
-
-@pytest.fixture(scope="module")
-def sample_tracks() -> Tracks:
-    tracks = Tracks()
-    tracks.add_frame(
-        660,
-        ids=[1, 2, 3],
-        detections=np.array(
-            [
-                [323.83, 104.06, 43.77, 35.43],
-                [273.1, 88.77, 55.59, 24.32],
-                [375.24, 80.43, 26.41, 22.24],
-            ]
-        ),
-        classes=[2, 2, 2],
-        confs=[0.9, 0.9, 0.9],
-    )
-    tracks.add_frame(
-        661,
-        ids=[1, 2, 3],
-        detections=np.array(
-            [
-                [320.98, 105.24, 44.67, 35.71],
-                [273.1, 88.88, 55.7, 24.52],
-                [374.69, 80.78, 26.4, 22.23],
-            ]
-        ),
-        classes=[2, 2, 2],
-        confs=[0.9, 0.9, 0.9],
-    )
-    tracks.add_frame(
-        800,
-        ids=[2, 4],
-        detections=np.array(
-            [[329.27, 96.65, 56.53, 32.45], [0.0, 356.7, 76.6, 122.67]]
-        ),
-        classes=[2, 2],
-        confs=[0.9, 0.9],
-    )
-
-    return tracks
 
 
 def test_export_normal_csv(
@@ -72,7 +29,7 @@ def test_export_normal_csv(
 
 
 def test_export_empty_csv(tmp_path: pathlib.Path, data_dir: pathlib.Path):
-    empty_tracks = Tracks()
+    empty_tracks = Tracks([], [], [])
     empty_tracks.to_csv(tmp_path, labels=["Car", "Van", "Truck"])
 
     with open(tmp_path / "dets.csv", "r") as f:
@@ -118,7 +75,7 @@ def test_export_normal_cvat_video(
 
 
 def test_export_empty_cvat_video(tmp_path: pathlib.Path, data_dir: pathlib.Path):
-    empty_tracks = Tracks()
+    empty_tracks = Tracks([], [], [])
 
     with freezegun.freeze_time(
         dt.datetime.fromisoformat("2022-08-13T15:50:32.904197").isoformat()
