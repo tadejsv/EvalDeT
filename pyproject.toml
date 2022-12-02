@@ -21,8 +21,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Recognition",
 ]
 dependencies = [
-  "numpy~=1.23.2",
-  "scipy~=1.9.0",
+  "numpy~=1.23",
+  "scipy~=1.9",
+  "pyarrow~=10.0"
 ]
 dynamic = ["version"]
 
