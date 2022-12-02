@@ -10,6 +10,7 @@ authors = [
   { name = "Tadej", email = "tadej.svetina@gmail.com" },
 ]
 readme = "README.md"
+requires-python = ">=3.8"
 keywords = ["evaluation", "tracking", "object detection", "computer vision"]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
