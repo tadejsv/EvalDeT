@@ -42,6 +42,10 @@ class Tracks:
     - CVAT for Video format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/xml_format/>`__)
     - UA-DETRAC XML format (you can download an example `here <https://detrac-db.rit.albany.edu/Tracking>`__)
 
+    Internally, all the attributes are saved as a single numpy array, and sorted by
+    frame numbers. This enables easy access, as well as easy conversion to/from formats
+    that to not store detections by frames (but by tracks).
+
     The frame numbers will be zero-indexed internally, so for the MOT files 1 will be
     subtracted from all frame numbers.
     """
@@ -412,7 +416,25 @@ class Tracks:
         confs: t.Optional[t.Union[t.List[float], npt.NDArray[np.float32]]] = None,
         zero_indexed: bool = True,
     ) -> None:
-        """ """
+        """
+        Create a ``Tracks`` instance.
+
+        Args:
+            ids: A list or array of track ids, which should be of type int32.
+            frame_nums: A list or array of frame numbers, which should be of type int32.
+            detections: A list or array of detection bounding boxes, which should be
+                in the format `x, y, w, h`, using a top-left-origin coordinate system.
+                The detections should be of `float32` dtype.
+            classes: A list or array of classes (labels), which should be of dtype
+                int32. It can not be provided, or be provided as an empty list - in this
+                case internally all detections will have a class of ``0``.
+            confs: A list or array of confidences (scores), which should be of dtype
+                float32. It can not be provided, or be provided as an empty list - in
+                this case internally all detections will have a confidence of ``1``.
+            zero_indexed: If the frame numbers are zero indexed. If not, it is assumed
+                that they are 1-indexed - that is, they start with 1, and will be
+                transformed to 0-indexed internally, by subtracting 1 from them.
+        """
         if len(ids) != len(detections):
             raise ValueError(
                 "`detections` and `ids` should contain the same number of items."
@@ -493,6 +515,14 @@ class Tracks:
         self._frame_ind_dict = dict(zip(u_frame_nums.tolist(), frame_start_end_inds))
 
     def filter(self, filter: np.ndarray) -> None:
+        """Filter the tracks using a boolean mask.
+
+        This method will filter all attributes according to the mask provided.
+
+        Args:
+            filter: A boolean array, should be the same length as ids and other
+                attributes.
+        """
 
         if filter.shape != self.ids.shape:
             raise ValueError(
