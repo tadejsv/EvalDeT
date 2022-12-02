@@ -91,3 +91,30 @@ def test_export_empty_cvat_video(tmp_path: pathlib.Path, data_dir: pathlib.Path)
         exp_output = f.read()
 
     assert output == exp_output
+
+
+def test_export_normal_parquet(
+    sample_tracks: Tracks, tmp_path: pathlib.Path, data_dir: pathlib.Path
+):
+    sample_tracks.to_parquet(tmp_path / "out.parquet")
+
+    with open(tmp_path / "out.parquet", "rb") as f:
+        output = f.read()
+
+    with open(data_dir / "out.parquet", "rb") as f:
+        exp_output = f.read()
+
+    assert output == exp_output
+
+
+def test_export_empty_parquet(tmp_path: pathlib.Path, data_dir: pathlib.Path):
+    empty_tracks = Tracks([], [], [])
+    empty_tracks.to_parquet(tmp_path / "empty.parquet")
+
+    with open(tmp_path / "empty.parquet", "rb") as f:
+        output = f.read()
+
+    with open(data_dir / "empty.parquet", "rb") as f:
+        exp_output = f.read()
+
+    assert output == exp_output

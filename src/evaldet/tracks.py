@@ -7,9 +7,8 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 import numpy.typing as npt
-
-# import pyarrow as pa
-# import pyarrow.parquet as pq
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 _ID_KEY = "id"
 _FRAME_KEY = "frame"
@@ -386,6 +385,38 @@ class Tracks:
                 cls._add_to_tracks_accumulator(accumulator, det_item)
 
         return cls(**accumulator, zero_indexed=True)
+
+    @classmethod
+    def from_parquet(
+        cls: t.Type[TracksType], file_path: t.Union[pathlib.Path, str]
+    ) -> TracksType:
+        """Read the tracks from a parquet file.
+
+        The file should have the following columns:
+           <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <conf>, <class>
+
+        Args:
+            file_path: Path where the detections file is located
+        """
+
+        table = pq.read_table(file_path)
+        table_cols = table.column_names
+        tracks = cls(
+            ids=table[_ID_KEY].to_numpy(),
+            frame_nums=table[_FRAME_KEY].to_numpy(),
+            detections=np.stack(
+                (
+                    table[_XMIN_KEY].to_numpy(),
+                    table[_YMIN_KEY].to_numpy(),
+                    table[_WIDTH_KEY].to_numpy(),
+                    table[_HEIGHT_KEY].to_numpy(),
+                ),
+                axis=-1,
+            ),
+            classes=table[_CLASS_KEY] if _CLASS_KEY in table_cols else None,
+            confs=table[_CONF_KEY] if _CONF_KEY in table_cols else None,
+        )
+        return tracks
 
     @staticmethod
     def _add_to_tracks_accumulator(accumulator: dict, new_obj: dict) -> None:
@@ -848,18 +879,33 @@ class Tracks:
                 }
                 writer.writerow(item)
 
-    # def to_parquet(
-    #     self, file_name: t.Union[pathlib.Path, str], labels: t.Sequence[str]
-    # ) -> None:
-    #     """Export detections to parquet format.
+    def to_parquet(self, file_path: t.Union[pathlib.Path, str]) -> None:
+        """Export detections to parquet format.
 
-    #     Args:
-    #         file_name: Relative or absolute file name to save to.
-    #         labels: A list/tuple of label names. The length should be at least the
-    #             maximum label index - 1 (the first label corresponds to label at the
-    #             0-th index).
-    #     """
+        Args:
+            file_name: Relative or absolute file name to save to.
+        """
 
-    #     tracks = 1
-
-    #     pq.write_table(tracks, file_name, use_dictionary=['class'])
+        table = pa.Table.from_arrays(
+            [
+                pa.array(self._ids),
+                pa.array(self._frame_nums),
+                pa.array(self._detections[:, 0]),
+                pa.array(self._detections[:, 1]),
+                pa.array(self._detections[:, 2]),
+                pa.array(self._detections[:, 3]),
+                pa.array(self._confs),
+                pa.array(self._classes),
+            ],
+            [
+                _ID_KEY,
+                _FRAME_KEY,
+                _XMIN_KEY,
+                _YMIN_KEY,
+                _WIDTH_KEY,
+                _HEIGHT_KEY,
+                _CONF_KEY,
+                _CLASS_KEY,
+            ],
+        )
+        pq.write_table(table, file_path)
