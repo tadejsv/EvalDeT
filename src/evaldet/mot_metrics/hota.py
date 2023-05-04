@@ -50,7 +50,7 @@ class HOTAMetrics(MOTMetricBase):
             # The arrays should all have the shape [n_gt, n_hyp]
             FPA_max = np.tile(hyps_counts, (n_gt, 1))
             FNA_max = np.tile(gts_counts, (n_hyp, 1)).T
-            TPA_max_vals: t.Dict[t.Tuple[int, int], int] = co.defaultdict(int)
+            TPA_max_vals: dict[tuple[int, int], int] = co.defaultdict(int)
 
             FPA, FNA = FPA_max.copy(), FNA_max.copy()
             locs = 0.0  # Accumulator of similarities
@@ -76,7 +76,7 @@ class HOTAMetrics(MOTMetricBase):
             A_max = TPA_max / (FNA_max + FPA_max - TPA_max)
 
             # Do the actual matching
-            TPA_vals: t.Dict[t.Tuple[int, int], int] = co.defaultdict(int)
+            TPA_vals: dict[tuple[int, int], int] = co.defaultdict(int)
             for frame in all_frames:
                 dist_matrix = self._get_iou_frame(frame)
                 dist_cost = (1 - dist_matrix) * _EPS

@@ -30,7 +30,7 @@ class IDMetrics(MOTMetricBase):
         gts_counts = np.array(tuple(ground_truth.ids_count.values()), dtype=np.int32)
         hyps_counts = np.array(tuple(hypotheses.ids_count.values()), dtype=np.int32)
 
-        matches: t.Dict[t.Tuple[int, int], int] = co.defaultdict(int)
+        matches: dict[tuple[int, int], int] = co.defaultdict(int)
         for frame in sorted(set(ground_truth.frames).intersection(hypotheses.frames)):
             dist_matrix = self._get_iou_frame(frame)
             gt_frame_inds = [gts_id_ind_dict[_id] for _id in ground_truth[frame].ids]

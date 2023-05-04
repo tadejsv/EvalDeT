@@ -29,8 +29,8 @@ class MOTMetrics(CLEARMOTMetrics, IDMetrics, HOTAMetrics):
     efficiently share pre-computed IoU distances.
     """
 
-    _ious: t.List[np.ndarray]
-    _ious_dict: t.Dict[int, int]
+    _ious: list[np.ndarray]
+    _ious_dict: dict[int, int]
 
     def __init__(
         self, clearmot_dist_threshold: float = 0.5, id_dist_threshold: float = 0.5

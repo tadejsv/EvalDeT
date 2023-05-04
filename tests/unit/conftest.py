@@ -1,5 +1,3 @@
-import typing as t
-
 import numpy as np
 import pytest
 
@@ -7,7 +5,7 @@ from evaldet.tracks import Tracks
 
 
 @pytest.fixture
-def missing_frame_pair() -> t.Tuple[Tracks, Tracks]:
+def missing_frame_pair() -> tuple[Tracks, Tracks]:
     tracks_full = Tracks(
         ids=[0, 0], frame_nums=[0, 1], detections=np.array([[0, 0, 1, 1], [0, 0, 1, 1]])
     )
@@ -19,7 +17,7 @@ def missing_frame_pair() -> t.Tuple[Tracks, Tracks]:
 
 
 @pytest.fixture
-def simple_case() -> t.Tuple[Tracks, Tracks]:
+def simple_case() -> tuple[Tracks, Tracks]:
     gt = Tracks(
         ids=[0, 1, 0, 1, 0, 1],
         frame_nums=[0, 0, 1, 1, 2, 2],

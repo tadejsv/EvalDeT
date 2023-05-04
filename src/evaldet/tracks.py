@@ -54,13 +54,13 @@ class Tracks:
     _detections: npt.NDArray[np.float32]
     _classes: npt.NDArray[np.int32]
     _confs: npt.NDArray[np.float32]
-    _frame_ind_dict: t.Dict[int, t.Tuple[int, int]]
+    _frame_ind_dict: dict[int, tuple[int, int]]
 
     @classmethod
     def from_csv(
         cls: t.Type[TracksType],
         csv_file: t.Union[str, pathlib.Path],
-        fieldnames: t.List[str],
+        fieldnames: list[str],
         zero_indexed: bool = True,
     ) -> TracksType:
         """Get detections from a CSV file.
@@ -88,7 +88,7 @@ class Tracks:
         """
         with open(csv_file, newline="") as file:
             csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
-            accumulator: t.Dict[str, t.List] = co.defaultdict(list)
+            accumulator: dict[str, list] = co.defaultdict(list)
 
             for line_num, line in enumerate(csv_reader):
                 try:
@@ -215,7 +215,7 @@ class Tracks:
         cls: t.Type[TracksType],
         file_path: t.Union[pathlib.Path, str],
         classes_attr_name: t.Optional[str] = None,
-        classes_list: t.Optional[t.List[str]] = None,
+        classes_list: t.Optional[list[str]] = None,
     ) -> TracksType:
         """Creates a Tracks object from detections file in the UA-DETRAC XML format.
 
@@ -279,7 +279,7 @@ class Tracks:
         xml_tree = ET.parse(file_path)
         root = xml_tree.getroot()
 
-        accumulator: t.Dict[str, t.List] = co.defaultdict(list)
+        accumulator: dict[str, list] = co.defaultdict(list)
 
         frames = root.findall(_FRAME_KEY)
         for frame in frames:
@@ -312,7 +312,7 @@ class Tracks:
     def from_cvat_video(
         cls: t.Type[TracksType],
         file_path: t.Union[pathlib.Path, str],
-        classes_list: t.List[str],
+        classes_list: list[str],
     ) -> TracksType:
         """Creates a Tracks object from detections file in the CVAT for Video XML
         format.
@@ -361,7 +361,7 @@ class Tracks:
 
         xml_tree = ET.parse(file_path)
         root = xml_tree.getroot()
-        accumulator: t.Dict[str, t.List] = co.defaultdict(list)
+        accumulator: dict[str, list] = co.defaultdict(list)
 
         tracks_cvat = root.findall("track")
         for track_cvat in tracks_cvat:
@@ -440,11 +440,11 @@ class Tracks:
 
     def __init__(
         self,
-        ids: t.Union[t.List[int], npt.NDArray[np.int32]],
-        frame_nums: t.Union[t.List[int], npt.NDArray[np.int32]],
-        detections: t.Union[t.List[npt.NDArray[np.float32]], npt.NDArray[np.float32]],
-        classes: t.Optional[t.Union[t.List[int], npt.NDArray[np.int32]]] = None,
-        confs: t.Optional[t.Union[t.List[float], npt.NDArray[np.float32]]] = None,
+        ids: t.Union[list[int], npt.NDArray[np.int32]],
+        frame_nums: t.Union[list[int], npt.NDArray[np.int32]],
+        detections: t.Union[list[npt.NDArray[np.float32]], npt.NDArray[np.float32]],
+        classes: t.Optional[t.Union[list[int], npt.NDArray[np.int32]]] = None,
+        confs: t.Optional[t.Union[list[float], npt.NDArray[np.float32]]] = None,
         zero_indexed: bool = True,
     ) -> None:
         """
@@ -679,7 +679,7 @@ class Tracks:
         self,
         filename: t.Union[pathlib.Path, str],
         labels: t.Sequence[str],
-        image_size: t.Tuple[int, int] = (1, 1),
+        image_size: tuple[int, int] = (1, 1),
     ) -> None:
         """Export detections to CVAT for Video 1.1 format.
 
@@ -867,7 +867,7 @@ class Tracks:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
 
             for ind in range(len(self.ids)):
-                item: t.Dict[str, t.Union[str, int, float]] = {
+                item: dict[str, t.Union[str, int, float]] = {
                     "frame_id": self.frame_nums[ind],
                     "track_id": self.ids[ind],
                     "conf": self.confs[ind],

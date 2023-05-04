@@ -1,11 +1,9 @@
-import typing as t
-
 import numpy as np
 from scipy import sparse
 
 
 def create_coo_array(
-    vals_dict: t.Dict[t.Tuple[int, int], int], shape: t.Tuple[int, int]
+    vals_dict: dict[tuple[int, int], int], shape: tuple[int, int]
 ) -> sparse.coo_array:
     """Create a sparse COO array.
 
