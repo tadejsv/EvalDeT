@@ -4,8 +4,9 @@ import typing as t
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from ..tracks import Tracks
-from ..utils import sparse
+from evaldet.tracks import Tracks
+from evaldet.utils import sparse
+
 from .base import MOTMetricBase
 
 

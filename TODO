@@ -1,0 +1,5 @@
+* Unfuck MOT metrics: do not do all the stupid composition, make ious a simple dict with frame number
+  * Keep same mega class, but everything else distill down to functions
+* Unfuck docs: use material for mkdocs
+
+* Start with detections: some MVP with simple inputs, then modularize it out

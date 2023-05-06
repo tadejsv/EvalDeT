@@ -4,7 +4,7 @@ import pytest
 from evaldet import MOTMetrics, Tracks
 
 
-def test_empty_frame_hyp(missing_frame_pair):
+def test_empty_frame_hyp(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     m = MOTMetrics()
 
     gt, hyp = missing_frame_pair
@@ -12,6 +12,7 @@ def test_empty_frame_hyp(missing_frame_pair):
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
 
+    assert metrics["id"] is not None
     assert metrics["id"]["IDFP"] == 0
     assert metrics["id"]["IDFN"] == 1
     assert metrics["id"]["IDTP"] == 1
@@ -21,7 +22,7 @@ def test_empty_frame_hyp(missing_frame_pair):
     assert metrics["id"]["IDF1"] == 2 / 3
 
 
-def test_missing_frame_gt(missing_frame_pair):
+def test_missing_frame_gt(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     m = MOTMetrics()
 
     hyp, gt = missing_frame_pair
@@ -29,6 +30,7 @@ def test_missing_frame_gt(missing_frame_pair):
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
 
+    assert metrics["id"] is not None
     assert metrics["id"]["IDFP"] == 1
     assert metrics["id"]["IDFN"] == 0
     assert metrics["id"]["IDTP"] == 1
@@ -38,7 +40,7 @@ def test_missing_frame_gt(missing_frame_pair):
     assert metrics["id"]["IDF1"] == 2 / 3
 
 
-def test_no_association_made():
+def test_no_association_made() -> None:
     m = MOTMetrics()
 
     gt = Tracks(ids=[0], frame_nums=[0], detections=np.array([[10, 10, 1, 1]]))
@@ -47,6 +49,7 @@ def test_no_association_made():
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
 
+    assert metrics["id"] is not None
     assert metrics["id"]["IDFP"] == 1
     assert metrics["id"]["IDFN"] == 1
     assert metrics["id"]["IDTP"] == 0
@@ -57,7 +60,7 @@ def test_no_association_made():
 
 
 @pytest.mark.parametrize("threshold", [0.3, 0.5, 0.7])
-def test_dist_threshold(threshold: float):
+def test_dist_threshold(threshold: float) -> None:
     m = MOTMetrics(id_dist_threshold=threshold)
 
     gt = Tracks(
@@ -79,10 +82,12 @@ def test_dist_threshold(threshold: float):
     metrics = m.compute(
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
+
+    assert metrics["id"] is not None
     assert fn_res[threshold] == metrics["id"]["IDFN"]
 
 
-def test_association():
+def test_association() -> None:
     """Test that only one hypotheses gets associated to a ground truth"""
     m = MOTMetrics()
 
@@ -96,12 +101,14 @@ def test_association():
     metrics = m.compute(
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
+
+    assert metrics["id"] is not None
     assert metrics["id"]["IDFP"] == 1
     assert metrics["id"]["IDFN"] == 1
     assert metrics["id"]["IDTP"] == 1
 
 
-def test_proper_cost_function():
+def test_proper_cost_function() -> None:
     """This test makes sure than when making associations, costs of
     hypotheses that are not matched are also taken into account.
 
@@ -129,12 +136,14 @@ def test_proper_cost_function():
     metrics = m.compute(
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
+
+    assert metrics["id"] is not None
     assert metrics["id"]["IDFP"] == 10
     assert metrics["id"]["IDFN"] == 0
     assert metrics["id"]["IDTP"] == 2
 
 
-def test_simple_case(simple_case):
+def test_simple_case(simple_case: tuple[Tracks, Tracks]) -> None:
     """Test a simple case with 3 frames and 2 detections/gts per frame."""
     m = MOTMetrics()
     gt, hyp = simple_case
@@ -143,6 +152,7 @@ def test_simple_case(simple_case):
         gt, hyp, id_metrics=True, clearmot_metrics=True, hota_metrics=True
     )
 
+    assert metrics["id"] is not None
     assert metrics["id"]["IDFP"] == 2
     assert metrics["id"]["IDFN"] == 2
     assert metrics["id"]["IDTP"] == 4

@@ -3,7 +3,7 @@ import numpy as np
 from evaldet import MOTMetrics, Tracks
 
 
-def test_hyp_missing_frame(missing_frame_pair):
+def test_hyp_missing_frame(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     m = MOTMetrics()
 
     gt, hyp = missing_frame_pair
@@ -11,15 +11,16 @@ def test_hyp_missing_frame(missing_frame_pair):
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
 
+    assert metrics["hota"] is not None
     assert metrics["hota"]["DetA"] == 0.5
     assert metrics["hota"]["AssA"] == 0.5
     assert metrics["hota"]["HOTA"] == 0.5
     assert metrics["hota"]["LocA"] == 1.0
-    for m in ["HOTA_alpha", "AssA_alpha", "DetA_alpha", "LocA_alpha"]:
-        assert metrics["hota"][m].var() == 0
+    for metric in ["HOTA_alpha", "AssA_alpha", "DetA_alpha", "LocA_alpha"]:
+        assert metrics["hota"][metric].var() == 0  # type: ignore
 
 
-def test_gt_missing_frame(missing_frame_pair):
+def test_gt_missing_frame(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     m = MOTMetrics()
 
     gt, hyp = missing_frame_pair
@@ -27,15 +28,16 @@ def test_gt_missing_frame(missing_frame_pair):
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
 
+    assert metrics["hota"] is not None
     assert metrics["hota"]["DetA"] == 0.5
     assert metrics["hota"]["AssA"] == 0.5
     assert metrics["hota"]["HOTA"] == 0.5
     assert metrics["hota"]["LocA"] == 1.0
-    for m in ["HOTA_alpha", "AssA_alpha", "DetA_alpha", "LocA_alpha"]:
-        assert metrics["hota"][m].var() == 0
+    for metric in ["HOTA_alpha", "AssA_alpha", "DetA_alpha", "LocA_alpha"]:
+        assert metrics["hota"][metric].var() == 0  # type: ignore
 
 
-def test_no_matches():
+def test_no_matches() -> None:
     m = MOTMetrics()
 
     gt = Tracks([0], [0], np.array([[0, 0, 1, 1]]))
@@ -44,15 +46,16 @@ def test_no_matches():
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
 
+    assert metrics["hota"] is not None
     assert metrics["hota"]["DetA"] == 0
     assert metrics["hota"]["AssA"] == 0
     assert metrics["hota"]["HOTA"] == 0
     assert metrics["hota"]["LocA"] == 1.0
-    for m in ["HOTA_alpha", "AssA_alpha", "DetA_alpha", "LocA_alpha"]:
-        assert metrics["hota"][m].var() == 0
+    for metric in ["HOTA_alpha", "AssA_alpha", "DetA_alpha", "LocA_alpha"]:
+        assert metrics["hota"][metric].var() == 0  # type: ignore
 
 
-def test_alphas():
+def test_alphas() -> None:
     m = MOTMetrics()
 
     gt = Tracks([0, 1], [0, 0], np.array([[0, 0, 1, 1], [1, 1, 1, 1]]))
@@ -61,6 +64,7 @@ def test_alphas():
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
 
+    assert metrics["hota"] is not None
     np.testing.assert_almost_equal(metrics["hota"]["AssA"], 0.6842105263157, 5)
     np.testing.assert_almost_equal(metrics["hota"]["DetA"], 0.5438596491228, 5)
     np.testing.assert_almost_equal(metrics["hota"]["HOTA"], 0.5952316356188, 5)
@@ -90,7 +94,7 @@ def test_alphas():
             )
 
 
-def test_priority_matching_1():
+def test_priority_matching_1() -> None:
     """Test that priority is making TPs, when possible (and take association
     into account only AFTER that).
 
@@ -118,14 +122,15 @@ def test_priority_matching_1():
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
 
+    assert metrics["hota"] is not None
     np.testing.assert_array_almost_equal(metrics["hota"]["AssA_alpha"][9], 0.7658, 3)
     np.testing.assert_array_almost_equal(metrics["hota"]["DetA_alpha"][9], 11 / 12, 3)
     np.testing.assert_array_almost_equal(metrics["hota"]["HOTA_alpha"][9], 0.8378, 3)
 
 
-def test_priority_matching_2():
+def test_priority_matching_2() -> None:
     """Test that when we have two equally viable matches, the preference is
-    taken by what has highe A(c), and not what has higher similarity."""
+    taken by what has higher A(c), and not what has higher similarity."""
     m = MOTMetrics()
 
     gt = Tracks(
@@ -136,12 +141,13 @@ def test_priority_matching_2():
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
 
+    assert metrics["hota"] is not None
     assert metrics["hota"]["AssA_alpha"][9] == 1
     assert metrics["hota"]["DetA_alpha"][9] == 2 / 3
     np.testing.assert_array_almost_equal(metrics["hota"]["HOTA_alpha"][9], 0.8164, 3)
 
 
-def test_example_1a():
+def test_example_1a() -> None:
     """Example A from figure 1 in the paper"""
     m = MOTMetrics()
 
@@ -151,13 +157,14 @@ def test_example_1a():
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
 
+    assert metrics["hota"] is not None
     assert metrics["hota"]["HOTA"] == 0.5
     assert metrics["hota"]["AssA"] == 0.5
     assert metrics["hota"]["DetA"] == 0.5
     assert metrics["hota"]["LocA"] == 1.0
 
 
-def test_example_1b():
+def test_example_1b() -> None:
     """Example B from figure 1 in the paper"""
     m = MOTMetrics()
 
@@ -167,13 +174,14 @@ def test_example_1b():
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
 
+    assert metrics["hota"] is not None
     np.testing.assert_array_almost_equal(metrics["hota"]["HOTA"], 0.5, 2)
     np.testing.assert_array_almost_equal(metrics["hota"]["AssA"], 0.35, 2)
     np.testing.assert_array_almost_equal(metrics["hota"]["DetA"], 0.70, 2)
     assert metrics["hota"]["LocA"] == 1.0
 
 
-def test_example_1c():
+def test_example_1c() -> None:
     """Example C from figure 1 in the paper"""
     m = MOTMetrics()
 
@@ -187,6 +195,7 @@ def test_example_1c():
         gt, hyp, hota_metrics=True, clearmot_metrics=False, id_metrics=False
     )
 
+    assert metrics["hota"] is not None
     np.testing.assert_array_almost_equal(metrics["hota"]["HOTA"], 0.5, 2)
     np.testing.assert_array_almost_equal(metrics["hota"]["AssA"], 0.25, 2)
     np.testing.assert_array_almost_equal(metrics["hota"]["DetA"], 1, 2)

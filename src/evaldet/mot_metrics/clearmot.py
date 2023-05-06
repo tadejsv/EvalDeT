@@ -4,7 +4,8 @@ import typing as t
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from ..tracks import Tracks
+from evaldet.tracks import Tracks
+
 from .base import MOTMetricBase
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,6 @@ class CLEARMOTMetrics(MOTMetricBase):
     def _calculate_clearmot_metrics(
         self, ground_truth: Tracks, hypotheses: Tracks, dist_threshold: float = 0.5
     ) -> CLEARMOTResults:
-
         all_frames = sorted(ground_truth.frames.union(hypotheses.frames))
 
         false_negatives = 0

@@ -3,7 +3,7 @@ import numpy as np
 from evaldet.dist import iou_dist
 
 
-def test_iou():
+def test_iou() -> None:
     boxes_a = np.array([[0, 0, 1, 1], [0, 0, 2, 2], [0, 0, 3, 3], [0, 0, 4, 4]])
     boxes_b = np.array([[0, 0, 3, 3], [3, 3, 4, 4]])
 

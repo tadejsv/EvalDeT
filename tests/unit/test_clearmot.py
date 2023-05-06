@@ -4,7 +4,7 @@ import pytest
 from evaldet import MOTMetrics, Tracks
 
 
-def test_missing_frame_hyp(missing_frame_pair):
+def test_missing_frame_hyp(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     m = MOTMetrics()
 
     gt, hyp = missing_frame_pair
@@ -12,12 +12,13 @@ def test_missing_frame_hyp(missing_frame_pair):
         gt, hyp, clearmot_metrics=True, id_metrics=False, hota_metrics=False
     )
 
+    assert metrics["clearmot"] is not None
     assert metrics["clearmot"]["FN_CLEAR"] == 1
     assert metrics["clearmot"]["FP_CLEAR"] == 0
     assert metrics["clearmot"]["IDSW"] == 0
 
 
-def test_missing_frame_gt(missing_frame_pair):
+def test_missing_frame_gt(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     m = MOTMetrics()
 
     hyp, gt = missing_frame_pair
@@ -25,12 +26,13 @@ def test_missing_frame_gt(missing_frame_pair):
         gt, hyp, clearmot_metrics=True, id_metrics=False, hota_metrics=False
     )
 
+    assert metrics["clearmot"] is not None
     assert metrics["clearmot"]["IDSW"] == 0
     assert metrics["clearmot"]["FN_CLEAR"] == 0
     assert metrics["clearmot"]["FP_CLEAR"] == 1
 
 
-def test_no_association_made():
+def test_no_association_made() -> None:
     m = MOTMetrics()
 
     gt = Tracks(ids=[0], frame_nums=[0], detections=np.array([[10, 10, 11, 11]]))
@@ -40,6 +42,7 @@ def test_no_association_made():
         gt, hyp, clearmot_metrics=True, id_metrics=False, hota_metrics=False
     )
 
+    assert metrics["clearmot"] is not None
     assert metrics["clearmot"]["IDSW"] == 0
     assert metrics["clearmot"]["FN_CLEAR"] == 1
     assert metrics["clearmot"]["FP_CLEAR"] == 1
@@ -48,7 +51,7 @@ def test_no_association_made():
 
 
 @pytest.mark.parametrize("threshold", [0.3, 0.5, 0.7])
-def test_dist_threshold(threshold: float):
+def test_dist_threshold(threshold: float) -> None:
     m = MOTMetrics(clearmot_dist_threshold=threshold)
     gt = Tracks(
         ids=[0, 1, 2, 3],
@@ -68,10 +71,12 @@ def test_dist_threshold(threshold: float):
     metrics = m.compute(
         gt, hyp, clearmot_metrics=True, id_metrics=False, hota_metrics=False
     )
+
+    assert metrics["clearmot"] is not None
     assert fn_res[threshold] == metrics["clearmot"]["FN_CLEAR"]
 
 
-def test_sticky_association():
+def test_sticky_association() -> None:
     """Test that as long as distance is below threshold, the association does
     not switch, even if a detection with better IoU score appears.
     """
@@ -86,12 +91,14 @@ def test_sticky_association():
     metrics = m.compute(
         gt, hyp, clearmot_metrics=True, id_metrics=False, hota_metrics=False
     )
+
+    assert metrics["clearmot"] is not None
     assert metrics["clearmot"]["FN_CLEAR"] == 0
     assert metrics["clearmot"]["IDSW"] == 0
     assert metrics["clearmot"]["FP_CLEAR"] == 1
 
 
-def test_mismatch():
+def test_mismatch() -> None:
     m = MOTMetrics()
 
     gt = Tracks(ids=[0, 0], frame_nums=[0, 1], detections=np.array([[0, 0, 1, 1]] * 2))
@@ -99,12 +106,14 @@ def test_mismatch():
     metrics = m.compute(
         gt, hyp, clearmot_metrics=True, id_metrics=False, hota_metrics=False
     )
+
+    assert metrics["clearmot"] is not None
     assert metrics["clearmot"]["FN_CLEAR"] == 0
     assert metrics["clearmot"]["IDSW"] == 1
     assert metrics["clearmot"]["FP_CLEAR"] == 0
 
 
-def test_persistent_mismatch():
+def test_persistent_mismatch() -> None:
     """Test that association (and therefore mismatch) persists even
     when the first matched hypothesis is gone, as long as another one
     is not assigned."""
@@ -117,12 +126,14 @@ def test_persistent_mismatch():
     metrics = m.compute(
         gt, hyp, clearmot_metrics=True, id_metrics=False, hota_metrics=False
     )
+
+    assert metrics["clearmot"] is not None
     assert metrics["clearmot"]["FN_CLEAR"] == 1
     assert metrics["clearmot"]["IDSW"] == 1
     assert metrics["clearmot"]["FP_CLEAR"] == 0
 
 
-def test_simple_case(simple_case):
+def test_simple_case(simple_case: tuple[Tracks, Tracks]) -> None:
     """Test a simple case with 3 frames and 2 detections/gts per frame."""
     m = MOTMetrics()
 
@@ -130,6 +141,8 @@ def test_simple_case(simple_case):
     metrics = m.compute(
         gt, hyp, clearmot_metrics=True, id_metrics=False, hota_metrics=False
     )
+
+    assert metrics["clearmot"] is not None
     assert metrics["clearmot"]["FN_CLEAR"] == 1
     assert metrics["clearmot"]["IDSW"] == 1
     assert metrics["clearmot"]["FP_CLEAR"] == 1

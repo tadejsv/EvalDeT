@@ -3,7 +3,7 @@ import csv
 import datetime as dt
 import pathlib
 import typing as t
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # noqa
 
 import numpy as np
 import numpy.typing as npt
@@ -60,7 +60,7 @@ class Tracks:
     def from_csv(
         cls: t.Type[TracksType],
         csv_file: t.Union[str, pathlib.Path],
-        fieldnames: list[str],
+        fieldnames: t.Sequence[str],
         zero_indexed: bool = True,
     ) -> TracksType:
         """Get detections from a CSV file.
@@ -215,7 +215,7 @@ class Tracks:
         cls: t.Type[TracksType],
         file_path: t.Union[pathlib.Path, str],
         classes_attr_name: t.Optional[str] = None,
-        classes_list: t.Optional[list[str]] = None,
+        classes_list: t.Optional[t.Sequence[str]] = None,
     ) -> TracksType:
         """Creates a Tracks object from detections file in the UA-DETRAC XML format.
 
@@ -312,7 +312,7 @@ class Tracks:
     def from_cvat_video(
         cls: t.Type[TracksType],
         file_path: t.Union[pathlib.Path, str],
-        classes_list: list[str],
+        classes_list: t.Sequence[str],
     ) -> TracksType:
         """Creates a Tracks object from detections file in the CVAT for Video XML
         format.
@@ -440,11 +440,13 @@ class Tracks:
 
     def __init__(
         self,
-        ids: t.Union[list[int], npt.NDArray[np.int32]],
-        frame_nums: t.Union[list[int], npt.NDArray[np.int32]],
-        detections: t.Union[list[npt.NDArray[np.float32]], npt.NDArray[np.float32]],
-        classes: t.Optional[t.Union[list[int], npt.NDArray[np.int32]]] = None,
-        confs: t.Optional[t.Union[list[float], npt.NDArray[np.float32]]] = None,
+        ids: t.Union[t.Sequence[int], npt.NDArray[np.int32]],
+        frame_nums: t.Union[t.Sequence[int], npt.NDArray[np.int32]],
+        detections: t.Union[
+            t.Sequence[npt.NDArray[np.float32]], npt.NDArray[np.float32]
+        ],
+        classes: t.Optional[t.Union[t.Sequence[int], npt.NDArray[np.int32]]] = None,
+        confs: t.Optional[t.Union[t.Sequence[float], npt.NDArray[np.float32]]] = None,
         zero_indexed: bool = True,
     ) -> None:
         """
@@ -634,7 +636,6 @@ class Tracks:
         """
 
     def __getitem__(self, idx: t.Union[int, slice]) -> t.Union[FrameTracks, "Tracks"]:
-
         if isinstance(idx, int):
             if idx < 0:
                 raise ValueError("Indexing with negative values is not supported.")

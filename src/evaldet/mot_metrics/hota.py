@@ -4,8 +4,9 @@ import typing as t
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from ..tracks import Tracks
-from ..utils import sparse
+from evaldet.tracks import Tracks
+from evaldet.utils import sparse
+
 from .base import MOTMetricBase
 
 _EPS = 1 / 1000
@@ -27,7 +28,6 @@ class HOTAMetrics(MOTMetricBase):
     def _calculate_hota_metrics(
         self, ground_truth: Tracks, hypotheses: Tracks
     ) -> HOTAResults:
-
         alphas = np.arange(0.05, 0.96, 0.05)  # from 0.05 to 0.95 inclusive
         all_frames = sorted(set(ground_truth.frames).intersection(hypotheses.frames))
 
