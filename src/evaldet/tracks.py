@@ -10,6 +10,8 @@ import numpy.typing as npt
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from evaldet.dist import iou_dist
+
 _ID_KEY = "id"
 _FRAME_KEY = "frame"
 _CONF_KEY = "conf"
@@ -910,3 +912,16 @@ class Tracks:
             ],
         )
         pq.write_table(table, file_path)
+
+
+def compute_ious(
+    tracks_1: Tracks, tracks_2: Tracks
+) -> dict[int, npt.NDArray[np.float32]]:
+    all_frames = sorted(set(tracks_1.frames).intersection(tracks_2.frames))
+
+    ious: dict[int, npt.NDArray[np.float32]] = {}
+    for frame in all_frames:
+        ious_f = iou_dist(tracks_1[frame].detections, tracks_2[frame].detections)
+        ious[frame] = ious_f
+
+    return ious

@@ -1,7 +1,10 @@
 import numpy as np
+import numpy.typing as npt
 
 
-def iou_dist(bboxes_1: np.ndarray, bboxes_2: np.ndarray) -> np.ndarray:
+def iou_dist(
+    bboxes_1: npt.NDArray[np.float32], bboxes_2: npt.NDArray[np.float32]
+) -> npt.NDArray[np.float32]:
     """Compute the IoU distance between two batches of bounding boxes.
 
     The IoU distance is computed as 1 minus the IoU similarity.
