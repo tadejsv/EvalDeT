@@ -1,6 +1,7 @@
 import pytest
 
-from evaldet import MOTMetrics, Tracks
+from evaldet import Tracks
+from evaldet.mot import MOTMetrics
 
 
 def test_error_empty_metrics() -> None:

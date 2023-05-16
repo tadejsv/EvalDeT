@@ -1,5 +1,16 @@
-* Add docstrings to individual metric methods
 * add test for compute_ious
 * Unfuck docs: use material for mkdocs
 
 * Start with detections: some MVP with simple inputs, then modularize it out
+
+
+----
+
+* add error if gts empty
+* test it:
+  * examples with no gts/detections [should return reasonable values]
+  * some toy examples that can be manually calculated - play with iou threshold and area range a bit
+* Finally, make it a numba function, see that all works. try with parallel? if parallel does not work/make sense, try maybe to simplify accumulation
+
+---
+

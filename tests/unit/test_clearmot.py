@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
 
-from evaldet.mot_metrics.clearmot import calculate_clearmot_metrics
-from evaldet.tracks import Tracks, compute_ious
-
+from evaldet.mot.clearmot import calculate_clearmot_metrics
+from evaldet.tracks import Tracks
+from evaldet.mot.motmetrics import _compute_ious
 
 def test_missing_frame_hyp(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     gt, hyp = missing_frame_pair
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
 
     assert metrics["FN_CLEAR"] == 1
@@ -17,7 +17,7 @@ def test_missing_frame_hyp(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
 
 def test_missing_frame_gt(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     hyp, gt = missing_frame_pair
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
 
     assert metrics["IDSW"] == 0
@@ -28,7 +28,7 @@ def test_missing_frame_gt(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
 def test_no_association_made() -> None:
     gt = Tracks(ids=[0], frame_nums=[0], detections=np.array([[10, 10, 11, 11]]))
     hyp = Tracks(ids=[0], frame_nums=[0], detections=np.array([[0, 0, 1, 1]]))
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
 
     assert metrics["IDSW"] == 0
@@ -55,7 +55,7 @@ def test_dist_threshold(threshold: float) -> None:
 
     fn_res = {0.3: 3, 0.5: 2, 0.7: 1}
 
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious, dist_threshold=threshold)
 
     assert metrics is not None
@@ -72,7 +72,7 @@ def test_sticky_association() -> None:
         frame_nums=[0, 1, 1],
         detections=np.array([[0, 0, 1, 1], [0.1, 0.1, 1.1, 1.1], [0, 0, 1, 1]]),
     )
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
 
     assert metrics["FN_CLEAR"] == 0
@@ -83,7 +83,7 @@ def test_sticky_association() -> None:
 def test_mismatch() -> None:
     gt = Tracks(ids=[0, 0], frame_nums=[0, 1], detections=np.array([[0, 0, 1, 1]] * 2))
     hyp = Tracks(ids=[0, 1], frame_nums=[0, 1], detections=np.array([[0, 0, 1, 1]] * 2))
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
 
     assert metrics["FN_CLEAR"] == 0
@@ -99,7 +99,7 @@ def test_persistent_mismatch() -> None:
         ids=[0] * 3, frame_nums=[0, 1, 2], detections=np.array([[0, 0, 1, 1]] * 3)
     )
     hyp = Tracks(ids=[0, 1], frame_nums=[0, 2], detections=np.array([[0, 0, 1, 1]] * 2))
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
 
     assert metrics["FN_CLEAR"] == 1
@@ -110,7 +110,7 @@ def test_persistent_mismatch() -> None:
 def test_simple_case(simple_case: tuple[Tracks, Tracks]) -> None:
     """Test a simple case with 3 frames and 2 detections/gts per frame."""
     gt, hyp = simple_case
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
 
     assert metrics["FN_CLEAR"] == 1

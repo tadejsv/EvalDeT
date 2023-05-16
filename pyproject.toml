@@ -48,7 +48,7 @@ exclude = [
 select = ["E", "F", "Q", "N", "ANN", "T20", "TID", "SIM"]
 ignore = ["N806", "N805", "E501", "ANN101", "ANN102", "SIM108"]
 target-version = "py310"
-extend-exclude = ["docs/source/conf.py"]
+extend-exclude = ["old_docs/source/conf.py"]
 
 [tool.ruff.flake8-quotes]
 docstring-quotes = "double"
@@ -57,7 +57,7 @@ docstring-quotes = "double"
 profile = "black"
 
 [tool.mypy]
-exclude = ['docs/source/conf.py']
+exclude = ['old_docs/source/conf.py']
 disallow_untyped_defs = true
 ignore_missing_imports = true
 disallow_any_unimported = true

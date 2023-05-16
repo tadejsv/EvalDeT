@@ -23,10 +23,10 @@ _HEIGHT_KEY = "height"
 
 
 class FrameTracks(t.NamedTuple):
-    detections: np.ndarray
-    ids: np.ndarray
-    classes: np.ndarray
-    confs: np.ndarray
+    detections: npt.NDArray[np.float32]
+    ids: npt.NDArray[np.int32]
+    classes: npt.NDArray[np.int32]
+    confs: npt.NDArray[np.float32]
 
 
 TracksType = t.TypeVar("TracksType", bound="Tracks")
@@ -37,11 +37,11 @@ class Tracks:
 
     It can read the following MOT file formats
 
-    - MOT format (as described `here <https://motchallenge.net/instructions/>`__)
-    - MOT ground truth format (as described `here <https://arxiv.org/abs/1603.00831>`__)
-    - CVAT's version of the MOT format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/formats/format-mot/>`__)
-    - CVAT for Video format (as described `here <https://openvinotoolkit.github.io/cvat/docs/manual/advanced/xml_format/>`__)
-    - UA-DETRAC XML format (you can download an example `here <https://detrac-db.rit.albany.edu/Tracking>`__)
+    - MOT format (as described [here](https://motchallenge.net/instructions/))
+    - MOT ground truth format (as described [here](https://arxiv.org/abs/1603.00831))
+    - CVAT's version of the MOT format (as described [here](https://openvinotoolkit.github.io/cvat/docs/manual/advanced/formats/format-mot/))
+    - CVAT for Video format (as described [here](https://openvinotoolkit.github.io/cvat/docs/manual/advanced/xml_format/))
+    - UA-DETRAC XML format (you can download an example [here](https://detrac-db.rit.albany.edu/Tracking))
 
     Internally, all the attributes are saved as a single numpy array, and sorted by
     frame numbers. This enables easy access, as well as easy conversion to/from formats
@@ -73,17 +73,17 @@ class Tracks:
         Args:
             csv_file: path to the CSV file
             filednames: The names of the fields. This will be passed to
-                ``csv.DictReader``. It should contain the names of the fields, in order
+                `csv.DictReader`. It should contain the names of the fields, in order
                 that they appear. The following names will be used (others will be
                 disregarded):
-                - ``xmin``
-                - ``ymin``
-                - ``height``
-                - ``width``
-                - ``conf``: for the confidence of the item
-                - ``class``: for the class label of the item
-                - ``id``: for the id of the item
-                - ``frame``: for the frame number
+                - `xmin`
+                - `ymin`
+                - `height`
+                - `width`
+                - `conf`: for the confidence of the item
+                - `class`: for the class label of the item
+                - `id`: for the id of the item
+                - `frame`: for the frame number
             zero_indexed: If the frame numbers are zero indexed. Otherwise they are
                 assumed to be 1 indexed, and 1 will be subtracted from all frame numbers
                 to make them zero indexed.
@@ -112,12 +112,14 @@ class Tracks:
     ) -> TracksType:
         """Creates a Tracks object from detections file in the MOT format.
 
-        The format should look like this::
+        The format should look like this
 
-            <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <conf>, <x>, <y>, <z>
+        ```
+        <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <conf>, <x>, <y>, <z>
+        ```
 
         Note that all values above are expected to be **numeric** - string values will
-        cause an error. The values for ``x``, ``y`` and ``z`` will be ignored.
+        cause an error. The values for `x`, `y` and `z` will be ignored.
 
         The frame numbers will be zero-indexed internally, so 1 will be subtracted from
         all frame numbers.
@@ -144,15 +146,17 @@ class Tracks:
     def from_mot_gt(
         cls: t.Type[TracksType], file_path: t.Union[pathlib.Path, str]
     ) -> TracksType:
-        """Creates a Tracks object from detections file in the MOT ground truth format.
-        This format has some more information compared to the normal
+        """
+        Creates a Tracks object from detections file in the MOT ground truth format.
+        This format has some more information compared to the normal.
 
-        The format should look like this::
-
-            <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <conf>, <class>, <visibility>
+        The format should look like this
+        ```
+        <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <conf>, <class>, <visibility>
+        ```
 
         Note that all values above are expected to be **numeric** - string values will
-        cause an error. The value for ``visibility`` will be ignored.
+        cause an error. The value for `visibility` will be ignored.
 
         The frame numbers will be zero-indexed internally, so 1 will be subtracted from
         all frame numbers.
@@ -184,11 +188,13 @@ class Tracks:
 
         The format should look like this::
 
-            <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <not ignored>, <class>, <visibility>, <skipped>
+        ```
+        <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <not ignored>, <class>, <visibility>, <skipped>
+        ```
 
         Note that all values above are expected to be **numeric** - string values will
-        cause an error. The last two elements (``visibility`` and ``skipped``) are
-        optional. The values for ``not ignored``, ``visibility`` and ``skipped`` will be
+        cause an error. The last two elements (`visibility` and `skipped`) are
+        optional. The values for `not ignored`, `visibility` and `skipped` will be
         ignored.
 
         The frame numbers will be zero-indexed internally, so 1 will be subtracted from
@@ -223,52 +229,52 @@ class Tracks:
 
         Here's how this file might look like:
 
-        .. code-block:: xml
+        ```
+        <sequence name="MVI_20033">
+            <sequence_attribute camera_state="unstable" sence_weather="sunny"/>
+            <ignored_region>
+                <box height="53.75" left="458.75" top="0.5" width="159.5"/>
+            </ignored_region>
+            <frame density="4" num="1">
+                <target_list>
+                    <target id="1">
+                        <box height="71.46" left="256.88" top="201.1" width="67.06"/>
+                        <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="91" truncation_ratio="0" vehicle_type="Taxi"/>
+                    </target>
+                </target_list>
+            </frame>
+            <frame density="2" num="2">
+                <target_list>
+                    <target id="2">
+                        <box height="32.44999999999999" left="329.27" top="96.65" width="56.53000000000003"/>
+                        <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="3" truncation_ratio="0" vehicle_type="Car"/>
+                    </target>
+                    <target id="4">
+                        <box height="122.67000000000002" left="0.0" top="356.7" width="76.6"/>
+                        <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="1" truncation_ratio="0" vehicle_type="Car"/>
+                    </target>
+                </target_list>
+            </frame>
+        </sequence>
+        ```
 
-            <sequence name="MVI_20033">
-                <sequence_attribute camera_state="unstable" sence_weather="sunny"/>
-                <ignored_region>
-                    <box height="53.75" left="458.75" top="0.5" width="159.5"/>
-                </ignored_region>
-                <frame density="4" num="1">
-                    <target_list>
-                        <target id="1">
-                            <box height="71.46" left="256.88" top="201.1" width="67.06"/>
-                            <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="91" truncation_ratio="0" vehicle_type="Taxi"/>
-                        </target>
-                    </target_list>
-                </frame>
-                <frame density="2" num="2">
-                    <target_list>
-                        <target id="2">
-                            <box height="32.44999999999999" left="329.27" top="96.65" width="56.53000000000003"/>
-                            <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="3" truncation_ratio="0" vehicle_type="Car"/>
-                        </target>
-                        <target id="4">
-                            <box height="122.67000000000002" left="0.0" top="356.7" width="76.6"/>
-                            <attribute color="Multi" orientation="315" speed="1.0394" trajectory_length="1" truncation_ratio="0" vehicle_type="Car"/>
-                        </target>
-                    </target_list>
-                </frame>
-            </sequence>
-
-        The ``ignored_region`` node will not be taken into account - if you want
+        The `ignored_region` node will not be taken into account - if you want
         some detections to be ignored, you need to filter them prior to the creation
         of the file.
 
         All attributes of each detection will be ignored, except for the one designated
-        by ``classes_attr_name`` (for example, in original UA-DETRAC this could be
-        ``"vehicle_type"``). This would then give values for ``classes`` attribute.
+        by `classes_attr_name` (for example, in original UA-DETRAC this could be
+        `"vehicle_type"`). This would then give values for `classes` attribute.
         As this attribute usually contains string values, you also need to provide
-        ``classes_list`` - a list of all possible class values. The class attribute will
+        `classes_list` - a list of all possible class values. The class attribute will
         then be replaced by the index of the label in this list.
 
         Args:
             file_path: Path where the detections file is located
-            classes_attr_name: The name of the attribute to be used for the ``classes``
-                attribute. If provided, ``classes_list`` must be provided as well.
+            classes_attr_name: The name of the attribute to be used for the `classes`
+                attribute. If provided, `classes_list` must be provided as well.
             classes_list: The list of all possible class values - must be provided if
-                ``classes_attr_name`` is provided. The values from that attribute in the
+                `classes_attr_name` is provided. The values from that attribute in the
                 file will then be replaced by the index of that value in this list.
         """
 
@@ -316,43 +322,43 @@ class Tracks:
         file_path: t.Union[pathlib.Path, str],
         classes_list: t.Sequence[str],
     ) -> TracksType:
-        """Creates a Tracks object from detections file in the CVAT for Video XML
-        format.
+        """
+        Creates a Tracks object from detections file in the CVAT for Video XML format.
 
         Here's how this file might look like:
 
-        .. code-block:: xml
+        ```xml
+        <annotations>
+            <version>1.1</version>
+            <meta>
+                <!-- lots of non-relevant metadata -->
+            </meta>
+            <track id="0" label="Car" source="manual">
+                <box frame="659" outside="0" occluded="0" keyframe="1" xtl="323.83" ytl="104.06" xbr="367.60" ybr="139.49" z_order="-1"> </box>
+                <box frame="660" outside="0" occluded="0" keyframe="1" xtl="320.98" ytl="105.24" xbr="365.65" ybr="140.95" z_order="0"> </box>
+            </track>
+            <track id="1" label="Car" source="manual">
+                <box frame="659" outside="0" occluded="0" keyframe="1" xtl="273.10" ytl="88.77" xbr="328.69" ybr="113.09" z_order="1"> </box>
+                <box frame="660" outside="0" occluded="0" keyframe="1" xtl="273.10" ytl="88.88" xbr="328.80" ybr="113.40" z_order="0"> </box>
+            </track>
+            <track id="2" label="Car" source="manual">
+                <box frame="659" outside="0" occluded="0" keyframe="1" xtl="375.24" ytl="80.43" xbr="401.65" ybr="102.67" z_order="0"> </box>
+                <box frame="660" outside="0" occluded="0" keyframe="1" xtl="374.69" ytl="80.78" xbr="401.09" ybr="103.01" z_order="0"> </box>
+            </track>
+            <track id="3" label="Car" source="manual">
+                <box frame="699" outside="0" occluded="0" keyframe="1" xtl="381.50" ytl="79.04" xbr="405.12" ybr="99.19" z_order="0"> </box>
+                <box frame="700" outside="0" occluded="0" keyframe="1" xtl="380.94" ytl="79.60" xbr="404.56" ybr="99.75" z_order="0"> </box>
+            </track>
+        </annotations>
+        ```
 
-            <annotations>
-                <version>1.1</version>
-                <meta>
-                    <!-- lots of non-relevant metadata -->
-                </meta>
-                <track id="0" label="Car" source="manual">
-                    <box frame="659" outside="0" occluded="0" keyframe="1" xtl="323.83" ytl="104.06" xbr="367.60" ybr="139.49" z_order="-1"> </box>
-                    <box frame="660" outside="0" occluded="0" keyframe="1" xtl="320.98" ytl="105.24" xbr="365.65" ybr="140.95" z_order="0"> </box>
-                </track>
-                <track id="1" label="Car" source="manual">
-                    <box frame="659" outside="0" occluded="0" keyframe="1" xtl="273.10" ytl="88.77" xbr="328.69" ybr="113.09" z_order="1"> </box>
-                    <box frame="660" outside="0" occluded="0" keyframe="1" xtl="273.10" ytl="88.88" xbr="328.80" ybr="113.40" z_order="0"> </box>
-                </track>
-                <track id="2" label="Car" source="manual">
-                    <box frame="659" outside="0" occluded="0" keyframe="1" xtl="375.24" ytl="80.43" xbr="401.65" ybr="102.67" z_order="0"> </box>
-                    <box frame="660" outside="0" occluded="0" keyframe="1" xtl="374.69" ytl="80.78" xbr="401.09" ybr="103.01" z_order="0"> </box>
-                </track>
-                <track id="3" label="Car" source="manual">
-                    <box frame="699" outside="0" occluded="0" keyframe="1" xtl="381.50" ytl="79.04" xbr="405.12" ybr="99.19" z_order="0"> </box>
-                    <box frame="700" outside="0" occluded="0" keyframe="1" xtl="380.94" ytl="79.60" xbr="404.56" ybr="99.75" z_order="0"> </box>
-                </track>
-            </annotations>
-
-        All attributes of each detection will be ignored, except for ``label`` (in the
-        ``track`` object), which will be used for the ``class`` values. As this
+        All attributes of each detection will be ignored, except for `label` (in the
+        `track` object), which will be used for the `class` values. As this
         attribute usually contains string values, you also need to provide
-        ``classes_list`` - a list of all possible class values. The class attribute will
+        `classes_list` - a list of all possible class values. The class attribute will
         then be replaced by the index of the label in this list.
 
-        Elements with "outside=1" will be ignored.
+        Elements with `"outside=1"` will be ignored.
 
         Args:
             file_path: Path where the detections file is located
@@ -395,7 +401,10 @@ class Tracks:
         """Read the tracks from a parquet file.
 
         The file should have the following columns:
-           <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <conf>, <class>
+
+        ```
+        <frame>, <id>, <xmin>, <ymin>, <width>, <height>, <conf>, <class>
+        ```
 
         Args:
             file_path: Path where the detections file is located
@@ -452,7 +461,7 @@ class Tracks:
         zero_indexed: bool = True,
     ) -> None:
         """
-        Create a ``Tracks`` instance.
+        Create a `Tracks` instance.
 
         Args:
             ids: A list or array of track ids, which should be of type int32.
@@ -618,12 +627,12 @@ class Tracks:
         return len(self._ids)
 
     def __contains__(self, idx: int) -> bool:
-        """Whether the frame ``idx`` is present in the collection."""
+        """Whether the frame `idx` is present in the collection."""
         return idx in self._frame_ind_dict
 
     @t.overload
     def __getitem__(self, idx: int) -> FrameTracks:
-        """Get the frame with number ``idx``.
+        """Get the frame with number `idx`.
 
         Note that indexing with negative values is not supported.
         """
@@ -632,7 +641,7 @@ class Tracks:
     def __getitem__(self, idx: slice) -> "Tracks":
         """Select only a subset of frames, as defined by the slice.
 
-        Note that the ``step`` argument is not supported and will result in an error
+        Note that the `step` argument is not supported and will result in an error
         being raised if it is supplied. Negative indices for start or stop argument are
         similarly not supported.
         """
@@ -686,14 +695,15 @@ class Tracks:
     ) -> None:
         """Export detections to CVAT for Video 1.1 format.
 
-        More information on the format can be found `here <https://opencv.github.io/cvat/docs/manual/advanced/xml_format/>`_.
+        More information on the format can be found
+        [here](https://opencv.github.io/cvat/docs/manual/advanced/xml_format/).
 
         Args:
-            filename: The name of the file to save to - should have an ``.xml`` suffix.
+            filename: The name of the file to save to - should have an `.xml` suffix.
             labels: A list/tuple of label names. The length should be at least the
                 maximum label index - 1 (the first label corresponds to label at the
                 0-th index).
-            image_size: The size of the image in the ``[w, h]`` format, in pixels.
+            image_size: The size of the image in the `[w, h]` format, in pixels.
         """
 
         if len(self._ids) == 0:
@@ -822,14 +832,15 @@ class Tracks:
         dirname: t.Union[pathlib.Path, str],
         labels: t.Sequence[str],
     ) -> None:
-        """Export detections to a simple CSV format. The format comprises of two files:
-        ``dets.csv``, containing the detections, and ``labels.txt``, which contains
-        the names of the labels (corresponding to label indices in ``dets.csv``). The
-        rows in ``dets.csv`` have the following format:
+        """
+        Export detections to a simple CSV format. The format comprises of two files:
+        `dets.csv`, containing the detections, and `labels.txt`, which contains
+        the names of the labels (corresponding to label indices in `dets.csv`). The
+        rows in `dets.csv` have the following format:
 
             <frame>, <id>, <x_min>, <y_min>, <width>, <height>, <class>, <conf>
 
-        Note that ``frame`` and ``class`` are both 0 indexed.
+        Note that `frame` and `class` are both 0 indexed.
 
         Args:
             dirname: The name of the directory to save to - will be created if it
@@ -912,16 +923,3 @@ class Tracks:
             ],
         )
         pq.write_table(table, file_path)
-
-
-def compute_ious(
-    tracks_1: Tracks, tracks_2: Tracks
-) -> dict[int, npt.NDArray[np.float32]]:
-    all_frames = sorted(set(tracks_1.frames).intersection(tracks_2.frames))
-
-    ious: dict[int, npt.NDArray[np.float32]] = {}
-    for frame in all_frames:
-        ious_f = iou_dist(tracks_1[frame].detections, tracks_2[frame].detections)
-        ious[frame] = ious_f
-
-    return ious

@@ -4,7 +4,8 @@ import typing as t
 import numpy as np
 import numpy.typing as npt
 
-from evaldet.tracks import Tracks, compute_ious
+from evaldet.dist import iou_dist
+from evaldet.tracks import Tracks
 from evaldet.utils import timer
 
 from .clearmot import CLEARMOTResults, calculate_clearmot_metrics
@@ -82,7 +83,7 @@ class MOTMetrics:
             - HOTA metrics (both average and individual alpha values). Note that I use
             the matching algorithm from the paper, which differs from what the official
             repository (TrackEval) is using - see
-            `this issue <https://github.com/JonathonLuiten/TrackEval/issues/22>`__
+            [this issue](https://github.com/JonathonLuiten/TrackEval/issues/22)
             for more details
 
                 - HOTA
@@ -99,7 +100,7 @@ class MOTMetrics:
 
         Returns:
             A dictionary of computed metrics. Metrics are saved under the key of their
-            metric family (``"clearmot"``, ``"id"``, ``"hota"``).
+            metric family (`"clearmot"`, `"id"`, `"hota"`).
         """
         if not (clearmot_metrics or id_metrics or hota_metrics):
             raise ValueError("You must select some metrics to compute.")
@@ -108,7 +109,7 @@ class MOTMetrics:
             raise ValueError("No objects in ``ground_truths``, nothing to compute.")
 
         with timer.timer(self._logger, "Precompute IoU"):
-            self._ious_dict = compute_ious(ground_truth, hypotheses)
+            self._ious_dict = _compute_ious(ground_truth, hypotheses)
 
         if clearmot_metrics:
             with timer.timer(self._logger, "Compute CLEARMOT Metrics"):
@@ -145,3 +146,16 @@ class MOTMetrics:
         return MOTMetricsResults(
             clearmot=clrmt_metrics, id=id_metrics_res, hota=hota_metrics_res
         )
+
+
+def _compute_ious(
+    tracks_1: Tracks, tracks_2: Tracks
+) -> dict[int, npt.NDArray[np.float32]]:
+    all_frames = sorted(set(tracks_1.frames).intersection(tracks_2.frames))
+
+    ious: dict[int, npt.NDArray[np.float32]] = {}
+    for frame in all_frames:
+        ious_f = iou_dist(tracks_1[frame].detections, tracks_2[frame].detections)
+        ious[frame] = ious_f
+
+    return ious

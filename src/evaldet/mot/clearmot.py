@@ -24,6 +24,28 @@ def calculate_clearmot_metrics(
     ious: dict[int, npt.NDArray[np.float32]],
     dist_threshold: float = 0.5,
 ) -> CLEARMOTResults:
+    """Calculate CLEARMOT metrics.
+
+    Args:
+        ground_truth: Ground truth tracks.
+        hypotheses: Hypotheses tracks.
+        ious_threshold: A dictionary where keys are frame numbers (indices), and values
+            are numpy matrices of IOU distances between detection in ground truth and
+            hypotheses for that frame. IOUs must be present for all frames that are
+            present in both ground truth and hypotheses.
+        dist_threshold: The distance threshold for the computation of metrics, used to
+            determine whether a matching between two tracks persist, and whether to
+            start a matching based on distance between two detections.
+
+    Returns:
+        A dictionary containing CLEARMOT metrics:
+
+            - MOTA (MOT Accuracy)
+            - MOTP (MOT Precision)
+            - FP (false positives)
+            - FN (false negatives)
+            - IDS (identity switches/mismatches)
+    """
     all_frames = sorted(ground_truth.frames.union(hypotheses.frames))
 
     false_negatives = 0

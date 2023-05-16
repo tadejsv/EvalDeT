@@ -24,6 +24,29 @@ def calculate_id_metrics(
     ious: dict[int, npt.NDArray[np.float32]],
     dist_threshold: float = 0.5,
 ) -> IDResults:
+    """Calculate ID (identity) metrics.
+
+    Args:
+        ground_truth: Ground truth tracks.
+        hypotheses: Hypotheses tracks.
+        ious_threshold: A dictionary where keys are frame numbers (indices), and values
+            are numpy matrices of IOU distances between detection in ground truth and
+            hypotheses for that frame. IOUs must be present for all frames that are
+            present in both ground truth and hypotheses.
+        dist_threshold: The distance threshold for the computation of the metrics - used
+            to determine whether to match two objects.
+
+    Returns:
+        A dictionary containing ID metrics:
+
+            - IDP (ID Precision)
+            - IDR (ID Recall)
+            - IDF1 (ID F1)
+            - IDFP (ID false positives)
+            - IDFN (ID false negatives)
+            - IDTP (ID true positives)
+    """
+
     gts = tuple(ground_truth.ids_count.keys())
     gts_id_ind_dict = {_id: ind for ind, _id in enumerate(gts)}
     hyps = tuple(hypotheses.ids_count.keys())

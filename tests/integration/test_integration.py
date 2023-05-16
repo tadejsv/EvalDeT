@@ -1,6 +1,7 @@
 import numpy as np
 
-from evaldet import MOTMetrics, Tracks
+from evaldet import Tracks
+from evaldet.mot import MOTMetrics
 from evaldet.utils.preprocess import preprocess_mot_1720
 
 

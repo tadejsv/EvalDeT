@@ -1,12 +1,13 @@
 import numpy as np
 
-from evaldet.mot_metrics.hota import calculate_hota_metrics
-from evaldet.tracks import Tracks, compute_ious
+from evaldet.mot.hota import calculate_hota_metrics
+from evaldet.tracks import Tracks
+from evaldet.mot.motmetrics import _compute_ious
 
 
 def test_hyp_missing_frame(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     gt, hyp = missing_frame_pair
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_hota_metrics(gt, hyp, ious=ious)
 
     assert metrics is not None
@@ -20,7 +21,7 @@ def test_hyp_missing_frame(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
 
 def test_gt_missing_frame(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     gt, hyp = missing_frame_pair
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_hota_metrics(gt, hyp, ious=ious)
 
     assert metrics is not None
@@ -35,7 +36,7 @@ def test_gt_missing_frame(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
 def test_no_matches() -> None:
     gt = Tracks([0], [0], np.array([[0, 0, 1, 1]]))
     hyp = Tracks([0], [0], np.array([[1, 1, 1, 1]]))
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_hota_metrics(gt, hyp, ious=ious)
 
     assert metrics is not None
@@ -50,7 +51,7 @@ def test_no_matches() -> None:
 def test_alphas() -> None:
     gt = Tracks([0, 1], [0, 0], np.array([[0, 0, 1, 1], [1, 1, 1, 1]]))
     hyp = Tracks([0, 1], [0, 0], np.array([[0.1, 0.1, 1, 1], [1.2, 1.2, 1, 1]]))
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_hota_metrics(gt, hyp, ious=ious)
 
     assert metrics is not None
@@ -106,7 +107,7 @@ def test_priority_matching_1() -> None:
         detections=np.array([[0, 0, 1, 1]] * 10 + [[0, 0, 1, 0.5]]),
     )
 
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_hota_metrics(gt, hyp, ious=ious)
 
     np.testing.assert_array_almost_equal(metrics["AssA_alpha"][9], 0.7658, 3)
@@ -121,7 +122,7 @@ def test_priority_matching_2() -> None:
         [0, 0, 1], [0, 1, 1], np.array([[0, 0, 1, 1], [0, 0, 1, 0.7], [0, 0, 1, 1]])
     )
     hyp = Tracks([0, 0], [0, 1], np.array([[0, 0, 1, 1]] * 2))
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_hota_metrics(gt, hyp, ious=ious)
 
     assert metrics is not None
@@ -134,7 +135,7 @@ def test_example_1a() -> None:
     """Example A from figure 1 in the paper"""
     gt = Tracks([0] * 20, list(range(20)), np.array([[0, 0, 1, 1]] * 20))
     hyp = Tracks([0] * 10, list(range(10)), np.array([[0, 0, 1, 1]] * 10))
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_hota_metrics(gt, hyp, ious=ious)
 
     assert metrics is not None
@@ -148,7 +149,7 @@ def test_example_1b() -> None:
     """Example B from figure 1 in the paper"""
     gt = Tracks([0] * 20, list(range(20)), np.array([[0, 0, 1, 1]] * 20))
     hyp = Tracks([0] * 7 + [1] * 7, list(range(14)), np.array([[0, 0, 1, 1]] * 14))
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_hota_metrics(gt, hyp, ious=ious)
 
     assert metrics is not None
@@ -166,7 +167,7 @@ def test_example_1c() -> None:
         list(range(20)),
         np.array([[0, 0, 1, 1]] * 20),
     )
-    ious = compute_ious(gt, hyp)
+    ious = _compute_ious(gt, hyp)
     metrics = calculate_hota_metrics(gt, hyp, ious=ious)
 
     assert metrics is not None

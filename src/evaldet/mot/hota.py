@@ -26,6 +26,29 @@ class HOTAResults(t.TypedDict):
 def calculate_hota_metrics(
     ground_truth: Tracks, hypotheses: Tracks, ious: dict[int, npt.NDArray[np.float32]]
 ) -> HOTAResults:
+    """Calculate HOTA metrics.
+
+    Args:
+        ground_truth: Ground truth tracks.
+        hypotheses: Hypotheses tracks.
+        ious_threshold: A dictionary where keys are frame numbers (indices), and values
+            are numpy matrices of IOU distances between detection in ground truth and
+            hypotheses for that frame. IOUs must be present for all frames that are
+            present in both ground truth and hypotheses.
+
+    Returns:
+        A dictionary containing HOTA metrics (both average and individual alpha values).
+        Note that I use the matching algorithm from the paper, which differs from what
+        the official repository (TrackEval) is using - see
+        [this issue](https://github.com/JonathonLuiten/TrackEval/issues/22) for more
+        details. The metrics returned are:
+
+            - HOTA
+            - AssA
+            - DetA
+            - LocA
+    """
+
     alphas = np.arange(0.05, 0.96, 0.05)  # from 0.05 to 0.95 inclusive
     all_frames = sorted(set(ground_truth.frames).intersection(hypotheses.frames))
 
