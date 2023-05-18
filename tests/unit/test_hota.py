@@ -1,8 +1,8 @@
 import numpy as np
 
 from evaldet.mot.hota import calculate_hota_metrics
-from evaldet.tracks import Tracks
 from evaldet.mot.motmetrics import _compute_ious
+from evaldet.tracks import Tracks
 
 
 def test_hyp_missing_frame(missing_frame_pair: tuple[Tracks, Tracks]) -> None:

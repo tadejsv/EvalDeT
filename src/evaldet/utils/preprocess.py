@@ -17,7 +17,7 @@ def preprocess_mot_1720(gt: Tracks, hyp: Tracks, mot_20: bool = True) -> None:
 
     all_frames = sorted(set(gt.frames).intersection(hyp.frames))
     for frame in all_frames:
-        dist_matrix = iou_dist(gt[frame].detections, hyp[frame].detections)
+        dist_matrix = iou_dist(gt[frame].bboxes, hyp[frame].bboxes)
         dist_matrix[dist_matrix > 0.5] = 1
         matches_row, matches_col = linear_sum_assignment(dist_matrix)
 

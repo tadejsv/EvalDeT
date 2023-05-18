@@ -1,12 +1,11 @@
 import numba
 import numpy as np
 import numpy.typing as npt
-
-from evaldet.dist import iou_dist
+from numba import types
 
 
 @numba.njit(
-    "Tuple((int32[:], bool_[:], bool_[:], int32))(float32[:,::1], float32[:,::1], float32[:,::1],float32[:], Tuple((float32, float32)), float32)",
+    "Tuple((int32[:], bool_[:], bool_[:], int32))(float32[:,::1], float32[:,::1], float32[:,::1], float32[:], Tuple((float32, float32)), float32)",
 )
 def evaluate_image(
     preds_bbox: npt.NDArray[np.float32],
@@ -117,6 +116,19 @@ def evaluate_image(
     return matched_orig, ignore_preds_orig, gts_ignore_orig, n_gts
 
 
+@numba.njit(
+    types.float32[:, ::1](
+        types.float32[:, ::1],
+        types.float32[:, ::1],
+        types.DictType(types.int32, types.float32[:, ::1]),
+        types.float32[::1],
+        types.DictType(types.int32, types.Tuple((types.int32, types.int32))),
+        types.DictType(types.int32, types.Tuple((types.int32, types.int32))),
+        types.Tuple((types.float32, types.float32)),
+        types.float32,
+    ),
+    parallel=True,
+)
 def calculate_pr_curve(
     preds_bbox: npt.NDArray[np.float32],
     gts_bbox: npt.NDArray[np.float32],
@@ -159,9 +171,11 @@ def calculate_pr_curve(
     det_matched = np.zeros_like(preds_conf, dtype=np.int32)
     n_gts = 0
 
-    all_frames = list(set(frame_ind_dict_preds.keys()).union(frame_ind_dict_gts.keys()))
+    keys_preds = set(frame_ind_dict_preds.keys())
+    keys_gts = set(frame_ind_dict_gts.keys())
+    all_frames = list(keys_preds.union(keys_gts))
 
-    for i in range(len(all_frames)):
+    for i in numba.prange(len(all_frames)):
         frame = all_frames[i]
         if frame in frame_ind_dict_preds:
             preds_start, preds_end = frame_ind_dict_preds[frame]
@@ -198,10 +212,10 @@ def calculate_pr_curve(
     preds_conf = preds_conf[sort_arr]
     det_matched_bool = det_matched[sort_arr] > -1
 
-    precision = np.cumsum(det_matched_bool, dtype=np.float32) / np.arange(
-        1, len(det_matched_bool) + 1, dtype=np.float32
-    )
-    recall = np.cumsum(det_matched_bool, dtype=np.float32) / float(n_gts)
+    precision = np.cumsum(det_matched_bool).astype(np.float32) / np.arange(
+        1, len(det_matched_bool) + 1
+    ).astype(np.float32)
+    recall = np.cumsum(det_matched_bool).astype(np.float32) / numba.float32(n_gts)
 
     prec_recall = np.stack((precision, recall))
 

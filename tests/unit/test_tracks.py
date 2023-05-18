@@ -112,9 +112,7 @@ def test_init_single() -> None:
 
     np.testing.assert_array_equal(tr.ids, np.array([0], dtype=np.int32))
     np.testing.assert_array_equal(tr.frame_nums, np.array([0], dtype=np.int32))
-    np.testing.assert_array_equal(
-        tr.detections, np.array([[0, 0, 1, 1]], dtype=np.float32)
-    )
+    np.testing.assert_array_equal(tr.bboxes, np.array([[0, 0, 1, 1]], dtype=np.float32))
     np.testing.assert_array_equal(tr.confs, np.array([0.9], dtype=np.float32))
     np.testing.assert_array_equal(tr.classes, np.array([1], dtype=np.int32))
 
@@ -132,7 +130,7 @@ def test_init_full() -> None:
     np.testing.assert_array_equal(tr.ids, np.array([1, 0], dtype=np.int32))
     np.testing.assert_array_equal(tr.frame_nums, np.array([0, 1], dtype=np.int32))
     np.testing.assert_array_equal(
-        tr.detections, np.array([[0, 0, 1, 1], [2, 0, 1, 1]], dtype=np.float32)
+        tr.bboxes, np.array([[0, 0, 1, 1], [2, 0, 1, 1]], dtype=np.float32)
     )
     np.testing.assert_array_equal(tr.confs, np.array([0.99, 0.9], dtype=np.float32))
     np.testing.assert_array_equal(tr.classes, np.array([0, 1], dtype=np.int32))
@@ -143,7 +141,7 @@ def test_init_empty() -> None:
 
     np.testing.assert_array_equal(tr.ids, np.zeros((0,), dtype=np.int32))
     np.testing.assert_array_equal(tr.frame_nums, np.zeros((0,), dtype=np.int32))
-    np.testing.assert_array_equal(tr.detections, np.zeros((0, 4), dtype=np.float32))
+    np.testing.assert_array_equal(tr.bboxes, np.zeros((0, 4), dtype=np.float32))
     np.testing.assert_array_equal(tr.confs, np.zeros((0,), dtype=np.float32))
     np.testing.assert_array_equal(tr.classes, np.zeros((0,), dtype=np.int32))
 
@@ -185,9 +183,7 @@ def test_filter() -> None:
 
     np.testing.assert_array_equal(tr.ids, np.array([0], dtype=np.int32))
     np.testing.assert_array_equal(tr.frame_nums, np.array([1], dtype=np.int32))
-    np.testing.assert_array_equal(
-        tr.detections, np.array([[2, 0, 1, 1]], dtype=np.float32)
-    )
+    np.testing.assert_array_equal(tr.bboxes, np.array([[2, 0, 1, 1]], dtype=np.float32))
     np.testing.assert_array_equal(tr.confs, np.array([0.9], dtype=np.float32))
     np.testing.assert_array_equal(tr.classes, np.array([1], dtype=np.int32))
 
@@ -207,14 +203,14 @@ def test_getitem_one_item(tracks_with_one_item: Tracks) -> None:
 
     assert item.ids == [0]
     assert item.classes == [1]
-    np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
+    np.testing.assert_array_equal(item.bboxes, np.array([[0, 0, 1, 1]]))
 
 
 def test_getitem_one_item_no_class(tracks_with_one_item_no_class: Tracks) -> None:
     item = tracks_with_one_item_no_class[0]
 
     assert item.ids == [0]
-    np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
+    np.testing.assert_array_equal(item.bboxes, np.array([[0, 0, 1, 1]]))
     np.testing.assert_array_equal(item.classes, np.array([0]))
     np.testing.assert_array_equal(item.confs, np.array([0.5]))
 
@@ -223,7 +219,7 @@ def test_getitem_one_item_no_conf(tracks_with_one_item_no_conf: Tracks) -> None:
     item = tracks_with_one_item_no_conf[0]
 
     assert item.ids == [0]
-    np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
+    np.testing.assert_array_equal(item.bboxes, np.array([[0, 0, 1, 1]]))
     np.testing.assert_array_equal(item.classes, np.array([1]))
     np.testing.assert_array_equal(item.confs, np.array([1.0]))
 
@@ -232,7 +228,7 @@ def test_getitem_one_item_nothing(tracks_with_one_item_nothing: Tracks) -> None:
     item = tracks_with_one_item_nothing[0]
 
     assert item.ids == [0]
-    np.testing.assert_array_equal(item.detections, np.array([[0, 0, 1, 1]]))
+    np.testing.assert_array_equal(item.bboxes, np.array([[0, 0, 1, 1]]))
     np.testing.assert_array_equal(item.classes, np.array([0]))
     np.testing.assert_array_equal(item.confs, np.array([1.0]))
 
@@ -242,7 +238,7 @@ def test_slice_normal1(sample_tracks: Tracks) -> None:
     assert sliced_tracks.frames == {660, 661}
     assert sliced_tracks.all_classes == {2}
     np.testing.assert_almost_equal(
-        sliced_tracks[661].detections,
+        sliced_tracks[661].bboxes,
         np.array(
             [
                 [320.98, 105.24, 44.67, 35.71],
@@ -259,7 +255,7 @@ def test_slice_normal2(sample_tracks: Tracks) -> None:
     assert sliced_tracks.frames == {660, 661}
     assert sliced_tracks.all_classes == {2}
     np.testing.assert_almost_equal(
-        sliced_tracks[661].detections,
+        sliced_tracks[661].bboxes,
         np.array(
             [
                 [320.98, 105.24, 44.67, 35.71],
@@ -277,7 +273,7 @@ def test_slice_empty_result(tracks_with_one_item: Tracks) -> None:
     assert len(sliced_tracks.classes) == 0
     assert len(sliced_tracks.confs) == 0
     assert len(sliced_tracks.ids) == 0
-    assert len(sliced_tracks.detections) == 0
+    assert len(sliced_tracks.bboxes) == 0
     assert len(sliced_tracks.frame_nums) == 0
 
 
@@ -287,7 +283,7 @@ def test_slice_on_empty_tracks(empty_tracks: Tracks) -> None:
     assert len(sliced_tracks.classes) == 0
     assert len(sliced_tracks.confs) == 0
     assert len(sliced_tracks.ids) == 0
-    assert len(sliced_tracks.detections) == 0
+    assert len(sliced_tracks.bboxes) == 0
     assert len(sliced_tracks.frame_nums) == 0
 
 
@@ -323,18 +319,18 @@ def test_read_csv(sample_tracks: Tracks) -> None:
     np.testing.assert_array_equal(tracks[800].ids, sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
-        tracks[660].detections,
-        sample_tracks[660].detections,
+        tracks[660].bboxes,
+        sample_tracks[660].bboxes,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[661].detections,
-        sample_tracks[661].detections,
+        tracks[661].bboxes,
+        sample_tracks[661].bboxes,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[800].detections,
-        sample_tracks[800].detections,
+        tracks[800].bboxes,
+        sample_tracks[800].bboxes,
         decimal=4,
     )
 
@@ -359,18 +355,18 @@ def test_read_mot_cvat(sample_tracks: Tracks) -> None:
     assert set(tracks[800].ids) == set(sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
-        tracks[660].detections,
-        sample_tracks[660].detections,
+        tracks[660].bboxes,
+        sample_tracks[660].bboxes,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[661].detections,
-        sample_tracks[661].detections,
+        tracks[661].bboxes,
+        sample_tracks[661].bboxes,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[800].detections,
-        sample_tracks[800].detections,
+        tracks[800].bboxes,
+        sample_tracks[800].bboxes,
         decimal=4,
     )
 
@@ -391,18 +387,18 @@ def test_read_mot(sample_tracks: Tracks) -> None:
     assert set(tracks[800].ids) == set(sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
-        tracks[660].detections,
-        sample_tracks[660].detections,
+        tracks[660].bboxes,
+        sample_tracks[660].bboxes,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[661].detections,
-        sample_tracks[661].detections,
+        tracks[661].bboxes,
+        sample_tracks[661].bboxes,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[800].detections,
-        sample_tracks[800].detections,
+        tracks[800].bboxes,
+        sample_tracks[800].bboxes,
         decimal=4,
     )
 
@@ -437,18 +433,18 @@ def test_read_ua_detrac(sample_tracks: Tracks) -> None:
     assert set(tracks_no_cls[800].ids) == set(sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
-        tracks[660].detections,
-        sample_tracks[660].detections,
+        tracks[660].bboxes,
+        sample_tracks[660].bboxes,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[661].detections,
-        sample_tracks[661].detections,
+        tracks[661].bboxes,
+        sample_tracks[661].bboxes,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[800].detections,
-        sample_tracks[800].detections,
+        tracks[800].bboxes,
+        sample_tracks[800].bboxes,
         decimal=4,
     )
 
@@ -471,18 +467,18 @@ def test_read_cvat_video(sample_tracks: Tracks) -> None:
     assert set(tracks[800].ids) == set(sample_tracks[800].ids)
 
     np.testing.assert_array_almost_equal(
-        tracks[660].detections,
-        sample_tracks[660].detections,
+        tracks[660].bboxes,
+        sample_tracks[660].bboxes,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[661].detections,
-        sample_tracks[661].detections,
+        tracks[661].bboxes,
+        sample_tracks[661].bboxes,
         decimal=4,
     )
     np.testing.assert_array_almost_equal(
-        tracks[800].detections,
-        sample_tracks[800].detections,
+        tracks[800].bboxes,
+        sample_tracks[800].bboxes,
         decimal=4,
     )
 

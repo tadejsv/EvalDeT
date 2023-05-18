@@ -155,7 +155,7 @@ def _compute_ious(
 
     ious: dict[int, npt.NDArray[np.float32]] = {}
     for frame in all_frames:
-        ious_f = iou_dist(tracks_1[frame].detections, tracks_2[frame].detections)
+        ious_f = iou_dist(tracks_1[frame].bboxes, tracks_2[frame].bboxes)
         ious[frame] = ious_f
 
     return ious

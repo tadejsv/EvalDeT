@@ -23,7 +23,7 @@ _HEIGHT_KEY = "height"
 
 
 class FrameTracks(t.NamedTuple):
-    detections: npt.NDArray[np.float32]
+    bboxes: npt.NDArray[np.float32]
     ids: npt.NDArray[np.int32]
     classes: npt.NDArray[np.int32]
     confs: npt.NDArray[np.float32]
@@ -53,7 +53,7 @@ class Tracks:
 
     _frame_nums: npt.NDArray[np.int32]
     _ids: npt.NDArray[np.int32]
-    _detections: npt.NDArray[np.float32]
+    _bboxes: npt.NDArray[np.float32]
     _classes: npt.NDArray[np.int32]
     _confs: npt.NDArray[np.float32]
     _frame_ind_dict: dict[int, tuple[int, int]]
@@ -467,7 +467,7 @@ class Tracks:
             ids: A list or array of track ids, which should be of type int32.
             frame_nums: A list or array of frame numbers, which should be of type int32.
             detections: A list or array of detection bounding boxes, which should be
-                in the format `x, y, w, h`, using a top-left-origin coordinate system.
+                in the format `xywh`, using a top-left-origin coordinate system.
                 The detections should be of `float32` dtype.
             classes: A list or array of classes (labels), which should be of dtype
                 int32. It can not be provided, or be provided as an empty list - in this
@@ -510,7 +510,7 @@ class Tracks:
         if len(ids) == 0:
             self._frame_nums = np.zeros((0,), dtype=np.int32)
             self._ids = np.zeros((0,), dtype=np.int32)
-            self._detections = np.zeros((0, 4), dtype=np.float32)
+            self._bboxes = np.zeros((0, 4), dtype=np.float32)
             self._classes = np.zeros((0,), dtype=np.int32)
             self._confs = np.zeros((0,), dtype=np.float32)
 
@@ -523,7 +523,7 @@ class Tracks:
             )
 
             self._ids = np.array(np.array(ids)[sort_inds], dtype=np.int32, copy=True)
-            self._detections = np.array(
+            self._bboxes = np.array(
                 np.array(detections)[sort_inds], dtype=np.float32, copy=True
             )
 
@@ -578,7 +578,7 @@ class Tracks:
         self._frame_nums = self._frame_nums[filter]
         self._classes = self._classes[filter]
         self._confs = self._confs[filter]
-        self._detections = self._detections[filter]
+        self._bboxes = self._bboxes[filter]
 
         self._create_frame_ind_dict()
 
@@ -591,8 +591,8 @@ class Tracks:
         return self._frame_nums
 
     @property
-    def detections(self) -> npt.NDArray[np.float32]:
-        return self._detections
+    def bboxes(self) -> npt.NDArray[np.float32]:
+        return self._bboxes
 
     @property
     def classes(self) -> npt.NDArray[np.int32]:
@@ -656,7 +656,7 @@ class Tracks:
             start, end = self._frame_ind_dict[idx]
             return FrameTracks(
                 ids=self._ids[start:end],
-                detections=self._detections[start:end],
+                bboxes=self._bboxes[start:end],
                 classes=self._classes[start:end],
                 confs=self._confs[start:end],
             )
@@ -678,7 +678,7 @@ class Tracks:
             new_tracks = type(self)(
                 ids=self._ids[start:end],
                 frame_nums=self._frame_nums[start:end],
-                detections=self._detections[start:end],
+                detections=self._bboxes[start:end],
                 classes=self._classes[start:end],
                 confs=self._confs[start:end],
             )
@@ -793,7 +793,7 @@ class Tracks:
             )
 
             for i, (ind, frame_num) in enumerate(zip(id_inds, track_frames)):
-                bbox = self.detections[ind]
+                bbox = self.bboxes[ind]
                 ET.SubElement(
                     track_el,
                     "box",
@@ -886,10 +886,10 @@ class Tracks:
                     "track_id": self.ids[ind],
                     "conf": self.confs[ind],
                     "class_id": self.classes[ind],
-                    "x_min": f"{self.detections[ind][0]:.2f}",
-                    "y_min": f"{self.detections[ind][1]:.2f}",
-                    "w": f"{self.detections[ind][2]:.2f}",
-                    "h": f"{self.detections[ind][3]:.2f}",
+                    "x_min": f"{self.bboxes[ind][0]:.2f}",
+                    "y_min": f"{self.bboxes[ind][1]:.2f}",
+                    "w": f"{self.bboxes[ind][2]:.2f}",
+                    "h": f"{self.bboxes[ind][3]:.2f}",
                 }
                 writer.writerow(item)
 
@@ -904,10 +904,10 @@ class Tracks:
             [
                 pa.array(self._ids),
                 pa.array(self._frame_nums),
-                pa.array(self._detections[:, 0]),
-                pa.array(self._detections[:, 1]),
-                pa.array(self._detections[:, 2]),
-                pa.array(self._detections[:, 3]),
+                pa.array(self._bboxes[:, 0]),
+                pa.array(self._bboxes[:, 1]),
+                pa.array(self._bboxes[:, 2]),
+                pa.array(self._bboxes[:, 3]),
                 pa.array(self._confs),
                 pa.array(self._classes),
             ],
