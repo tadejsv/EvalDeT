@@ -134,8 +134,8 @@ def calculate_pr_curve(
     gts_bbox: npt.NDArray[np.float32],
     ious: dict[int, npt.NDArray[np.float32]],
     preds_conf: npt.NDArray[np.float32],
-    frame_ind_dict_preds: dict[int, tuple[int, int]],
-    frame_ind_dict_gts: dict[int, tuple[int, int]],
+    img_ind_dict_preds: dict[int, tuple[int, int]],
+    img_ind_dict_gts: dict[int, tuple[int, int]],
     area_range: tuple[float, float],
     iou_threshold: float,
 ) -> npt.NDArray[np.float32]:
@@ -145,17 +145,17 @@ def calculate_pr_curve(
     Args:
         preds_bbox: A `[N, 4]` array of prediction bounding boxes in xywh format
         gts_bbox: A `[M, 4]` array of ground truth bounding boxes in xywh format
-        ious: A dict with keys being frame indices, and values beind 2D numpy arrays,
+        ious: A dict with keys being image indices, and values beind 2D numpy arrays,
           containing IoU similarity scores between predictions and ground truths for
-          each frame.
+          each image.
         preds_conf: A `[N,]` array of prediction confidence scores.
-        frame_ind_dict_preds: A dictionary where keys are frame indices, and values are
+        img_ind_dict_preds: A dictionary where keys are image indices, and values are
           a tuple of 2 integers, denoting the starting and ending position of the
-          frame's detection bounding boxes and confidences in `preds_bbox` and
+          image's detection bounding boxes and confidences in `preds_bbox` and
           `preds_conf`, respectively.
-        frame_ ind_dict_gts: A dictionary where keys are frame indices, and values are
+        img_ ind_dict_gts: A dictionary where keys are image indices, and values are
           a tuple of 2 integers, denoting the starting and ending position of the
-          frame's ground truth bounding boxes `preds_bbox`.
+          image's ground truth bounding boxes `preds_bbox`.
         area_range: A tuple `(lower_limit, upper_limit)` of limits for bounding box
             areas. Ground truths with area outside of this range will be ignored, as
             will the predictions matched to them and unmatched predictions with area
@@ -171,39 +171,39 @@ def calculate_pr_curve(
     det_matched = np.zeros_like(preds_conf, dtype=np.int32)
     n_gts = 0
 
-    keys_preds = set(frame_ind_dict_preds.keys())
-    keys_gts = set(frame_ind_dict_gts.keys())
-    all_frames = list(keys_preds.union(keys_gts))
+    keys_preds = set(img_ind_dict_preds.keys())
+    keys_gts = set(img_ind_dict_gts.keys())
+    all_imgs = list(keys_preds.union(keys_gts))
 
-    for i in numba.prange(len(all_frames)):
-        frame = all_frames[i]
-        if frame in frame_ind_dict_preds:
-            preds_start, preds_end = frame_ind_dict_preds[frame]
+    for i in numba.prange(len(all_imgs)):
+        img = all_imgs[i]
+        if img in img_ind_dict_preds:
+            preds_start, preds_end = img_ind_dict_preds[img]
         else:
             preds_start, preds_end = 0, 0
 
-        if frame in frame_ind_dict_gts:
-            gts_start, gts_end = frame_ind_dict_gts[frame]
+        if img in img_ind_dict_gts:
+            gts_start, gts_end = img_ind_dict_gts[img]
         else:
             gts_start, gts_end = 0, 0
 
-        frame_ious = np.zeros((0, 0), dtype=np.float32)
-        if frame in ious:
-            frame_ious = ious[frame]
+        img_ious = np.zeros((0, 0), dtype=np.float32)
+        if img in ious:
+            img_ious = ious[img]
 
-        (matched_frame, ignored_dets_frame, _, n_gts_frame) = evaluate_image(
+        (matched_img, ignored_dets_img, _, n_gts_img) = evaluate_image(
             preds_bbox[preds_start:preds_end],
             gts_bbox[gts_start:gts_end],
-            frame_ious,
+            img_ious,
             preds_conf=preds_conf[preds_start:preds_end],
             area_range=area_range,
             iou_threshold=iou_threshold,
         )
-        n_gts += n_gts_frame
+        n_gts += n_gts_img
 
         if preds_end > 0:
-            det_ignored[preds_start:preds_end] = ignored_dets_frame
-            det_matched[preds_start:preds_end] = matched_frame
+            det_ignored[preds_start:preds_end] = ignored_dets_img
+            det_matched[preds_start:preds_end] = matched_img
 
     det_matched = det_matched[~det_ignored]
     preds_conf = preds_conf[~det_ignored]

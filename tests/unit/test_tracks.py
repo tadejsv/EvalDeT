@@ -42,7 +42,7 @@ def tracks_with_one_item_nothing() -> Tracks:
 
 
 def test_mismatch_len_ids_detections() -> None:
-    with pytest.raises(ValueError, match="`detections` and `ids` should"):
+    with pytest.raises(ValueError, match="`bboxes` and `ids` should"):
         Tracks([0, 0], [0, 1], np.array([[0, 0, 1, 1]]))
 
 
@@ -62,7 +62,7 @@ def test_mismatch_len_ids_confs() -> None:
 
 
 def test_wrong_num_cols_detections() -> None:
-    with pytest.raises(ValueError, match="Each row of `detections`"):
+    with pytest.raises(ValueError, match="Each row of `bboxes`"):
         Tracks([0], [0], np.array([[0, 0, 1]]))
 
 
@@ -105,7 +105,7 @@ def test_init_single() -> None:
     tr = Tracks(
         ids=[0],
         frame_nums=[0],
-        detections=np.array([[0, 0, 1, 1]]),
+        bboxes=np.array([[0, 0, 1, 1]]),
         confs=[0.9],
         classes=[1],
     )
@@ -121,7 +121,7 @@ def test_init_full() -> None:
     tr = Tracks(
         ids=[0, 1],
         frame_nums=[1, 0],
-        detections=np.array([[2, 0, 1, 1], [0, 0, 1, 1]]),
+        bboxes=np.array([[2, 0, 1, 1], [0, 0, 1, 1]]),
         confs=[0.9, 0.99],
         classes=[1, 0],
     )
@@ -137,7 +137,7 @@ def test_init_full() -> None:
 
 
 def test_init_empty() -> None:
-    tr = Tracks(ids=[], frame_nums=[], detections=[])
+    tr = Tracks(ids=[], frame_nums=[], bboxes=[])
 
     np.testing.assert_array_equal(tr.ids, np.zeros((0,), dtype=np.int32))
     np.testing.assert_array_equal(tr.frame_nums, np.zeros((0,), dtype=np.int32))
@@ -146,26 +146,24 @@ def test_init_empty() -> None:
     np.testing.assert_array_equal(tr.classes, np.zeros((0,), dtype=np.int32))
 
 
-@pytest.mark.parametrize("confs", [None, []])
-def test_init_no_confs(confs: Optional[list[float]]) -> None:
+def test_init_no_confs() -> None:
     tr = Tracks(
         ids=[0],
         frame_nums=[0],
-        detections=np.array([[0, 0, 1, 1]]),
-        confs=confs,
+        bboxes=np.array([[0, 0, 1, 1]]),
+        confs=None,
         classes=[1],
     )
     np.testing.assert_array_equal(tr.confs, np.array([1.0], dtype=np.float32))
 
 
-@pytest.mark.parametrize("classes", [None, []])
-def test_init_no_classes(classes: Optional[list[int]]) -> None:
+def test_init_no_classes() -> None:
     tr = Tracks(
         ids=[0],
         frame_nums=[0],
-        detections=np.array([[0, 0, 1, 1]]),
+        bboxes=np.array([[0, 0, 1, 1]]),
         confs=[0.9],
-        classes=classes,
+        classes=None,
     )
     np.testing.assert_array_equal(tr.classes, np.array([0], dtype=np.int32))
 
@@ -174,7 +172,7 @@ def test_filter() -> None:
     tr = Tracks(
         ids=[0, 1],
         frame_nums=[1, 0],
-        detections=np.array([[2, 0, 1, 1], [0, 0, 1, 1]]),
+        bboxes=np.array([[2, 0, 1, 1], [0, 0, 1, 1]]),
         confs=[0.9, 0.99],
         classes=[1, 0],
     )

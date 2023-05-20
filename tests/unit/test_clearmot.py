@@ -27,8 +27,8 @@ def test_missing_frame_gt(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
 
 
 def test_no_association_made() -> None:
-    gt = Tracks(ids=[0], frame_nums=[0], detections=np.array([[10, 10, 11, 11]]))
-    hyp = Tracks(ids=[0], frame_nums=[0], detections=np.array([[0, 0, 1, 1]]))
+    gt = Tracks(ids=[0], frame_nums=[0], bboxes=np.array([[10, 10, 11, 11]]))
+    hyp = Tracks(ids=[0], frame_nums=[0], bboxes=np.array([[0, 0, 1, 1]]))
     ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
 
@@ -44,12 +44,12 @@ def test_dist_threshold(threshold: float) -> None:
     gt = Tracks(
         ids=[0, 1, 2, 3],
         frame_nums=[0] * 4,
-        detections=np.array([[0, 0, 1, 1], [0, 0, 1, 1], [0, 0, 1, 1], [0, 0, 1, 1]]),
+        bboxes=np.array([[0, 0, 1, 1], [0, 0, 1, 1], [0, 0, 1, 1], [0, 0, 1, 1]]),
     )
     hyp = Tracks(
         ids=[0, 1, 2, 3],
         frame_nums=[0] * 4,
-        detections=np.array(
+        bboxes=np.array(
             [[0, 0, 1, 0.2], [0, 0, 1, 0.4], [0, 0, 1, 0.6], [0, 0, 1, 0.8]]
         ),
     )
@@ -67,11 +67,11 @@ def test_sticky_association() -> None:
     """Test that as long as distance is below threshold, the association does
     not switch, even if a detection with better IoU score appears.
     """
-    gt = Tracks(ids=[0, 0], frame_nums=[0, 1], detections=np.array([[0, 0, 1, 1]] * 2))
+    gt = Tracks(ids=[0, 0], frame_nums=[0, 1], bboxes=np.array([[0, 0, 1, 1]] * 2))
     hyp = Tracks(
         ids=[0, 0, 1],
         frame_nums=[0, 1, 1],
-        detections=np.array([[0, 0, 1, 1], [0.1, 0.1, 1.1, 1.1], [0, 0, 1, 1]]),
+        bboxes=np.array([[0, 0, 1, 1], [0.1, 0.1, 1.1, 1.1], [0, 0, 1, 1]]),
     )
     ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
@@ -82,8 +82,8 @@ def test_sticky_association() -> None:
 
 
 def test_mismatch() -> None:
-    gt = Tracks(ids=[0, 0], frame_nums=[0, 1], detections=np.array([[0, 0, 1, 1]] * 2))
-    hyp = Tracks(ids=[0, 1], frame_nums=[0, 1], detections=np.array([[0, 0, 1, 1]] * 2))
+    gt = Tracks(ids=[0, 0], frame_nums=[0, 1], bboxes=np.array([[0, 0, 1, 1]] * 2))
+    hyp = Tracks(ids=[0, 1], frame_nums=[0, 1], bboxes=np.array([[0, 0, 1, 1]] * 2))
     ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
 
@@ -97,9 +97,9 @@ def test_persistent_mismatch() -> None:
     when the first matched hypothesis is gone, as long as another one
     is not assigned."""
     gt = Tracks(
-        ids=[0] * 3, frame_nums=[0, 1, 2], detections=np.array([[0, 0, 1, 1]] * 3)
+        ids=[0] * 3, frame_nums=[0, 1, 2], bboxes=np.array([[0, 0, 1, 1]] * 3)
     )
-    hyp = Tracks(ids=[0, 1], frame_nums=[0, 2], detections=np.array([[0, 0, 1, 1]] * 2))
+    hyp = Tracks(ids=[0, 1], frame_nums=[0, 2], bboxes=np.array([[0, 0, 1, 1]] * 2))
     ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)
 

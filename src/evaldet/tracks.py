@@ -415,7 +415,7 @@ class Tracks:
         tracks = cls(
             ids=table[_ID_KEY].to_numpy(),
             frame_nums=table[_FRAME_KEY].to_numpy(),
-            detections=np.stack(
+            bboxes=np.stack(
                 (
                     table[_XMIN_KEY].to_numpy(),
                     table[_YMIN_KEY].to_numpy(),
@@ -438,7 +438,7 @@ class Tracks:
 
         accumulator["frame_nums"].append(frame_num)
         accumulator["ids"].append(track_id)
-        accumulator["detections"].append(
+        accumulator["bboxes"].append(
             np.array([xmin, ymin, width, height], dtype=np.float32)
         )
 
@@ -453,7 +453,7 @@ class Tracks:
         self,
         ids: t.Union[t.Sequence[int], npt.NDArray[np.int32]],
         frame_nums: t.Union[t.Sequence[int], npt.NDArray[np.int32]],
-        detections: t.Union[
+        bboxes: t.Union[
             t.Sequence[npt.NDArray[np.float32]], npt.NDArray[np.float32]
         ],
         classes: t.Optional[t.Union[t.Sequence[int], npt.NDArray[np.int32]]] = None,
@@ -466,22 +466,22 @@ class Tracks:
         Args:
             ids: A list or array of track ids, which should be of type int32.
             frame_nums: A list or array of frame numbers, which should be of type int32.
-            detections: A list or array of detection bounding boxes, which should be
+            bboxes: A list or array of detection bounding boxes, which should be
                 in the format `xywh`, using a top-left-origin coordinate system.
-                The detections should be of `float32` dtype.
+                The bboxes should be of `float32` dtype.
             classes: A list or array of classes (labels), which should be of dtype
-                int32. It can not be provided, or be provided as an empty list - in this
-                case internally all detections will have a class of ``0``.
+                int32. It can not be provided, in this case internally all detections
+                will have a class of ``0``.
             confs: A list or array of confidences (scores), which should be of dtype
-                float32. It can not be provided, or be provided as an empty list - in
-                this case internally all detections will have a confidence of ``1``.
+                float32. It can not be provided, in this case internally all detections
+                will have a confidence of ``1``.
             zero_indexed: If the frame numbers are zero indexed. If not, it is assumed
                 that they are 1-indexed - that is, they start with 1, and will be
                 transformed to 0-indexed internally, by subtracting 1 from them.
         """
-        if len(ids) != len(detections):
+        if len(ids) != len(bboxes):
             raise ValueError(
-                "`detections` and `ids` should contain the same number of items."
+                "`bboxes` and `ids` should contain the same number of items."
             )
 
         if len(ids) != len(frame_nums):
@@ -489,22 +489,22 @@ class Tracks:
                 "`ids` and `frame_nums` should contain the same number of items."
             )
 
-        if classes is not None and (len(classes) != len(ids) and len(classes) > 0):
+        if classes is not None and len(classes) != len(ids):
             raise ValueError(
                 "If `classes` is given, it should contain the same number of items"
                 " as `ids`."
             )
 
-        if confs is not None and (len(confs) != len(ids) and len(confs) > 0):
+        if confs is not None and len(confs) != len(ids):
             raise ValueError(
                 "If `confs` is given, it should contain the same number of items"
                 " as `ids`."
             )
 
-        if len(detections) > 0 and detections[0].shape != (4,):
+        if len(bboxes) > 0 and bboxes[0].shape != (4,):
             raise ValueError(
-                "Each row of `detections` should be an 4-item array, but got"
-                f" shape {detections[0].shape}"
+                "Each row of `bboxes` should be an 4-item array, but got"
+                f" shape {bboxes[0].shape}"
             )
 
         if len(ids) == 0:
@@ -524,20 +524,20 @@ class Tracks:
 
             self._ids = np.array(np.array(ids)[sort_inds], dtype=np.int32, copy=True)
             self._bboxes = np.array(
-                np.array(detections)[sort_inds], dtype=np.float32, copy=True
+                np.array(bboxes)[sort_inds], dtype=np.float32, copy=True
             )
 
             if zero_indexed is False:
                 self._frame_nums -= 1
 
-            if classes is None or len(classes) == 0:
+            if classes is None:
                 self._classes = np.zeros((len(ids),), dtype=np.int32)
             else:
                 self._classes = np.array(
                     np.array(classes)[sort_inds], dtype=np.int32, copy=True
                 )
 
-            if confs is None or len(confs) == 0:
+            if confs is None:
                 self._confs = np.ones((len(ids),), dtype=np.float32)
             else:
                 self._confs = np.array(
@@ -678,7 +678,7 @@ class Tracks:
             new_tracks = type(self)(
                 ids=self._ids[start:end],
                 frame_nums=self._frame_nums[start:end],
-                detections=self._bboxes[start:end],
+                bboxes=self._bboxes[start:end],
                 classes=self._classes[start:end],
                 confs=self._confs[start:end],
             )

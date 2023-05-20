@@ -94,7 +94,7 @@ def test_priority_matching_1() -> None:
     gt = Tracks(
         ids=[0] * 10 + [0, 1],
         frame_nums=list(range(10)) + [10, 10],
-        detections=np.array(
+        bboxes=np.array(
             [[0, 0, 1, 1]] * 10 + [[0, 0, 1, 1 + 1e-5], [0, 0, 1, 1 - 1e-5]]
         ),
     )
@@ -104,7 +104,7 @@ def test_priority_matching_1() -> None:
     hyp = Tracks(
         ids=[0] * 10 + [0],
         frame_nums=list(range(10)) + [10],
-        detections=np.array([[0, 0, 1, 1]] * 10 + [[0, 0, 1, 0.5]]),
+        bboxes=np.array([[0, 0, 1, 1]] * 10 + [[0, 0, 1, 0.5]]),
     )
 
     ious = _compute_ious(gt, hyp)

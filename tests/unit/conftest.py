@@ -7,10 +7,10 @@ from evaldet.tracks import Tracks
 @pytest.fixture
 def missing_frame_pair() -> tuple[Tracks, Tracks]:
     tracks_full = Tracks(
-        ids=[0, 0], frame_nums=[0, 1], detections=np.array([[0, 0, 1, 1], [0, 0, 1, 1]])
+        ids=[0, 0], frame_nums=[0, 1], bboxes=np.array([[0, 0, 1, 1], [0, 0, 1, 1]])
     )
     tracks_missing = Tracks(
-        ids=[0], frame_nums=[0], detections=np.array([[0, 0, 1, 1]])
+        ids=[0], frame_nums=[0], bboxes=np.array([[0, 0, 1, 1]])
     )
 
     return tracks_full, tracks_missing
@@ -21,7 +21,7 @@ def simple_case() -> tuple[Tracks, Tracks]:
     gt = Tracks(
         ids=[0, 1, 0, 1, 0, 1],
         frame_nums=[0, 0, 1, 1, 2, 2],
-        detections=np.array(
+        bboxes=np.array(
             [
                 [0, 0, 1, 1],
                 [1, 1, 1, 1],
@@ -35,7 +35,7 @@ def simple_case() -> tuple[Tracks, Tracks]:
     hyp = Tracks(
         ids=[0, 1, 0, 1, 2, 1],
         frame_nums=[0, 0, 1, 1, 2, 2],
-        detections=np.array(
+        bboxes=np.array(
             [
                 [0, 0, 1, 1],
                 [1, 1, 1, 1],
@@ -54,7 +54,7 @@ def sample_tracks() -> Tracks:
     tracks = Tracks(
         frame_nums=[660] * 3 + [661] * 3 + [800] * 2,
         ids=[1, 2, 3, 1, 2, 3, 2, 4],
-        detections=np.array(
+        bboxes=np.array(
             [
                 [323.83, 104.06, 43.77, 35.43],
                 [273.1, 88.77, 55.59, 24.32],

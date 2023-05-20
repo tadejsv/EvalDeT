@@ -4,11 +4,16 @@
 * Start with detections: some MVP with simple inputs, then modularize it out
 
 
-----
+---
 
-* Finally, make it a numba function, see that all works. modify tests so they work with
-  it
+Detections:
+* Start with COCO format
+* make sure to capture image and class names (to later match)
 
 ---
 
+* for tracks hard code field names (do not use common global vars) for reading/writing formats
 * Add class names to tracks - maybe change the class list arg to dict? 
+
+---
+

@@ -1,17 +1,31 @@
+import numba
 import numpy as np
 import numpy.testing as npt
 import pytest
+from numba import types
 
 from evaldet.det.coco import calculate_pr_curve, evaluate_image
 from evaldet.dist import iou_dist
 
 
-def _ious_to_numba(ious: dict[int, np.ndarray]):
-    pass
+def _ious_to_numba(dious: dict[int, np.ndarray]) -> numba.typed.Dict:
+    ious = numba.typed.Dict.empty(
+        key_type=numba.int32, value_type=numba.float32[:, ::1]
+    )
+    for key, val in dious.items():
+        ious[key] = val
+
+    return ious
 
 
-def _frame_dict_to_numba(fdict: dict[int, tuple[int, int]]):
-    pass
+def _image_dict_to_numba(fdict: dict[int, tuple[int, int]]) -> numba.typed.Dict:
+    images = numba.typed.Dict.empty(
+        key_type=numba.int32, value_type=types.Tuple((types.int32, types.int32))
+    )
+    for key, val in fdict.items():
+        images[key] = val
+
+    return images
 
 
 def test_coco_evaluate_image_both_empty():
@@ -228,10 +242,10 @@ def test_coco_pr_curve_no_gts():
     prec_rec = calculate_pr_curve(
         preds_bbox=np.random.rand(1, 4).astype(np.float32),
         gts_bbox=np.zeros((0, 4), dtype=np.float32),
-        ious={0: np.zeros((1, 0), dtype=np.float32)},
+        ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
         preds_conf=np.array([0.5], dtype=np.float32),
-        frame_ind_dict_preds={0: (0, 1)},
-        frame_ind_dict_gts={},
+        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
+        img_ind_dict_gts=_image_dict_to_numba({}),
         area_range=(0, 100),
         iou_threshold=0.5,
     )
@@ -243,10 +257,10 @@ def test_coco_pr_curve_gts_all_ignored():
     prec_rec = calculate_pr_curve(
         preds_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
-        ious={0: np.zeros((1, 0), dtype=np.float32)},
+        ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
         preds_conf=np.array([0.5], dtype=np.float32),
-        frame_ind_dict_preds={0: (0, 1)},
-        frame_ind_dict_gts={},
+        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
+        img_ind_dict_gts=_image_dict_to_numba({}),
         area_range=(0.5, 100),
         iou_threshold=0.5,
     )
@@ -258,10 +272,10 @@ def test_coco_pr_curve_no_preds():
     prec_rec = calculate_pr_curve(
         preds_bbox=np.zeros((0, 4), dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
-        ious={0: np.zeros((0, 1), dtype=np.float32)},
+        ious=_ious_to_numba({0: np.zeros((0, 1), dtype=np.float32)}),
         preds_conf=np.zeros((0,), dtype=np.float32),
-        frame_ind_dict_preds={0: (0, 1)},
-        frame_ind_dict_gts={},
+        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
+        img_ind_dict_gts=_image_dict_to_numba({}),
         area_range=(0, 100),
         iou_threshold=0.5,
     )
@@ -273,10 +287,10 @@ def test_coco_pr_curve_preds_all_ignored():
     prec_rec = calculate_pr_curve(
         preds_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
-        ious={0: np.zeros((1, 0), dtype=np.float32)},
+        ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
         preds_conf=np.array([0.5], dtype=np.float32),
-        frame_ind_dict_preds={0: (0, 1)},
-        frame_ind_dict_gts={},
+        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
+        img_ind_dict_gts=_image_dict_to_numba({}),
         area_range=(0.5, 100),
         iou_threshold=0.5,
     )
@@ -284,8 +298,8 @@ def test_coco_pr_curve_preds_all_ignored():
     npt.assert_array_equal(prec_rec, np.zeros((2, 0), dtype=np.float32))
 
 
-def test_coco_pr_curve_frame_no_preds():
-    """Preds missing on one frame"""
+def test_coco_pr_curve_image_no_preds():
+    """Preds missing on one image"""
     prec_rec = calculate_pr_curve(
         preds_bbox=np.array(
             [
@@ -294,13 +308,15 @@ def test_coco_pr_curve_frame_no_preds():
             dtype=np.float32,
         ),
         gts_bbox=np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=np.float32),
-        ious={
-            0: np.array([[1]], dtype=np.float32),
-            1: np.zeros((0, 1), dtype=np.float32),
-        },
+        ious=_ious_to_numba(
+            {
+                0: np.array([[1]], dtype=np.float32),
+                1: np.zeros((0, 1), dtype=np.float32),
+            }
+        ),
         preds_conf=np.array([0.5], dtype=np.float32),
-        frame_ind_dict_preds={0: (0, 1)},
-        frame_ind_dict_gts={0: (0, 1), 1: (1, 2)},
+        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
+        img_ind_dict_gts=_image_dict_to_numba({0: (0, 1), 1: (1, 2)}),
         area_range=(0, 100),
         iou_threshold=0.5,
     )
@@ -308,17 +324,19 @@ def test_coco_pr_curve_frame_no_preds():
     npt.assert_array_equal(prec_rec, np.array([[1], [0.5]], dtype=np.float32))
 
 
-def test_coco_pr_curve_frame_no_gts():
+def test_coco_pr_curve_image_no_gts():
     prec_rec = calculate_pr_curve(
         preds_bbox=np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
-        ious={
-            0: np.array([[1]], dtype=np.float32),
-            1: np.zeros((1, 0), dtype=np.float32),
-        },
+        ious=_ious_to_numba(
+            {
+                0: np.array([[1]], dtype=np.float32),
+                1: np.zeros((1, 0), dtype=np.float32),
+            }
+        ),
         preds_conf=np.array([0.5, 0.6], dtype=np.float32),
-        frame_ind_dict_preds={0: (0, 1), 1: (1, 2)},
-        frame_ind_dict_gts={0: (0, 1)},
+        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1), 1: (1, 2)}),
+        img_ind_dict_gts=_image_dict_to_numba({0: (0, 1)}),
         area_range=(0, 100),
         iou_threshold=0.5,
     )
@@ -327,7 +345,7 @@ def test_coco_pr_curve_frame_no_gts():
 
 
 def test_coco_pr_curve_example_1():
-    """Simple 2 frame example, one unmatched GT and one unmatched pred"""
+    """Simple 2 image example, one unmatched GT and one unmatched pred"""
     preds_bbox = np.array(
         [
             [0, 0, 1, 1],
@@ -359,10 +377,10 @@ def test_coco_pr_curve_example_1():
     prec_rec = calculate_pr_curve(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
-        ious=ious,
+        ious=_ious_to_numba(ious),
         preds_conf=preds_conf,
-        frame_ind_dict_preds={0: (0, 3), 1: (3, 6)},
-        frame_ind_dict_gts={0: (0, 3), 1: (3, 6)},
+        img_ind_dict_preds=_image_dict_to_numba({0: (0, 3), 1: (3, 6)}),
+        img_ind_dict_gts=_image_dict_to_numba({0: (0, 3), 1: (3, 6)}),
         area_range=(0, 100),
         iou_threshold=0.3,
     )
@@ -380,7 +398,7 @@ def test_coco_pr_curve_example_1():
 
 
 def test_coco_pr_curve_example_2():
-    """Simple 2 frame example, one ignored GT and ignored unmatched pred"""
+    """Simple 2 image example, one ignored GT and ignored unmatched pred"""
     preds_bbox = np.array(
         [
             [0, 0, 1, 1],
@@ -412,10 +430,10 @@ def test_coco_pr_curve_example_2():
     prec_rec = calculate_pr_curve(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
-        ious=ious,
+        ious=_ious_to_numba(ious),
         preds_conf=preds_conf,
-        frame_ind_dict_preds={0: (0, 3), 1: (3, 6)},
-        frame_ind_dict_gts={0: (0, 3), 1: (3, 6)},
+        img_ind_dict_preds=_image_dict_to_numba({0: (0, 3), 1: (3, 6)}),
+        img_ind_dict_gts=_image_dict_to_numba({0: (0, 3), 1: (3, 6)}),
         area_range=(0.5, 100),
         iou_threshold=0.3,
     )
@@ -534,7 +552,7 @@ def test_coco_pr_curve_example_3(iou_threshold: float, exp_result: np.ndarray):
         [0.89, 0.82, 0.96, 0.99, 0.81, 0.86, 0.76, 0.95, 0.92, 0.85, 0.98, 0.94],
         dtype=np.float32,
     )
-    frame_ind_dict_preds = {
+    img_ind_dict_preds = {
         0: (0, 2),
         1: (2, 3),
         2: (3, 4),
@@ -546,7 +564,7 @@ def test_coco_pr_curve_example_3(iou_threshold: float, exp_result: np.ndarray):
         8: (10, 11),
         9: (11, 12),
     }
-    frame_ind_dict_gts = {
+    img_ind_dict_gts = {
         0: (0, 2),
         1: (2, 3),
         2: (3, 4),
@@ -559,9 +577,9 @@ def test_coco_pr_curve_example_3(iou_threshold: float, exp_result: np.ndarray):
     }
 
     ious = {}
-    for k in set(frame_ind_dict_preds.keys()).union(frame_ind_dict_gts.keys()):
-        gt_inds = frame_ind_dict_gts.get(k, (0, 0))
-        preds_inds = frame_ind_dict_preds.get(k, (0, 0))
+    for k in set(img_ind_dict_preds.keys()).union(img_ind_dict_gts.keys()):
+        gt_inds = img_ind_dict_gts.get(k, (0, 0))
+        preds_inds = img_ind_dict_preds.get(k, (0, 0))
         ious[k] = 1 - iou_dist(
             preds_bbox[preds_inds[0] : preds_inds[1]], gts_bbox[gt_inds[0] : gt_inds[1]]
         )
@@ -569,10 +587,10 @@ def test_coco_pr_curve_example_3(iou_threshold: float, exp_result: np.ndarray):
     prec_rec = calculate_pr_curve(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
-        ious=ious,
+        ious=_ious_to_numba(ious),
         preds_conf=preds_conf,
-        frame_ind_dict_preds=frame_ind_dict_preds,
-        frame_ind_dict_gts=frame_ind_dict_gts,
+        img_ind_dict_preds=_image_dict_to_numba(img_ind_dict_preds),
+        img_ind_dict_gts=_image_dict_to_numba(img_ind_dict_gts),
         area_range=(0, 100),
         iou_threshold=iou_threshold,
     )
