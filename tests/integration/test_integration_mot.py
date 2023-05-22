@@ -118,7 +118,7 @@ def test_tud_stadtmitte() -> None:
 def test_mot20_01() -> None:
     gt = Tracks.from_mot_gt("tests/data/integration/MOT20-01_gt.csv")
     hyp = Tracks.from_mot("tests/data/integration/MOT20-01_MPNTrack_hyp.csv")
-    preprocess_mot_1720(gt, hyp)
+    gt, hyp = preprocess_mot_1720(gt, hyp)
 
     mot_metrics = MOTMetrics()
     results = mot_metrics.compute(
@@ -174,7 +174,7 @@ def test_mot20_01() -> None:
 def test_mot20_03() -> None:
     gt = Tracks.from_mot_gt("tests/data/integration/MOT20-03_gt.csv")
     hyp = Tracks.from_mot("tests/data/integration/MOT20-03_MPNTrack_hyp.csv")
-    preprocess_mot_1720(gt, hyp)
+    gt, hyp = preprocess_mot_1720(gt, hyp)
 
     mot_metrics = MOTMetrics()
     results = mot_metrics.compute(

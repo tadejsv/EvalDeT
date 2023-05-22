@@ -2,7 +2,7 @@ import numpy as np
 from scipy import sparse
 
 
-def create_coo_array(  # type: ignore
+def create_coo_array(
     vals_dict: dict[tuple[int, int], int], shape: tuple[int, int]
 ) -> sparse.coo_array:
     """Create a sparse COO array.

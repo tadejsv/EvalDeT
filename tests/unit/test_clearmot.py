@@ -96,9 +96,7 @@ def test_persistent_mismatch() -> None:
     """Test that association (and therefore mismatch) persists even
     when the first matched hypothesis is gone, as long as another one
     is not assigned."""
-    gt = Tracks(
-        ids=[0] * 3, frame_nums=[0, 1, 2], bboxes=np.array([[0, 0, 1, 1]] * 3)
-    )
+    gt = Tracks(ids=[0] * 3, frame_nums=[0, 1, 2], bboxes=np.array([[0, 0, 1, 1]] * 3))
     hyp = Tracks(ids=[0, 1], frame_nums=[0, 2], bboxes=np.array([[0, 0, 1, 1]] * 2))
     ious = _compute_ious(gt, hyp)
     metrics = calculate_clearmot_metrics(gt, hyp, ious=ious)

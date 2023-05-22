@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from evaldet.detections import Detections
 from evaldet.tracks import Tracks
 
 
@@ -9,9 +10,7 @@ def missing_frame_pair() -> tuple[Tracks, Tracks]:
     tracks_full = Tracks(
         ids=[0, 0], frame_nums=[0, 1], bboxes=np.array([[0, 0, 1, 1], [0, 0, 1, 1]])
     )
-    tracks_missing = Tracks(
-        ids=[0], frame_nums=[0], bboxes=np.array([[0, 0, 1, 1]])
-    )
+    tracks_missing = Tracks(ids=[0], frame_nums=[0], bboxes=np.array([[0, 0, 1, 1]]))
 
     return tracks_full, tracks_missing
 
@@ -70,3 +69,27 @@ def sample_tracks() -> Tracks:
         confs=[0.9] * 8,
     )
     return tracks
+
+
+@pytest.fixture(scope="function")
+def sample_detections() -> Detections:
+    dets = Detections(
+        image_ids=[0] * 3 + [1] * 3 + [2] * 2,
+        bboxes=np.array(
+            [
+                [323.83, 104.06, 43.77, 35.43],
+                [273.1, 88.77, 55.59, 24.32],
+                [375.24, 80.43, 26.41, 22.24],
+                [320.98, 105.24, 44.67, 35.71],
+                [273.1, 88.88, 55.7, 24.52],
+                [374.69, 80.78, 26.4, 22.23],
+                [329.27, 96.65, 56.53, 32.45],
+                [0.0, 356.7, 76.6, 122.67],
+            ]
+        ),
+        classes=[2] * 8,
+        confs=[0.9] * 8,
+        class_names=["horse", "cat", "car"],
+        image_names=["car1", "car2", "car3"],
+    )
+    return dets

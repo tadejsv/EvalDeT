@@ -10,8 +10,6 @@ import numpy.typing as npt
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from evaldet.dist import iou_dist
-
 _ID_KEY = "id"
 _FRAME_KEY = "frame"
 _CONF_KEY = "conf"
@@ -453,9 +451,7 @@ class Tracks:
         self,
         ids: t.Union[t.Sequence[int], npt.NDArray[np.int32]],
         frame_nums: t.Union[t.Sequence[int], npt.NDArray[np.int32]],
-        bboxes: t.Union[
-            t.Sequence[npt.NDArray[np.float32]], npt.NDArray[np.float32]
-        ],
+        bboxes: t.Union[t.Sequence[npt.NDArray[np.float32]], npt.NDArray[np.float32]],
         classes: t.Optional[t.Union[t.Sequence[int], npt.NDArray[np.int32]]] = None,
         confs: t.Optional[t.Union[t.Sequence[float], npt.NDArray[np.float32]]] = None,
         zero_indexed: bool = True,
@@ -464,17 +460,14 @@ class Tracks:
         Create a `Tracks` instance.
 
         Args:
-            ids: A list or array of track ids, which should be of type int32.
-            frame_nums: A list or array of frame numbers, which should be of type int32.
+            ids: A list or array of track ids.
+            frame_nums: A list or array of frame numbers.
             bboxes: A list or array of detection bounding boxes, which should be
                 in the format `xywh`, using a top-left-origin coordinate system.
-                The bboxes should be of `float32` dtype.
-            classes: A list or array of classes (labels), which should be of dtype
-                int32. It can not be provided, in this case internally all detections
-                will have a class of ``0``.
-            confs: A list or array of confidences (scores), which should be of dtype
-                float32. It can not be provided, in this case internally all detections
-                will have a confidence of ``1``.
+            classes: A list or array of classes (labels). It can not be provided, in
+                this case internally all detections will have a class of ``0``.
+            confs: A list or array of confidences (scores). It can not be provided, in
+                this case internally all detections will have a confidence of ``1``.
             zero_indexed: If the frame numbers are zero indexed. If not, it is assumed
                 that they are 1-indexed - that is, they start with 1, and will be
                 transformed to 0-indexed internally, by subtracting 1 from them.
@@ -558,7 +551,7 @@ class Tracks:
         frame_start_end_inds = zip(frame_start_inds, frame_end_inds)
         self._frame_ind_dict = dict(zip(u_frame_nums.tolist(), frame_start_end_inds))
 
-    def filter(self, filter: np.ndarray) -> None:
+    def filter(self, filter: np.ndarray) -> "Tracks":
         """Filter the tracks using a boolean mask.
 
         This method will filter all attributes according to the mask provided.
@@ -566,6 +559,9 @@ class Tracks:
         Args:
             filter: A boolean array, should be the same length as ids and other
                 attributes.
+
+        Return:
+            The filtered tracks
         """
 
         if filter.shape != self.ids.shape:
@@ -574,13 +570,15 @@ class Tracks:
                 f" {filter.shape}"
             )
 
-        self._ids = self._ids[filter]
-        self._frame_nums = self._frame_nums[filter]
-        self._classes = self._classes[filter]
-        self._confs = self._confs[filter]
-        self._bboxes = self._bboxes[filter]
+        filtered_tracks = Tracks(
+            ids=self._ids[filter],
+            frame_nums=self._frame_nums[filter],
+            bboxes=self._bboxes[filter],
+            classes=self._classes[filter],
+            confs=self._confs[filter],
+        )
 
-        self._create_frame_ind_dict()
+        return filtered_tracks
 
     @property
     def ids(self) -> npt.NDArray[np.int32]:

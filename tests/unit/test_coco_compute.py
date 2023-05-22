@@ -28,7 +28,7 @@ def _image_dict_to_numba(fdict: dict[int, tuple[int, int]]) -> numba.typed.Dict:
     return images
 
 
-def test_coco_evaluate_image_both_empty():
+def test_coco_evaluate_image_both_empty() -> None:
     matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
         np.zeros((0, 4), dtype=np.float32),
         np.zeros((0, 4), dtype=np.float32),
@@ -44,7 +44,7 @@ def test_coco_evaluate_image_both_empty():
     assert n_gt == 0
 
 
-def test_coco_evaluate_image_preds_empty():
+def test_coco_evaluate_image_preds_empty() -> None:
     matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
         np.zeros((0, 4), dtype=np.float32),
         np.random.rand(1, 4).astype(np.float32),
@@ -60,7 +60,7 @@ def test_coco_evaluate_image_preds_empty():
     assert n_gt == 1
 
 
-def test_coco_evaluate_image_gts_empty():
+def test_coco_evaluate_image_gts_empty() -> None:
     matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
         np.random.rand(1, 4).astype(np.float32),
         np.zeros((0, 4), dtype=np.float32),
@@ -76,7 +76,7 @@ def test_coco_evaluate_image_gts_empty():
     assert n_gt == 0
 
 
-def test_coco_evaluate_image_gts_all_ignored():
+def test_coco_evaluate_image_gts_all_ignored() -> None:
     preds_bbox = 10 + np.random.rand(1, 4).astype(np.float32)
     gts_bbox = np.random.rand(2, 4).astype(np.float32)  # Size will be < 1 * 1
     matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
@@ -94,7 +94,7 @@ def test_coco_evaluate_image_gts_all_ignored():
     assert n_gt == 0
 
 
-def test_coco_evaluate_image_gts_small_ignored():
+def test_coco_evaluate_image_gts_small_ignored() -> None:
     preds_bbox = 10 + np.random.rand(1, 4).astype(np.float32)
     gts_bbox = np.array([[1, 1, 0.1, 1], [2, 2, 10, 10]], dtype=np.float32)
     matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
@@ -112,7 +112,7 @@ def test_coco_evaluate_image_gts_small_ignored():
     assert n_gt == 1
 
 
-def test_coco_evaluate_image_gts_large_ignored():
+def test_coco_evaluate_image_gts_large_ignored() -> None:
     preds_bbox = np.random.rand(1, 4).astype(np.float32)
     gts_bbox = np.array([[1, 1, 0.1, 1], [2, 2, 10, 10]], dtype=np.float32)
     matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
@@ -130,7 +130,7 @@ def test_coco_evaluate_image_gts_large_ignored():
     assert n_gt == 1
 
 
-def test_coco_evaluate_image_preds_ignored_matched():
+def test_coco_evaluate_image_preds_ignored_matched() -> None:
     preds_bbox = np.array([[2, 2, 10, 10]], dtype=np.float32)
     gts_bbox = np.array([[1, 1, 0.1, 1], [2, 2, 10, 10]], dtype=np.float32)
     matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
@@ -148,7 +148,7 @@ def test_coco_evaluate_image_preds_ignored_matched():
     assert n_gt == 1
 
 
-def test_coco_evaluate_image_preds_unmatched_ignored():
+def test_coco_evaluate_image_preds_unmatched_ignored() -> None:
     preds_bbox = np.array([[2, 2, 10, 10]], dtype=np.float32)
     gts_bbox = np.array([[1, 1, 0.1, 1]], dtype=np.float32)
     matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
@@ -166,7 +166,7 @@ def test_coco_evaluate_image_preds_unmatched_ignored():
     assert n_gt == 1
 
 
-def test_coco_evaluate_image_matching_1():
+def test_coco_evaluate_image_matching_1() -> None:
     """Simple matching test with unordered preds and one ignored gt"""
     preds_bbox = np.array([[0, 0, 1, 1], [1, 1, 1, 1], [2, 2, 1, 1]], dtype=np.float32)
     gts_bbox = np.array([[1, 1, 1, 1], [3, 3, 10, 10], [0, 0, 1, 1]], dtype=np.float32)
@@ -188,7 +188,7 @@ def test_coco_evaluate_image_matching_1():
     assert n_gt == 2
 
 
-def test_coco_evaluate_image_matching_2():
+def test_coco_evaluate_image_matching_2() -> None:
     """
     Simple matching test with unordered preds and unmatched gt/pred pair - due to low
     IoU.
@@ -215,7 +215,7 @@ def test_coco_evaluate_image_matching_2():
     assert n_gt == 3
 
 
-def test_coco_evaluate_image_matching_3():
+def test_coco_evaluate_image_matching_3() -> None:
     """
     Simple matching test where high confidence prediction takes precedence over a
     high IoU prediction
@@ -238,7 +238,7 @@ def test_coco_evaluate_image_matching_3():
     assert n_gt == 1
 
 
-def test_coco_pr_curve_no_gts():
+def test_coco_pr_curve_no_gts() -> None:
     prec_rec = calculate_pr_curve(
         preds_bbox=np.random.rand(1, 4).astype(np.float32),
         gts_bbox=np.zeros((0, 4), dtype=np.float32),
@@ -253,7 +253,7 @@ def test_coco_pr_curve_no_gts():
     npt.assert_array_equal(prec_rec, np.array([[0], [np.nan]], dtype=np.float32))
 
 
-def test_coco_pr_curve_gts_all_ignored():
+def test_coco_pr_curve_gts_all_ignored() -> None:
     prec_rec = calculate_pr_curve(
         preds_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
@@ -268,7 +268,7 @@ def test_coco_pr_curve_gts_all_ignored():
     npt.assert_array_equal(prec_rec, np.array([[0], [np.nan]], dtype=np.float32))
 
 
-def test_coco_pr_curve_no_preds():
+def test_coco_pr_curve_no_preds() -> None:
     prec_rec = calculate_pr_curve(
         preds_bbox=np.zeros((0, 4), dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
@@ -283,7 +283,7 @@ def test_coco_pr_curve_no_preds():
     npt.assert_array_equal(prec_rec, np.zeros((2, 0), dtype=np.float32))
 
 
-def test_coco_pr_curve_preds_all_ignored():
+def test_coco_pr_curve_preds_all_ignored() -> None:
     prec_rec = calculate_pr_curve(
         preds_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
@@ -298,7 +298,7 @@ def test_coco_pr_curve_preds_all_ignored():
     npt.assert_array_equal(prec_rec, np.zeros((2, 0), dtype=np.float32))
 
 
-def test_coco_pr_curve_image_no_preds():
+def test_coco_pr_curve_image_no_preds() -> None:
     """Preds missing on one image"""
     prec_rec = calculate_pr_curve(
         preds_bbox=np.array(
@@ -324,7 +324,7 @@ def test_coco_pr_curve_image_no_preds():
     npt.assert_array_equal(prec_rec, np.array([[1], [0.5]], dtype=np.float32))
 
 
-def test_coco_pr_curve_image_no_gts():
+def test_coco_pr_curve_image_no_gts() -> None:
     prec_rec = calculate_pr_curve(
         preds_bbox=np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
@@ -344,7 +344,7 @@ def test_coco_pr_curve_image_no_gts():
     npt.assert_array_equal(prec_rec, np.array([[0, 0.5], [0, 1]], dtype=np.float32))
 
 
-def test_coco_pr_curve_example_1():
+def test_coco_pr_curve_example_1() -> None:
     """Simple 2 image example, one unmatched GT and one unmatched pred"""
     preds_bbox = np.array(
         [
@@ -397,7 +397,7 @@ def test_coco_pr_curve_example_1():
     )
 
 
-def test_coco_pr_curve_example_2():
+def test_coco_pr_curve_example_2() -> None:
     """Simple 2 image example, one ignored GT and ignored unmatched pred"""
     preds_bbox = np.array(
         [
@@ -509,7 +509,7 @@ def test_coco_pr_curve_example_2():
         ),
     ),
 )
-def test_coco_pr_curve_example_3(iou_threshold: float, exp_result: np.ndarray):
+def test_coco_pr_curve_example_3(iou_threshold: float, exp_result: np.ndarray) -> None:
     """
     Inspired by example here
     https://github.com/rafaelpadilla/review_object_detection_metrics/blob/main/README.md#a-practical-example

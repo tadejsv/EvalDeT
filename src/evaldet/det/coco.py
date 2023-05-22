@@ -1,7 +1,11 @@
+from typing import Literal, Mapping
+
 import numba
 import numpy as np
 import numpy.typing as npt
 from numba import types
+
+from evaldet import Detections
 
 
 @numba.njit(
@@ -177,15 +181,8 @@ def calculate_pr_curve(
 
     for i in numba.prange(len(all_imgs)):
         img = all_imgs[i]
-        if img in img_ind_dict_preds:
-            preds_start, preds_end = img_ind_dict_preds[img]
-        else:
-            preds_start, preds_end = 0, 0
-
-        if img in img_ind_dict_gts:
-            gts_start, gts_end = img_ind_dict_gts[img]
-        else:
-            gts_start, gts_end = 0, 0
+        preds_start, preds_end = img_ind_dict_preds.get(img, (0, 0))
+        gts_start, gts_end = img_ind_dict_gts.get(img, (0, 0))
 
         img_ious = np.zeros((0, 0), dtype=np.float32)
         if img in ious:
@@ -220,3 +217,28 @@ def calculate_pr_curve(
     prec_recall = np.stack((precision, recall))
 
     return prec_recall
+
+
+class COCOMetrics:
+    def __init__(self, ap_interpolation: Literal["coco", "pascal"]) -> None:
+        pass
+
+    def _check_compatibility(
+        self, gt: Detections, hyp: Detections, check_class_names: bool = True
+    ) -> None:
+        pass
+
+    def compute_metrics(self, gt: Detections, hyp: Detections, iou_threshold: float):
+        pass
+
+    def compute_coco_summary(
+        self,
+        gt: Detections,
+        hyp: Detections,
+        iou_thresholds: tuple[float, ...] = (0.5, 0.75),
+        sizes: Mapping[str, tuple[float, float]] = {"A": (0.0, 1.0)},
+    ):
+        pass
+
+    def confusion_matrix(self, gt: Detections, hyp: Detections):
+        pass

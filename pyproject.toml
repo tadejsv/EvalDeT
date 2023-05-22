@@ -59,12 +59,13 @@ profile = "black"
 [tool.mypy]
 exclude = ['old_docs/source/conf.py']
 disallow_untyped_defs = true
-ignore_missing_imports = true
-disallow_any_unimported = true
+ignore_missing_imports = false
+disallow_any_unimported = false
 no_implicit_optional = true
 check_untyped_defs = true
 warn_unused_ignores = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["scipy"]
+module = ["scipy.*", "pyarrow.*", "numba.*"]
+ignore_missing_imports = true

@@ -1,5 +1,4 @@
 import tempfile
-from typing import Optional
 
 import numpy as np
 import pytest
@@ -177,15 +176,17 @@ def test_filter() -> None:
         classes=[1, 0],
     )
 
-    tr.filter(np.array([False, True]))
+    ftr = tr.filter(np.array([False, True]))
 
-    np.testing.assert_array_equal(tr.ids, np.array([0], dtype=np.int32))
-    np.testing.assert_array_equal(tr.frame_nums, np.array([1], dtype=np.int32))
-    np.testing.assert_array_equal(tr.bboxes, np.array([[2, 0, 1, 1]], dtype=np.float32))
-    np.testing.assert_array_equal(tr.confs, np.array([0.9], dtype=np.float32))
-    np.testing.assert_array_equal(tr.classes, np.array([1], dtype=np.int32))
+    np.testing.assert_array_equal(ftr.ids, np.array([0], dtype=np.int32))
+    np.testing.assert_array_equal(ftr.frame_nums, np.array([1], dtype=np.int32))
+    np.testing.assert_array_equal(
+        ftr.bboxes, np.array([[2, 0, 1, 1]], dtype=np.float32)
+    )
+    np.testing.assert_array_equal(ftr.confs, np.array([0.9], dtype=np.float32))
+    np.testing.assert_array_equal(ftr.classes, np.array([1], dtype=np.int32))
 
-    tr._frame_ind_dict == {1: (0, 1)}
+    ftr._frame_ind_dict == {1: (0, 1)}
 
 
 def test_contains_true(tracks_with_one_item: Tracks) -> None:

@@ -5,7 +5,9 @@ from evaldet import Tracks
 from evaldet.dist import iou_dist
 
 
-def preprocess_mot_1720(gt: Tracks, hyp: Tracks, mot_20: bool = True) -> None:
+def preprocess_mot_1720(
+    gt: Tracks, hyp: Tracks, mot_20: bool = True
+) -> tuple[Tracks, Tracks]:
     distractor_cls_ids = [2, 7, 8, 12]
     if mot_20:
         distractor_cls_ids.append(6)
@@ -42,5 +44,7 @@ def preprocess_mot_1720(gt: Tracks, hyp: Tracks, mot_20: bool = True) -> None:
     gt_filter = gt_filter & (gt.confs >= 0.1)
     gt_filter = gt_filter & np.isin(gt.classes, pedestrian_class)
 
-    gt.filter(gt_filter)
-    hyp.filter(hyp_filter)
+    gt = gt.filter(gt_filter)
+    hyp = hyp.filter(hyp_filter)
+
+    return gt, hyp
