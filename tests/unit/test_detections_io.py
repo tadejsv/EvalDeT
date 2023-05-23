@@ -1,13 +1,14 @@
 from pathlib import Path
 
+import numpy as np
 import numpy.testing as npt
 
 from evaldet.detections import Detections
 
-
 ######################################################
 # Parquet
 ######################################################
+
 
 def test_export_empty_parquet(tmp_path: Path) -> None:
     dets = Detections([], [], [])
@@ -89,9 +90,11 @@ def test_open_parquet(data_dir: Path, sample_detections: Detections) -> None:
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
 
+
 ######################################################
 # COCO
 ######################################################
+
 
 def test_export_empty_coco(tmp_path: Path) -> None:
     dets = Detections([], [], [])
@@ -137,8 +140,8 @@ def test_export_sample_no_names_coco(
     npt.assert_array_equal(sample_detections.classes, dets_r.classes)
     npt.assert_array_equal(sample_detections.confs, dets_r.confs)
 
-    assert dets_r.class_names == ('0', '1', '2')
-    assert dets_r.image_names == ('0', '1', '2')
+    assert dets_r.class_names == ("0", "1", "2")
+    assert dets_r.image_names == ("0", "1", "2")
 
 
 def test_export_sample_no_confs_coco(
@@ -172,3 +175,19 @@ def test_open_coco(data_dir: Path, sample_detections: Detections) -> None:
 
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
+
+
+def test_open_coco_nums(data_dir: Path) -> None:
+    """Test what happens when image/category ids are not 0 indexed"""
+    dets_r = Detections.from_coco(data_dir / "detections" / "coco_nums.json")
+    assert dets_r.confs is not None
+
+    npt.assert_array_equal(dets_r.image_ids, np.array([0], dtype=np.int32))
+    npt.assert_array_equal(
+        dets_r.bboxes, np.array([[0.0, 356.7, 76.6, 122.67]], dtype=np.float32)
+    )
+    npt.assert_array_equal(dets_r.classes, np.array([0], dtype=np.int32))
+    npt.assert_array_equal(dets_r.confs, np.array([0.9], dtype=np.float32))
+
+    assert dets_r.class_names == ("car",)
+    assert dets_r.image_names == ("car3",)

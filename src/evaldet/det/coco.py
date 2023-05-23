@@ -121,7 +121,7 @@ def evaluate_image(
 
 
 @numba.njit(
-    types.float32[:, ::1](
+    types.Tuple((types.int32[::1], types.bool_[::1], types.bool_[::1], types.int32))(
         types.float32[:, ::1],
         types.float32[:, ::1],
         types.DictType(types.int32, types.float32[:, ::1]),
@@ -133,7 +133,7 @@ def evaluate_image(
     ),
     parallel=True,
 )
-def calculate_pr_curve(
+def evaluate_dataset(
     preds_bbox: npt.NDArray[np.float32],
     gts_bbox: npt.NDArray[np.float32],
     ious: dict[int, npt.NDArray[np.float32]],
@@ -142,7 +142,7 @@ def calculate_pr_curve(
     img_ind_dict_gts: dict[int, tuple[int, int]],
     area_range: tuple[float, float],
     iou_threshold: float,
-) -> npt.NDArray[np.float32]:
+) -> tuple[npt.NDArray[np.int32], npt.NDArray[np.bool_], npt.NDArray[np.bool_], int]:
     """
     Calculate the precision-recall curve.
 
@@ -168,11 +168,19 @@ def calculate_pr_curve(
             bounding box that is required for establishing a match
 
     Returns:
-        An array of size `[2, K]`, where each column is a point on the precision-recall
-        curve (first row consists of precision values, the second of recall)
+        A tuple with 4 elements:
+            - an integer array of shape `[N, ]`, indicating the index of the ground
+              truth that the prediction was matched to. Unmatched predictions will have
+              the matched index of `-1`.
+            - a boolean array of shape `[N, ]`, indicating whether the prediction was
+              ignored or not
+            - a boolean array of shape `[M, ]`, indicating whether the ground truth was
+              ignored or not
+            - an integer denoting the number of non-ignored ground truths in the image
     """
     det_ignored = np.zeros_like(preds_conf, dtype=np.bool_)
-    det_matched = np.zeros_like(preds_conf, dtype=np.int32)
+    gts_ignored = np.zeros((gts_bbox.shape[0],), dtype=np.bool_)
+    det_matched = np.full_like(preds_conf, -1, dtype=np.int32)
     n_gts = 0
 
     keys_preds = set(img_ind_dict_preds.keys())
@@ -188,7 +196,7 @@ def calculate_pr_curve(
         if img in ious:
             img_ious = ious[img]
 
-        (matched_img, ignored_dets_img, _, n_gts_img) = evaluate_image(
+        (matched_img, ignored_dets_img, ignored_gts_img, n_gts_img) = evaluate_image(
             preds_bbox[preds_start:preds_end],
             gts_bbox[gts_start:gts_end],
             img_ious,
@@ -200,23 +208,32 @@ def calculate_pr_curve(
 
         if preds_end > 0:
             det_ignored[preds_start:preds_end] = ignored_dets_img
+
+            # Add gts_start as image offset
+            matched_img = matched_img + numba.int32(gts_start)
+            matched_img[matched_img < gts_start] = -1
             det_matched[preds_start:preds_end] = matched_img
 
-    det_matched = det_matched[~det_ignored]
-    preds_conf = preds_conf[~det_ignored]
+        if gts_end > 0:
+            gts_ignored[gts_start:gts_end] = ignored_gts_img
 
-    sort_arr = np.argsort(-preds_conf)
-    preds_conf = preds_conf[sort_arr]
-    det_matched_bool = det_matched[sort_arr] > -1
+    return det_matched, det_ignored, gts_ignored, n_gts
 
-    precision = np.cumsum(det_matched_bool).astype(np.float32) / np.arange(
-        1, len(det_matched_bool) + 1
-    ).astype(np.float32)
-    recall = np.cumsum(det_matched_bool).astype(np.float32) / numba.float32(n_gts)
+    # det_matched = det_matched[~det_ignored]
+    # preds_conf = preds_conf[~det_ignored]
 
-    prec_recall = np.stack((precision, recall))
+    # sort_arr = np.argsort(-preds_conf)
+    # preds_conf = preds_conf[sort_arr]
+    # det_matched_bool = det_matched[sort_arr] > -1
 
-    return prec_recall
+    # precision = np.cumsum(det_matched_bool).astype(np.float32) / np.arange(
+    #     1, len(det_matched_bool) + 1
+    # ).astype(np.float32)
+    # recall = np.cumsum(det_matched_bool).astype(np.float32) / numba.float32(n_gts)
+
+    # prec_recall = np.stack((precision, recall))
+
+    # return prec_recall
 
 
 class COCOMetrics:

@@ -10,11 +10,6 @@ Detections:
 * add frame getter
   * also `__in__` or whatever it is (contains?)
 
-* computations: calculate_pr_curve should be renamed to evaluate_dataset
-  * should return matching and ignored [dets, gts] only, for whole dataset
-  * pr_curve can then be a non-numba function
-  * confusion matrix also directly takes from it
-
 * add basic compute metrics, we need
   * AP for each class + average across classes
   * PR curve for each class,

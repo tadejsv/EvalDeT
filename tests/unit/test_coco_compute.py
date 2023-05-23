@@ -4,7 +4,7 @@ import numpy.testing as npt
 import pytest
 from numba import types
 
-from evaldet.det.coco import calculate_pr_curve, evaluate_image
+from evaldet.det.coco import evaluate_dataset, evaluate_image
 from evaldet.dist import iou_dist
 
 
@@ -238,8 +238,8 @@ def test_coco_evaluate_image_matching_3() -> None:
     assert n_gt == 1
 
 
-def test_coco_pr_curve_no_gts() -> None:
-    prec_rec = calculate_pr_curve(
+def test_coco_evaluate_dataset_no_gts() -> None:
+    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
         preds_bbox=np.random.rand(1, 4).astype(np.float32),
         gts_bbox=np.zeros((0, 4), dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
@@ -250,57 +250,73 @@ def test_coco_pr_curve_no_gts() -> None:
         iou_threshold=0.5,
     )
 
-    npt.assert_array_equal(prec_rec, np.array([[0], [np.nan]], dtype=np.float32))
+    npt.assert_array_equal(det_matched, np.full((1,), -1, dtype=np.int32))
+    npt.assert_array_equal(det_ignored, np.zeros((1,), dtype=np.bool_))
+    npt.assert_array_equal(gts_ignored, np.zeros((0,), dtype=np.bool_))
+
+    assert n_gts == 0
 
 
-def test_coco_pr_curve_gts_all_ignored() -> None:
-    prec_rec = calculate_pr_curve(
+def test_coco_evaluate_dataset_gts_all_ignored() -> None:
+    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
         preds_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
         preds_conf=np.array([0.5], dtype=np.float32),
         img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
-        img_ind_dict_gts=_image_dict_to_numba({}),
+        img_ind_dict_gts=_image_dict_to_numba({0: (0, 1)}),
         area_range=(0.5, 100),
         iou_threshold=0.5,
     )
 
-    npt.assert_array_equal(prec_rec, np.array([[0], [np.nan]], dtype=np.float32))
+    npt.assert_array_equal(det_matched, np.full((1,), -1, dtype=np.int32))
+    npt.assert_array_equal(det_ignored, np.zeros((1,), dtype=np.bool_))
+    npt.assert_array_equal(gts_ignored, np.ones((1,), dtype=np.bool_))
+
+    assert n_gts == 0
 
 
-def test_coco_pr_curve_no_preds() -> None:
-    prec_rec = calculate_pr_curve(
+def test_coco_evaluate_dataset_no_preds() -> None:
+    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
         preds_bbox=np.zeros((0, 4), dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((0, 1), dtype=np.float32)}),
         preds_conf=np.zeros((0,), dtype=np.float32),
-        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
-        img_ind_dict_gts=_image_dict_to_numba({}),
+        img_ind_dict_preds=_image_dict_to_numba({}),
+        img_ind_dict_gts=_image_dict_to_numba({0: (0, 1)}),
         area_range=(0, 100),
         iou_threshold=0.5,
     )
 
-    npt.assert_array_equal(prec_rec, np.zeros((2, 0), dtype=np.float32))
+    npt.assert_array_equal(det_matched, np.zeros((0,), dtype=np.int32))
+    npt.assert_array_equal(det_ignored, np.zeros((0,), dtype=np.bool_))
+    npt.assert_array_equal(gts_ignored, np.zeros((1,), dtype=np.bool_))
+
+    assert n_gts == 1
 
 
-def test_coco_pr_curve_preds_all_ignored() -> None:
-    prec_rec = calculate_pr_curve(
+def test_coco_evaluate_dataset_preds_all_ignored() -> None:
+    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
         preds_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
         preds_conf=np.array([0.5], dtype=np.float32),
         img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
-        img_ind_dict_gts=_image_dict_to_numba({}),
+        img_ind_dict_gts=_image_dict_to_numba({0: (0, 1)}),
         area_range=(0.5, 100),
         iou_threshold=0.5,
     )
 
-    npt.assert_array_equal(prec_rec, np.zeros((2, 0), dtype=np.float32))
+    npt.assert_array_equal(det_matched, np.full((1,), -1, dtype=np.int32))
+    npt.assert_array_equal(det_ignored, np.ones((1,), dtype=np.bool_))
+    npt.assert_array_equal(gts_ignored, np.zeros((1,), dtype=np.bool_))
+
+    assert n_gts == 1
 
 
-def test_coco_pr_curve_image_no_preds() -> None:
+def test_coco_evaluate_dataset_no_preds_image() -> None:
     """Preds missing on one image"""
-    prec_rec = calculate_pr_curve(
+    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
         preds_bbox=np.array(
             [
                 [0, 0, 1, 1],
@@ -321,11 +337,15 @@ def test_coco_pr_curve_image_no_preds() -> None:
         iou_threshold=0.5,
     )
 
-    npt.assert_array_equal(prec_rec, np.array([[1], [0.5]], dtype=np.float32))
+    npt.assert_array_equal(det_matched, np.array([0], dtype=np.int32))
+    npt.assert_array_equal(det_ignored, np.array([0], dtype=np.bool_))
+    npt.assert_array_equal(gts_ignored, np.array([0, 0], dtype=np.bool_))
+
+    assert n_gts == 2
 
 
-def test_coco_pr_curve_image_no_gts() -> None:
-    prec_rec = calculate_pr_curve(
+def test_coco_evaluate_dataset_no_gts_image() -> None:
+    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
         preds_bbox=np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         ious=_ious_to_numba(
@@ -341,10 +361,14 @@ def test_coco_pr_curve_image_no_gts() -> None:
         iou_threshold=0.5,
     )
 
-    npt.assert_array_equal(prec_rec, np.array([[0, 0.5], [0, 1]], dtype=np.float32))
+    npt.assert_array_equal(det_matched, np.array([0, -1], dtype=np.int32))
+    npt.assert_array_equal(det_ignored, np.array([0, 0], dtype=np.bool_))
+    npt.assert_array_equal(gts_ignored, np.array([0], dtype=np.bool_))
+
+    assert n_gts == 1
 
 
-def test_coco_pr_curve_example_1() -> None:
+def test_coco_evaluate_dataset_example_1() -> None:
     """Simple 2 image example, one unmatched GT and one unmatched pred"""
     preds_bbox = np.array(
         [
@@ -360,10 +384,10 @@ def test_coco_pr_curve_example_1() -> None:
     gts_bbox = np.array(
         [
             [0.1, 0.1, 1, 1],
-            [1.1, 1.1, 1, 1],
             [2.1, 2.1, 1, 1],
-            [0.1, 0.1, 1, 1],
             [1.1, 1.1, 1, 1],
+            [1.1, 1.1, 1, 1],
+            [0.1, 0.1, 1, 1],
             [2.5, 2.5, 1, 1],
         ],
         dtype=np.float32,
@@ -374,7 +398,7 @@ def test_coco_pr_curve_example_1() -> None:
         1: 1 - iou_dist(preds_bbox[3:], gts_bbox[3:]),
     }
 
-    prec_rec = calculate_pr_curve(
+    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
@@ -385,19 +409,14 @@ def test_coco_pr_curve_example_1() -> None:
         iou_threshold=0.3,
     )
 
-    npt.assert_array_equal(
-        prec_rec,
-        np.array(
-            [
-                [1, 1 / 2, 2 / 3, 3 / 4, 4 / 5, 5 / 6],
-                [1 / 6, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6],
-            ],
-            dtype=np.float32,
-        ),
-    )
+    npt.assert_array_equal(det_matched, np.array([0, 2, 1, 4, 3, -1], dtype=np.int32))
+    npt.assert_array_equal(det_ignored, np.array([0, 0, 0, 0, 0, 0], dtype=np.bool_))
+    npt.assert_array_equal(gts_ignored, np.array([0, 0, 0, 0, 0, 0], dtype=np.bool_))
+
+    assert n_gts == 6
 
 
-def test_coco_pr_curve_example_2() -> None:
+def test_coco_evaluate_dataset_example_2() -> None:
     """Simple 2 image example, one ignored GT and ignored unmatched pred"""
     preds_bbox = np.array(
         [
@@ -415,9 +434,9 @@ def test_coco_pr_curve_example_2() -> None:
             [0.1, 0.1, 1, 1],
             [1.1, 1.1, 1, 1],
             [2.1, 2.1, 1, 1],
+            [2.5, 2.5, 0.1, 1],
             [0.1, 0.1, 1, 1],
             [1.1, 1.1, 1, 1],
-            [2.5, 2.5, 0.1, 1],
         ],
         dtype=np.float32,
     )
@@ -427,7 +446,7 @@ def test_coco_pr_curve_example_2() -> None:
         1: 1 - iou_dist(preds_bbox[3:], gts_bbox[3:]),
     }
 
-    prec_rec = calculate_pr_curve(
+    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
@@ -438,78 +457,23 @@ def test_coco_pr_curve_example_2() -> None:
         iou_threshold=0.3,
     )
 
-    npt.assert_array_equal(
-        prec_rec,
-        np.array(
-            [[1, 1, 1, 1, 1], [1 / 5, 2 / 5, 3 / 5, 4 / 5, 1]],
-            dtype=np.float32,
-        ),
-    )
+    npt.assert_array_equal(det_matched, np.array([0, 1, 2, 4, 5, -1], dtype=np.int32))
+    npt.assert_array_equal(det_ignored, np.array([0, 0, 0, 0, 0, 1], dtype=np.bool_))
+    npt.assert_array_equal(gts_ignored, np.array([0, 0, 0, 1, 0, 0], dtype=np.bool_))
+
+    assert n_gts == 5
 
 
 @pytest.mark.parametrize(
-    "iou_threshold,exp_result",
+    "iou_threshold,exp_match",
     (
-        (
-            0.5,
-            np.array(
-                [
-                    [1, 1, 1, 1, 1, 1, 1, 1, 0.8889, 0.9, 0.9091, 0.9167],
-                    [
-                        0.0833,
-                        0.1667,
-                        0.25,
-                        0.3333,
-                        0.4167,
-                        0.5,
-                        0.5833,
-                        2 / 3,
-                        2 / 3,
-                        0.75,
-                        0.8333,
-                        0.9167,
-                    ],
-                ]
-            ),
-        ),
-        (
-            0.75,
-            np.array(
-                [
-                    [
-                        1,
-                        0.5,
-                        2 / 3,
-                        0.5,
-                        0.6,
-                        2 / 3,
-                        0.7143,
-                        0.75,
-                        2 / 3,
-                        0.7,
-                        0.6364,
-                        2 / 3,
-                    ],
-                    [
-                        0.0833,
-                        0.0833,
-                        0.1667,
-                        0.1667,
-                        0.25,
-                        1 / 3,
-                        0.4167,
-                        0.5,
-                        0.5,
-                        0.5833,
-                        0.5833,
-                        2 / 3,
-                    ],
-                ]
-            ),
-        ),
+        (0.5, np.array([0, 1, 2, 3, 4, 6, 7, 8, 9, -1, 10, 11], dtype=np.int32)),
+        (0.75, np.array([0, 1, 2, 3, -1, 6, 7, -1, 9, -1, -1, 11], dtype=np.int32)),
     ),
 )
-def test_coco_pr_curve_example_3(iou_threshold: float, exp_result: np.ndarray) -> None:
+def test_coco_evaluate_dataset_example_3(
+    iou_threshold: float, exp_match: np.ndarray
+) -> None:
     """
     Inspired by example here
     https://github.com/rafaelpadilla/review_object_detection_metrics/blob/main/README.md#a-practical-example
@@ -584,7 +548,7 @@ def test_coco_pr_curve_example_3(iou_threshold: float, exp_result: np.ndarray) -
             preds_bbox[preds_inds[0] : preds_inds[1]], gts_bbox[gt_inds[0] : gt_inds[1]]
         )
 
-    prec_rec = calculate_pr_curve(
+    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
@@ -595,4 +559,12 @@ def test_coco_pr_curve_example_3(iou_threshold: float, exp_result: np.ndarray) -
         iou_threshold=iou_threshold,
     )
 
-    npt.assert_array_almost_equal(prec_rec, exp_result, 4)
+    npt.assert_array_equal(det_matched, exp_match)
+    npt.assert_array_equal(
+        det_ignored, np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.bool_)
+    )
+    npt.assert_array_equal(
+        gts_ignored, np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.bool_)
+    )
+
+    assert n_gts == 12

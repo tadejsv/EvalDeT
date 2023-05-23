@@ -205,6 +205,10 @@ class Detections:
         The `score` attribute of `annotations` is optional, but if present should be
         present on all annotations.
 
+        Because `Detections` requires that images and classes are zero indexed, while
+        in COCO there is no restriction on numbering of `id`s, the `id`s for `image`
+        and `category` are not perserved - but the names and relationships are.
+
         Args:
             file_path: Path where the detections file is located
         """
@@ -214,6 +218,9 @@ class Detections:
         images: list[dict] = coco_dict["images"]
         categories: list[dict] = coco_dict["categories"]
         annotations: list[dict] = coco_dict["annotations"]
+
+        img_ind_dict = {im["id"]: i for i, im in enumerate(images)}
+        cat_ind_dict = {cat["id"]: i for i, cat in enumerate(categories)}
 
         image_ids = np.zeros((len(annotations),), dtype=np.int32)
         classes = np.zeros((len(annotations),), dtype=np.int32)
@@ -225,8 +232,8 @@ class Detections:
             confs = None
 
         for i, ann in enumerate(annotations):
-            image_ids[i] = ann["image_id"]
-            classes[i] = ann["category_id"]
+            image_ids[i] = img_ind_dict[ann["image_id"]]
+            classes[i] = cat_ind_dict[ann["category_id"]]
             bboxes[i] = ann["bbox"]
 
             if confs is not None:
