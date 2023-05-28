@@ -123,8 +123,8 @@ class Detections:
                 num_classes = self._classes.max() + 1
                 if len(class_names) < num_classes:
                     raise ValueError(
-                        f"The number of class names ({len(class_names)}) is less than the"
-                        f"number of classes in the data ({num_classes})"
+                        f"The number of class names ({len(class_names)}) is less than"
+                        f" the number of classes in the data ({num_classes})"
                     )
 
             self._class_names = tuple(class_names)

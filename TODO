@@ -18,8 +18,6 @@ Detections:
 
 * Summary:
   * the same as above, but across thresholds etc
-* confusion matrix
-  * here we just care about matching, and would be global
 
 ---
 
@@ -27,4 +25,3 @@ Detections:
 * Add class names to tracks - maybe change the class list arg to dict? 
 
 ---
-

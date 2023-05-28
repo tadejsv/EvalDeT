@@ -239,7 +239,7 @@ def test_coco_evaluate_image_matching_3() -> None:
 
 
 def test_coco_evaluate_dataset_no_gts() -> None:
-    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=np.random.rand(1, 4).astype(np.float32),
         gts_bbox=np.zeros((0, 4), dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
@@ -254,11 +254,9 @@ def test_coco_evaluate_dataset_no_gts() -> None:
     npt.assert_array_equal(det_ignored, np.zeros((1,), dtype=np.bool_))
     npt.assert_array_equal(gts_ignored, np.zeros((0,), dtype=np.bool_))
 
-    assert n_gts == 0
-
 
 def test_coco_evaluate_dataset_gts_all_ignored() -> None:
-    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
@@ -273,11 +271,9 @@ def test_coco_evaluate_dataset_gts_all_ignored() -> None:
     npt.assert_array_equal(det_ignored, np.zeros((1,), dtype=np.bool_))
     npt.assert_array_equal(gts_ignored, np.ones((1,), dtype=np.bool_))
 
-    assert n_gts == 0
-
 
 def test_coco_evaluate_dataset_no_preds() -> None:
-    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=np.zeros((0, 4), dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((0, 1), dtype=np.float32)}),
@@ -292,11 +288,9 @@ def test_coco_evaluate_dataset_no_preds() -> None:
     npt.assert_array_equal(det_ignored, np.zeros((0,), dtype=np.bool_))
     npt.assert_array_equal(gts_ignored, np.zeros((1,), dtype=np.bool_))
 
-    assert n_gts == 1
-
 
 def test_coco_evaluate_dataset_preds_all_ignored() -> None:
-    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
@@ -311,12 +305,10 @@ def test_coco_evaluate_dataset_preds_all_ignored() -> None:
     npt.assert_array_equal(det_ignored, np.ones((1,), dtype=np.bool_))
     npt.assert_array_equal(gts_ignored, np.zeros((1,), dtype=np.bool_))
 
-    assert n_gts == 1
-
 
 def test_coco_evaluate_dataset_no_preds_image() -> None:
     """Preds missing on one image"""
-    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=np.array(
             [
                 [0, 0, 1, 1],
@@ -341,11 +333,9 @@ def test_coco_evaluate_dataset_no_preds_image() -> None:
     npt.assert_array_equal(det_ignored, np.array([0], dtype=np.bool_))
     npt.assert_array_equal(gts_ignored, np.array([0, 0], dtype=np.bool_))
 
-    assert n_gts == 2
-
 
 def test_coco_evaluate_dataset_no_gts_image() -> None:
-    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         ious=_ious_to_numba(
@@ -364,8 +354,6 @@ def test_coco_evaluate_dataset_no_gts_image() -> None:
     npt.assert_array_equal(det_matched, np.array([0, -1], dtype=np.int32))
     npt.assert_array_equal(det_ignored, np.array([0, 0], dtype=np.bool_))
     npt.assert_array_equal(gts_ignored, np.array([0], dtype=np.bool_))
-
-    assert n_gts == 1
 
 
 def test_coco_evaluate_dataset_example_1() -> None:
@@ -398,7 +386,7 @@ def test_coco_evaluate_dataset_example_1() -> None:
         1: 1 - iou_dist(preds_bbox[3:], gts_bbox[3:]),
     }
 
-    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
@@ -412,8 +400,6 @@ def test_coco_evaluate_dataset_example_1() -> None:
     npt.assert_array_equal(det_matched, np.array([0, 2, 1, 4, 3, -1], dtype=np.int32))
     npt.assert_array_equal(det_ignored, np.array([0, 0, 0, 0, 0, 0], dtype=np.bool_))
     npt.assert_array_equal(gts_ignored, np.array([0, 0, 0, 0, 0, 0], dtype=np.bool_))
-
-    assert n_gts == 6
 
 
 def test_coco_evaluate_dataset_example_2() -> None:
@@ -446,7 +432,7 @@ def test_coco_evaluate_dataset_example_2() -> None:
         1: 1 - iou_dist(preds_bbox[3:], gts_bbox[3:]),
     }
 
-    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
@@ -460,8 +446,6 @@ def test_coco_evaluate_dataset_example_2() -> None:
     npt.assert_array_equal(det_matched, np.array([0, 1, 2, 4, 5, -1], dtype=np.int32))
     npt.assert_array_equal(det_ignored, np.array([0, 0, 0, 0, 0, 1], dtype=np.bool_))
     npt.assert_array_equal(gts_ignored, np.array([0, 0, 0, 1, 0, 0], dtype=np.bool_))
-
-    assert n_gts == 5
 
 
 @pytest.mark.parametrize(
@@ -548,7 +532,7 @@ def test_coco_evaluate_dataset_example_3(
             preds_bbox[preds_inds[0] : preds_inds[1]], gts_bbox[gt_inds[0] : gt_inds[1]]
         )
 
-    det_matched, det_ignored, gts_ignored, n_gts = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
@@ -566,5 +550,3 @@ def test_coco_evaluate_dataset_example_3(
     npt.assert_array_equal(
         gts_ignored, np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.bool_)
     )
-
-    assert n_gts == 12
