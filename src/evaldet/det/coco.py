@@ -1,4 +1,4 @@
-from typing import Literal, Mapping, Optional, TypedDict
+from typing import cast, Literal, Mapping, Optional, TypedDict
 import numba
 import numpy as np
 import numpy.typing as npt
@@ -18,8 +18,17 @@ class COCOResult(TypedDict):
     n_gts: int
 
 
-class COCOResults(COCOResult):
+class COCOResults(TypedDict):
+    mean_ap: Optional[float]
     class_results: dict[str, COCOResult]
+
+
+class COCOSummaryResults(TypedDict):
+    mean_ap: Optional[float]
+    mean_ap_per_class: dict[str, Optional[float]]
+
+    mean_ap_sizes: dict[str, Optional[float]]
+    mean_ap_sizes_per_class: dict[str, dict[str, Optional[float]]]
 
 
 @numba.njit(
@@ -291,12 +300,15 @@ class COCOMetrics(DetMetricBase):
     def _compute_ap(
         self, precision: npt.NDArray[np.float64], recall: npt.NDArray[np.float64]
     ) -> float:
-        if self.ap_interpolation == "coco":
-            pass
-        elif self.ap_interpolation == "pascal":
-            pass
+        precision = np.maximum.accumulate(precision[::-1])[::-1]
 
-    # def
+        if self.ap_interpolation == "coco":
+            thresholds = np.linspace(0.0, 1.00, 101, endpoint=True)
+            r_inds = np.searchsorted(recall, thresholds, side="left")
+            prec_a = np.concatenate([precision, [0]])
+            return prec_a[r_inds].mean()
+        elif self.ap_interpolation == "pascal":
+            return np.trapz(precision, recall)
 
     def compute_metrics(
         self,
@@ -349,25 +361,12 @@ class COCOMetrics(DetMetricBase):
                 )
 
         # Aggregate metrics
-        total_gts = sum(res["n_gts"] for res in class_results.values())
-        n_present_classes = sum(
-            1 for res in class_results.values() if res["ap"] is not None
-        )
+        aps = np.array([res["ap"] for res in class_results.values()], dtype=float)
+        mean_ap = np.nanmean(aps)
+        if np.isnan(mean_ap):
+            mean_ap = None
 
-        def sum_vals(d: dict, key: str) -> float:
-            return sum(res[key] for res in d.values() if res[key] is not None)
-
-        avg_ap = sum_vals(class_results, "ap") / n_present_classes
-        w_avg_prec = sum_vals(class_results, "precision") / total_gts
-        w_avg_rec = sum_vals(class_results, "recall") / total_gts
-
-        metrics: COCOResults = dict(
-            ap=avg_ap,
-            precision=w_avg_prec,
-            recall=w_avg_rec,
-            n_gts=total_gts,
-            class_results=class_results,
-        )
+        metrics: COCOResults = dict(mean_ap=mean_ap, class_results=class_results)
         return metrics
 
     def compute_coco_summary(
@@ -376,8 +375,81 @@ class COCOMetrics(DetMetricBase):
         hyp: Detections,
         iou_thresholds: tuple[float, ...] = (0.5, 0.75),
         sizes: Mapping[str, tuple[float, float]] = {"A": (0.0, 1.0)},
-    ):
-        pass
+    ) -> COCOSummaryResults:
+        self._check_compatibility(gt, hyp)
+
+        sizes_all = {"_all": (0.0, float("inf"))} | sizes
+        ap_results: dict[tuple[str, str, int], Optional[float]] = {}
+
+        assert gt.class_names is not None  # keep mypy happy
+        for i_cls, cls_name in enumerate(gt.class_names):
+            hyp_cls = hyp.filter(hyp.classes == i_cls)
+            gt_cls = gt.filter(gt.classes == i_cls)
+
+            gt_img_ind_dict, hyp_img_ind_dict = self._match_images(gt_cls, hyp_cls)
+            ious = self._compute_ious(
+                hyp_cls.bboxes, gt_cls.bboxes, hyp_img_ind_dict, gt_img_ind_dict
+            )
+
+            for i_thr, iou_threshold in enumerate(iou_thresholds):
+                for size_name, area_range in sizes_all.items():
+                    hyp_matched, hyp_ignored, gts_ignored = evaluate_dataset(
+                        preds_bbox=hyp_cls.bboxes,
+                        gts_bbox=gt_cls.bboxes,
+                        ious=ious,
+                        preds_conf=hyp_cls.confs,
+                        img_ind_dict_preds=hyp_img_ind_dict,
+                        img_ind_dict_gts=gt_img_ind_dict,
+                        area_range=area_range,
+                        iou_threshold=iou_threshold,
+                    )
+                    n_gts = len(gt_cls.bboxes) - gts_ignored.sum()
+
+                    assert hyp_cls.confs is not None  # keep mypy happy
+                    pr_curve = prec_recall_curve(
+                        hyp_matched[~hyp_ignored], hyp_cls.confs[~hyp_ignored], n_gts
+                    )
+
+                    if pr_curve is None:
+                        ap = None
+                    else:
+                        precision, recall = pr_curve
+                        ap = self._compute_ap(precision, recall)
+
+                    ap_results[(cls_name, size_name, i_thr)] = ap
+
+        # Aggregate metrics
+        aps = np.array([ap for ap in ap_results.values()], dtype=np.float64)
+        cls_arr = np.array([k[0] for k in ap_results.keys()])
+        size_arr = np.array([k[1] for k in ap_results.keys()])
+
+        def nonemean(x: npt.NDArray) -> Optional[float]:
+            mean = np.nanmean(x)
+            if np.isnan(mean):
+                return None
+            return mean
+
+        results: dict = {}
+        results["mean_ap"] = nonemean(aps[size_arr == "_all"])
+
+        results["mean_ap_per_class"] = {}
+        for cls in gt.class_names:
+            results["mean_ap_per_class"][cls] = nonemean(
+                aps[(size_arr == "_all") & (cls_arr == cls)]
+            )
+
+        results["mean_ap_sizes"] = {}
+        for size_name in sizes.keys():
+            results["mean_ap_sizes"][size_name] = nonemean(aps[size_arr == size_name])
+
+        results["mean_ap_sizes_per_class"] = {}
+        for size_name in sizes.keys():
+            for cls in gt.class_names:
+                results["mean_ap_sizes"][size_name] = nonemean(
+                    aps[size_arr == size_name & cls_arr == cls]
+                )
+
+        return cast(COCOSummaryResults, results)
 
     def confusion_matrix(
         self,
