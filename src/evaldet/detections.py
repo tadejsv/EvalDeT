@@ -34,17 +34,17 @@ class Detections:
     _confs: Optional[npt.NDArray[np.float32]]
     _image_ind_dict: dict[int, tuple[int, int]]
 
-    _class_names: Optional[tuple[str, ...]]
-    _image_names: Optional[tuple[str, ...]]
+    _class_names: tuple[str, ...]
+    _image_names: tuple[str, ...]
 
     def __init__(
         self,
         image_ids: Union[npt.NDArray[np.int32], Sequence[int]],
         bboxes: Union[Sequence[npt.NDArray[np.float32]], npt.NDArray[np.float32]],
         classes: Union[npt.NDArray[np.int32], Sequence[int]],
+        class_names: Sequence[str],
+        image_names: Sequence[str],
         confs: Optional[Union[npt.NDArray[np.float32], Sequence[float]]] = None,
-        class_names: Optional[Sequence[str]] = None,
-        image_names: Optional[Sequence[str]] = None,
     ) -> None:
         """
         Create a `Detections` instance.
@@ -57,13 +57,12 @@ class Detections:
             confs: An optional sequence or array of confidences (scores).
             class_names: A sequence (list, tuple) of class names. The `i`-th element in
                 the sequence (zero indexed) is the class name for detections with class
-                label `i`. If provided, the length should be larger than the max class
-                label in `classes`.
+                label `i`. The length should be larger than the max class label in 
+                `classes`.
             image_names: A sequence (list, tuple) of image names - this is used for
                 matching ground truth and prediction detection for metrics. The `i`-th
                 element in the sequence (zero indexed) is the image name for all images
-                with the label `i`. If provided, the length should be larger than the
-                max image label
+                with the label `i`. The length should be larger than the max image label
         """
 
         if len(image_ids) != len(bboxes):
@@ -116,32 +115,24 @@ class Detections:
                 )
 
         # Check that class_names cover all classes
-        if class_names is None:
-            self._class_names = None
-        else:
-            if len(self._classes) > 0:
-                num_classes = self._classes.max() + 1
-                if len(class_names) < num_classes:
-                    raise ValueError(
-                        f"The number of class names ({len(class_names)}) is less than"
-                        f" the number of classes in the data ({num_classes})"
-                    )
+        num_classes = self._classes.max(initial=-1) + 1
+        if len(class_names) < num_classes:
+            raise ValueError(
+                f"The number of class names ({len(class_names)}) is less than"
+                f" the number of classes in the data ({num_classes})"
+            )
 
-            self._class_names = tuple(class_names)
+        self._class_names = tuple(class_names)
 
         # Check that image_names cover all images
-        if image_names is None:
-            self._image_names = None
-        else:
-            if len(self._image_ids) > 0:
-                num_images = self._image_ids.max() + 1
-                if len(image_names) < num_images:
-                    raise ValueError(
-                        f"The number of image names ({len(image_names)}) is less than the"
-                        f"number of images in the data ({num_images})"
-                    )
+        num_images = self._image_ids.max(initial=-1) + 1
+        if len(image_names) < num_images:
+            raise ValueError(
+                f"The number of image names ({len(image_names)}) is less than the"
+                f"number of images in the data ({num_images})"
+            )
 
-            self._image_names = tuple(image_names)
+        self._image_names = tuple(image_names)
 
         self._create_image_ind_dict()
 
@@ -251,13 +242,13 @@ class Detections:
             image_names=image_names,
         )
 
-    @classmethod
-    def from_yolo(cls) -> "Detections":
-        pass
+    # @classmethod
+    # def from_yolo(cls) -> "Detections":
+    #     pass
 
-    @classmethod
-    def from_pascal_voc(cls) -> "Detections":
-        pass
+    # @classmethod
+    # def from_pascal_voc(cls) -> "Detections":
+    #     pass
 
     @classmethod
     def from_parquet(cls, file_path: Union[str, Path]) -> "Detections":
@@ -294,15 +285,8 @@ class Detections:
             confs = None
 
         metadata = table.schema.metadata
-        if metadata is not None and b"class_names" in metadata:
-            class_names = cls.bytes_to_strs(metadata[b"class_names"])
-        else:
-            class_names = None
-
-        if metadata is not None and b"image_names" in metadata:
-            image_names = cls.bytes_to_strs(metadata[b"image_names"])
-        else:
-            image_names = None
+        class_names = cls.bytes_to_strs(metadata[b"class_names"])
+        image_names = cls.bytes_to_strs(metadata[b"image_names"])
 
         return cls(
             image_ids=image_ids,
@@ -459,9 +443,9 @@ class Detections:
         return self._image_ind_dict
 
     @property
-    def class_names(self) -> Optional[tuple[str, ...]]:
+    def class_names(self) -> tuple[str, ...]:
         return self._class_names
 
     @property
-    def image_names(self) -> Optional[tuple[str, ...]]:
+    def image_names(self) -> tuple[str, ...]:
         return self._image_names

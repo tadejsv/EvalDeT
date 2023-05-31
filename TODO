@@ -9,15 +9,16 @@
 Detections:
 * add frame getter
   * also `__in__` or whatever it is (contains?)
+* Fix prec recall curve - now we can have nones for both, instead of just returning a single none
 
-* add basic compute metrics, we need
-  * AP for each class + average across classes
-  * PR curve for each class,
-  * precision and recall (last one)
-  * ???
+Add tests:
+  * For summary:
+    * simple unit tests that test averaging of different thresholds and classes 
+  * example
+    * for the example - try with the two different IoU thresholds
+  * add tests for summary - maybe here less "mini-integration" tests
+  * Add integration test - just check AP, more or less ok value
 
-* Summary:
-  * the same as above, but across thresholds etc
 
 ---
 

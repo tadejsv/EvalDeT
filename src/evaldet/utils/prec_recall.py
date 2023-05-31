@@ -8,7 +8,7 @@ def prec_recall_curve(
     hyp_matched: npt.NDArray[np.bool_],
     hyp_conf: npt.NDArray[np.float32],
     n_gts: int,
-) -> Optional[tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]]:
+) -> tuple[Optional[npt.NDArray[np.float64]], Optional[npt.NDArray[np.float64]]]:
     """
     Calculate the precision-recall curve.
 
@@ -33,7 +33,7 @@ def prec_recall_curve(
     """
 
     if n_gts == 0:
-        return None
+        return None, None
 
     if len(hyp_matched) == 0:
         return (np.array([0.0]), np.array([0]))

@@ -10,6 +10,19 @@ from evaldet.utils.prec_recall import prec_recall_curve
 
 from .base import DetMetricBase
 
+BASE_50_95_THRESHOLDS = (
+    0.5,
+    0.55,
+    0.6,
+    0.65,
+    0.7,
+    0.75,
+    0.8,
+    0.85,
+    0.9,
+    0.95,
+)
+
 
 class COCOResult(TypedDict):
     ap: Optional[float]
@@ -275,18 +288,6 @@ class COCOMetrics(DetMetricBase):
 
     @staticmethod
     def _check_compatibility(gt: Detections, hyp: Detections) -> None:
-        if gt.image_names is None:
-            raise ValueError("`image_names` must be provided for ground truths")
-
-        if hyp.image_names is None:
-            raise ValueError("`image_names` must be provided for ground truths")
-
-        if gt.class_names is None:
-            raise ValueError("`class_names` must be provided for ground truths")
-
-        if hyp.class_names is None:
-            raise ValueError("`class_names` must be provided for hypotheses")
-
         if hyp.class_names != gt.class_names:
             raise ValueError(
                 "`class_names` must be the same for ground truths and hypotheses"
@@ -295,11 +296,16 @@ class COCOMetrics(DetMetricBase):
         if hyp.confs is None:
             raise ValueError("`confs` must be provided for hypotheses")
 
-        # TODO: what else
-
     def _compute_ap(
-        self, precision: npt.NDArray[np.float64], recall: npt.NDArray[np.float64]
-    ) -> float:
+        self,
+        precision: Optional[npt.NDArray[np.float64]],
+        recall: Optional[npt.NDArray[np.float64]],
+    ) -> Optional[float]:
+        if precision is None or recall is None:
+            return None
+
+        precision = np.concatenate([[0], precision])
+        recall = np.concatenate([[0], recall])
         precision = np.maximum.accumulate(precision[::-1])[::-1]
 
         if self.ap_interpolation == "coco":
@@ -344,16 +350,16 @@ class COCOMetrics(DetMetricBase):
             n_gts = len(gt_cls.bboxes) - gts_ignored.sum()
 
             assert hyp_cls.confs is not None  # keep mypy happy
-            pr_curve = prec_recall_curve(
-                hyp_matched[~hyp_ignored], hyp_cls.confs[~hyp_ignored], n_gts
+
+            precision, recall = prec_recall_curve(
+                hyp_matched[~hyp_ignored] != -1, hyp_cls.confs[~hyp_ignored], n_gts
             )
 
-            if pr_curve is None:
+            if precision is None or recall is None:
                 class_results[cls_name] = dict(
                     ap=None, recall=None, precision=None, n_gts=n_gts
                 )
             else:
-                precision, recall = pr_curve
                 ap = self._compute_ap(precision, recall)
 
                 class_results[cls_name] = dict(
@@ -373,8 +379,12 @@ class COCOMetrics(DetMetricBase):
         self,
         gt: Detections,
         hyp: Detections,
-        iou_thresholds: tuple[float, ...] = (0.5, 0.75),
-        sizes: Mapping[str, tuple[float, float]] = {"A": (0.0, 1.0)},
+        iou_thresholds: tuple[float, ...] = BASE_50_95_THRESHOLDS,
+        sizes: Mapping[str, tuple[float, float]] = {
+            "small": (0.0, 32**2),
+            "medium": (32**2, 96**2),
+            "large": (96**2, float("inf")),
+        },
     ) -> COCOSummaryResults:
         self._check_compatibility(gt, hyp)
 
@@ -406,17 +416,15 @@ class COCOMetrics(DetMetricBase):
                     n_gts = len(gt_cls.bboxes) - gts_ignored.sum()
 
                     assert hyp_cls.confs is not None  # keep mypy happy
-                    pr_curve = prec_recall_curve(
-                        hyp_matched[~hyp_ignored], hyp_cls.confs[~hyp_ignored], n_gts
+                    precision, recall = prec_recall_curve(
+                        hyp_matched[~hyp_ignored] != -1,
+                        hyp_cls.confs[~hyp_ignored],
+                        n_gts,
                     )
 
-                    if pr_curve is None:
-                        ap = None
-                    else:
-                        precision, recall = pr_curve
-                        ap = self._compute_ap(precision, recall)
-
-                    ap_results[(cls_name, size_name, i_thr)] = ap
+                    ap_results[(cls_name, size_name, i_thr)] = self._compute_ap(
+                        precision, recall
+                    )
 
         # Aggregate metrics
         aps = np.array([ap for ap in ap_results.values()], dtype=np.float64)
@@ -443,10 +451,11 @@ class COCOMetrics(DetMetricBase):
             results["mean_ap_sizes"][size_name] = nonemean(aps[size_arr == size_name])
 
         results["mean_ap_sizes_per_class"] = {}
-        for size_name in sizes.keys():
-            for cls in gt.class_names:
-                results["mean_ap_sizes"][size_name] = nonemean(
-                    aps[size_arr == size_name & cls_arr == cls]
+        for cls in gt.class_names:
+            results["mean_ap_sizes_per_class"][cls] = {}
+            for size_name in sizes.keys():
+                results["mean_ap_sizes_per_class"][cls][size_name] = nonemean(
+                    aps[(size_arr == size_name) & (cls_arr == cls)]
                 )
 
         return cast(COCOSummaryResults, results)

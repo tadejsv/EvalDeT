@@ -5,7 +5,7 @@ from evaldet.utils.prec_recall import prec_recall_curve as prc
 
 
 def test_prec_recall_curve_no_gts():
-    assert prc(np.array([False]), np.array([1.0]), 0) is None
+    assert prc(np.array([False]), np.array([1.0]), 0) == (None, None)
 
 
 def test_prec_recall_curve_no_preds():

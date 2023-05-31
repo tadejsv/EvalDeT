@@ -34,8 +34,9 @@ class DetMetricBase:
             key_type=nb.int32, value_type=types.Tuple((types.int32, types.int32))
         )
         for old_ind, new_ind in gt_ind_dict.items():
-            t1, t2 = gt.image_ind_dict[old_ind]
-            new_gt_image_ind_dict[nb.int32(new_ind)] = (nb.int32(t1), nb.int32(t2))
+            if old_ind in gt.image_ind_dict: 
+                t1, t2 = gt.image_ind_dict[old_ind]
+                new_gt_image_ind_dict[nb.int32(new_ind)] = (nb.int32(t1), nb.int32(t2))
 
         new_hyp_image_ind_dict = nb.typed.Dict.empty(
             key_type=nb.int32, value_type=types.Tuple((types.int32, types.int32))
