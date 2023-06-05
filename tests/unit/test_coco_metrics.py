@@ -3,7 +3,7 @@ import numpy.testing as npt
 import pytest
 from deepdiff import DeepDiff
 
-from evaldet.det.coco import COCOMetrics
+from evaldet.det.coco import compute_coco_summary, compute_metrics, confusion_matrix
 from evaldet.detections import Detections
 
 
@@ -201,32 +201,28 @@ def test_coco_different_class_names_error() -> None:
     hyp = Detections([0], [np.array([1, 1, 1, 1])], [0], ("slc",), ("im",), confs=[0.1])
     gts = Detections([0], [np.array([0, 0, 1, 1])], [0], ("cls",), ("im",), confs=None)
 
-    coco = COCOMetrics()
+    with pytest.raises(ValueError, match="`class_names` must be the same"):
+        confusion_matrix(gts, hyp, 0.5)
 
     with pytest.raises(ValueError, match="`class_names` must be the same"):
-        coco.confusion_matrix(gts, hyp, 0.5)
+        compute_metrics(gts, hyp, 0.5)
 
     with pytest.raises(ValueError, match="`class_names` must be the same"):
-        coco.compute_metrics(gts, hyp, 0.5)
-
-    with pytest.raises(ValueError, match="`class_names` must be the same"):
-        coco.compute_coco_summary(gts, hyp)
+        compute_coco_summary(gts, hyp)
 
 
 def test_coco_no_hyp_conf_error() -> None:
     hyp = Detections([0], [np.array([1, 1, 1, 1])], [0], ("cls",), ("im",), confs=None)
     gts = Detections([0], [np.array([0, 0, 1, 1])], [0], ("cls",), ("im",), confs=None)
 
-    coco = COCOMetrics()
+    with pytest.raises(ValueError, match="`confs` must be provided"):
+        confusion_matrix(gts, hyp, 0.5)
 
     with pytest.raises(ValueError, match="`confs` must be provided"):
-        coco.confusion_matrix(gts, hyp, 0.5)
+        compute_metrics(gts, hyp, 0.5)
 
     with pytest.raises(ValueError, match="`confs` must be provided"):
-        coco.compute_metrics(gts, hyp, 0.5)
-
-    with pytest.raises(ValueError, match="`confs` must be provided"):
-        coco.compute_coco_summary(gts, hyp)
+        compute_coco_summary(gts, hyp)
 
 
 #########################################
@@ -235,8 +231,7 @@ def test_coco_no_hyp_conf_error() -> None:
 
 
 def test_coco_cm_empty_gts_hyp(empty_dets: Detections) -> None:
-    coco = COCOMetrics()
-    cm = coco.confusion_matrix(empty_dets, empty_dets, 0.5)
+    cm = confusion_matrix(empty_dets, empty_dets, 0.5)
 
     npt.assert_array_equal(cm, np.array([[0, 0], [0, 0]], dtype=np.int32))
 
@@ -251,8 +246,7 @@ def test_coco_cm_empty_gts(empty_dets: Detections) -> None:
         image_names=("im",),
     )
 
-    coco = COCOMetrics()
-    cm = coco.confusion_matrix(empty_dets, hyp, 0.5)
+    cm = confusion_matrix(empty_dets, hyp, 0.5)
 
     npt.assert_array_equal(cm, np.array([[0, 1], [0, 0]], dtype=np.int32))
 
@@ -267,8 +261,7 @@ def test_coco_cm_empty_preds(empty_dets: Detections) -> None:
         image_names=("im",),
     )
 
-    coco = COCOMetrics()
-    cm = coco.confusion_matrix(gts, empty_dets, 0.5)
+    cm = confusion_matrix(gts, empty_dets, 0.5)
 
     npt.assert_array_equal(cm, np.array([[0, 0], [1, 0]], dtype=np.int32))
 
@@ -281,15 +274,13 @@ def test_coco_cm_empty_image() -> None:
         [0], [np.array([0, 0, 1, 1])], [0], ("cls",), ("im", "im2"), confs=[0.1]
     )
 
-    coco = COCOMetrics()
-    cm = coco.confusion_matrix(gts, hyp, 0.5)
+    cm = confusion_matrix(gts, hyp, 0.5)
 
     npt.assert_array_equal(cm, np.array([[1, 0], [0, 0]], dtype=np.int32))
 
 
 def test_coco_metrics_empty_gts_hyp(empty_dets: Detections) -> None:
-    coco = COCOMetrics()
-    metrics = coco.compute_metrics(empty_dets, empty_dets, 0.5)
+    metrics = compute_metrics(empty_dets, empty_dets, 0.5)
 
     assert metrics == {
         "class_results": {
@@ -302,8 +293,7 @@ def test_coco_metrics_empty_gts_hyp(empty_dets: Detections) -> None:
 def test_coco_metrics_empty_gts(empty_dets: Detections) -> None:
     hyp = Detections([0], [np.array([0, 0, 1, 1])], [0], ("cls",), ("im",), confs=[0.1])
 
-    coco = COCOMetrics()
-    metrics = coco.compute_metrics(empty_dets, hyp, 0.5)
+    metrics = compute_metrics(empty_dets, hyp, 0.5)
 
     assert metrics == {
         "class_results": {
@@ -316,8 +306,7 @@ def test_coco_metrics_empty_gts(empty_dets: Detections) -> None:
 def test_coco_metrics_empty_preds(empty_dets: Detections) -> None:
     gts = Detections([0], [np.array([0, 0, 1, 1])], [0], ("cls",), ("im",), confs=[0.1])
 
-    coco = COCOMetrics()
-    metrics = coco.compute_metrics(gts, empty_dets, 0.5)
+    metrics = compute_metrics(gts, empty_dets, 0.5)
 
     assert metrics == {
         "class_results": {
@@ -335,8 +324,7 @@ def test_coco_metrics_empty_image() -> None:
         [0], [np.array([0, 0, 1, 1])], [0], ("cls",), ("im", "im2"), confs=[0.1]
     )
 
-    coco = COCOMetrics()
-    metrics = coco.compute_metrics(gts, hyp, 0.5)
+    metrics = compute_metrics(gts, hyp, 0.5)
 
     assert metrics == {
         "class_results": {
@@ -352,8 +340,7 @@ def test_coco_cm_all_ignored_gts() -> None:
         [0], [np.array([0, 0, 0.1, 0.1])], [0], ("cls",), ("im",), confs=[0.1]
     )
 
-    coco = COCOMetrics()
-    cm = coco.confusion_matrix(gts, hyp, 0.5, (1, 100))
+    cm = confusion_matrix(gts, hyp, 0.5, (1, 100))
 
     npt.assert_array_equal(cm, np.array([[0, 1], [0, 0]], dtype=np.int32))
 
@@ -364,8 +351,7 @@ def test_coco_cm_all_ignored_hyp() -> None:
     )
     gts = Detections([0], [np.array([0, 0, 1, 1])], [0], ("cls",), ("im",), confs=[0.1])
 
-    coco = COCOMetrics()
-    cm = coco.confusion_matrix(gts, hyp, 0.5, (1, 100))
+    cm = confusion_matrix(gts, hyp, 0.5, (1, 100))
 
     npt.assert_array_equal(cm, np.array([[0, 0], [1, 0]], dtype=np.int32))
 
@@ -377,8 +363,7 @@ def test_coco_cm_all_ignored_matching() -> None:
         [0], [np.array([0, 0, 0.1, 0.1])], [0], ("cls",), ("im",), confs=[0.1]
     )
 
-    coco = COCOMetrics()
-    cm = coco.confusion_matrix(gts, hyp, 1e-9, (1, 100))
+    cm = confusion_matrix(gts, hyp, 1e-9, (1, 100))
 
     npt.assert_array_equal(cm, np.array([[0, 0], [0, 0]], dtype=np.int32))
 
@@ -387,8 +372,7 @@ def test_coco_cm_no_matching() -> None:
     hyp = Detections([0], [np.array([0, 0, 1, 1])], [0], ("cls",), ("im",), confs=[0.1])
     gts = Detections([0], [np.array([1, 1, 1, 1])], [0], ("cls",), ("im",), confs=[0.1])
 
-    coco = COCOMetrics()
-    cm = coco.confusion_matrix(gts, hyp, 0.5)
+    cm = confusion_matrix(gts, hyp, 0.5)
 
     npt.assert_array_equal(cm, np.array([[0, 1], [1, 0]], dtype=np.int32))
 
@@ -399,8 +383,7 @@ def test_coco_metrics_all_ignored_gts() -> None:
         [0], [np.array([0, 0, 0.1, 0.1])], [0], ("cls",), ("im",), confs=[0.1]
     )
 
-    coco = COCOMetrics()
-    metrics = coco.compute_metrics(gts, hyp, 0.5, (1, 100))
+    metrics = compute_metrics(gts, hyp, 0.5, (1, 100))
 
     assert metrics == {
         "mean_ap": None,
@@ -416,8 +399,7 @@ def test_coco_metrics_all_ignored_hyp() -> None:
     )
     gts = Detections([0], [np.array([0, 0, 1, 1])], [0], ("cls",), ("im",), confs=[0.1])
 
-    coco = COCOMetrics()
-    metrics = coco.compute_metrics(gts, hyp, 0.5, (1, 100))
+    metrics = compute_metrics(gts, hyp, 0.5, (1, 100))
 
     assert metrics == {
         "mean_ap": 0.0,
@@ -434,8 +416,7 @@ def test_coco_metrics_all_ignored_matching() -> None:
         [0], [np.array([0, 0, 0.1, 0.1])], [0], ("cls",), ("im",), confs=[0.1]
     )
 
-    coco = COCOMetrics()
-    metrics = coco.compute_metrics(gts, hyp, 1e-9, (1, 100))
+    metrics = compute_metrics(gts, hyp, 1e-9, (1, 100))
 
     assert metrics == {
         "mean_ap": None,
@@ -449,8 +430,7 @@ def test_coco_metrics_no_matching() -> None:
     hyp = Detections([0], [np.array([0, 0, 1, 1])], [0], ("cls",), ("im",), confs=[0.1])
     gts = Detections([0], [np.array([1, 1, 1, 1])], [0], ("cls",), ("im",), confs=[0.1])
 
-    coco = COCOMetrics()
-    metrics = coco.compute_metrics(gts, hyp, 0.5)
+    metrics = compute_metrics(gts, hyp, 0.5)
 
     assert metrics == {
         "mean_ap": 0.0,
@@ -473,8 +453,8 @@ def test_coco_metrics_class_missing() -> None:
         [0], [np.array([0, 0, 1, 1])], [0], ("cls1", "cls2"), ("im",), confs=None
     )
     # raise ValueError
-    coco = COCOMetrics()
-    metrics = coco.compute_metrics(gts, hyp, 0.5)
+
+    metrics = compute_metrics(gts, hyp, 0.5)
 
     assert metrics == {
         "mean_ap": 1.0,
@@ -540,8 +520,9 @@ def test_coco_summary_simple(ap_interpolation: str, result: dict) -> None:
         confs=None,
     )
 
-    coco = COCOMetrics(ap_interpolation)  # type: ignore
-    summary = coco.compute_coco_summary(gts, hyp, sizes={"size": (0, float("inf"))})
+    summary = compute_coco_summary(
+        gts, hyp, sizes={"size": (0, float("inf"))}, ap_interpolation=ap_interpolation
+    )
 
     assert not DeepDiff(
         summary,
@@ -609,8 +590,9 @@ def test_coco_summary_different_iou_thresholds(
         confs=None,
     )
 
-    coco = COCOMetrics(ap_interpolation)  # type: ignore
-    summary = coco.compute_coco_summary(gts, hyp, sizes={"size": (0, float("inf"))})
+    summary = compute_coco_summary(
+        gts, hyp, sizes={"size": (0, float("inf"))}, ap_interpolation=ap_interpolation
+    )
 
     assert not DeepDiff(
         summary,
@@ -680,9 +662,11 @@ def test_coco_summary_different_sizes(ap_interpolation: str, result: dict) -> No
         confs=None,
     )
 
-    coco = COCOMetrics(ap_interpolation)  # type: ignore
-    summary = coco.compute_coco_summary(
-        gts, hyp, sizes={"small": (0, 2), "large": (2, 10)}
+    summary = compute_coco_summary(
+        gts,
+        hyp,
+        sizes={"small": (0, 2), "large": (2, 10)},
+        ap_interpolation=ap_interpolation,
     )
 
     assert not DeepDiff(
@@ -771,9 +755,11 @@ def test_coco_summary_different_sizes_classes(
         confs=None,
     )
 
-    coco = COCOMetrics(ap_interpolation)  # type: ignore
-    summary = coco.compute_coco_summary(
-        gts, hyp, sizes={"small": (0, 2), "large": (2, 10)}
+    summary = compute_coco_summary(
+        gts,
+        hyp,
+        sizes={"small": (0, 2), "large": (2, 10)},
+        ap_interpolation=ap_interpolation,
     )
 
     assert not DeepDiff(
@@ -793,8 +779,7 @@ def test_coco_summary_different_sizes_classes(
 def test_coco_cm_normal1(normal_hyp_1: Detections, normal_gt_1: Detections) -> None:
     """Easy case, perfect matching"""
 
-    coco = COCOMetrics()
-    cm = coco.confusion_matrix(normal_gt_1, normal_hyp_1, 0.5)
+    cm = confusion_matrix(normal_gt_1, normal_hyp_1, 0.5)
 
     npt.assert_array_equal(
         cm,
@@ -812,8 +797,7 @@ def test_coco_cm_normal1(normal_hyp_1: Detections, normal_gt_1: Detections) -> N
 
 def test_coco_cm_normal2(normal_hyp_2: Detections, normal_gt_2: Detections) -> None:
     """Easy case, some not matching, some ignored"""
-    coco = COCOMetrics()
-    cm = coco.confusion_matrix(normal_gt_2, normal_hyp_2, 0.5, (1, 100))
+    cm = confusion_matrix(normal_gt_2, normal_hyp_2, 0.5, (1, 100))
 
     npt.assert_array_equal(
         cm,
@@ -882,8 +866,9 @@ def test_coco_metrics_normal1(
     ap_interpolation: str,
     result: dict,
 ) -> None:
-    coco = COCOMetrics(ap_interpolation)  # type: ignore
-    metrics = coco.compute_metrics(normal_gt_1, normal_hyp_1, 0.5)
+    metrics = compute_metrics(
+        normal_gt_1, normal_hyp_1, 0.5, ap_interpolation=ap_interpolation
+    )
 
     assert not DeepDiff(
         metrics,
@@ -947,9 +932,12 @@ def test_coco_metrics_normal2(
     ap_interpolation: str,
     result: dict,
 ) -> None:
-    coco = COCOMetrics(ap_interpolation)  # type: ignore
-    metrics = coco.compute_metrics(
-        normal_gt_2, normal_hyp_2, 0.5, area_range=(0.5, 100)
+    metrics = compute_metrics(
+        normal_gt_2,
+        normal_hyp_2,
+        0.5,
+        area_range=(0.5, 100),
+        ap_interpolation=ap_interpolation,
     )
 
     assert not DeepDiff(
@@ -1062,8 +1050,9 @@ def test_coco_summary_normal1(
     ap_interpolation: str,
     result: dict,
 ) -> None:
-    coco = COCOMetrics(ap_interpolation)  # type: ignore
-    summary = coco.compute_coco_summary(normal_gt_1, normal_hyp_1)
+    summary = compute_coco_summary(
+        normal_gt_1, normal_hyp_1, ap_interpolation=ap_interpolation
+    )
 
     assert not DeepDiff(
         summary,
@@ -1175,8 +1164,9 @@ def test_coco_summary_normal2(
     ap_interpolation: str,
     result: dict,
 ) -> None:
-    coco = COCOMetrics(ap_interpolation)  # type: ignore
-    summary = coco.compute_coco_summary(normal_gt_2, normal_hyp_2)
+    summary = compute_coco_summary(
+        normal_gt_2, normal_hyp_2, ap_interpolation=ap_interpolation
+    )
 
     assert not DeepDiff(
         summary,
@@ -1205,8 +1195,9 @@ def test_coco_metrics_example(
 ) -> None:
     """Easy case, perfect matching"""
 
-    coco = COCOMetrics(ap_interpolation)  # type: ignore
-    metrics = coco.compute_metrics(example_gt, example_hyp, iou_threshold)
+    metrics = compute_metrics(
+        example_gt, example_hyp, iou_threshold, ap_interpolation=ap_interpolation
+    )
 
     assert metrics["mean_ap"] == pytest.approx(result["ap"], abs=1e-4)
     assert metrics["class_results"]["cat"]["precision"] == pytest.approx(

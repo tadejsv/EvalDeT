@@ -3,7 +3,7 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 
-from evaldet.det.coco import evaluate_dataset, evaluate_image
+from evaldet.det.coco import _evaluate_dataset, _evaluate_image
 from evaldet.dist import iou_dist
 
 
@@ -18,7 +18,7 @@ def _ious_to_numba(dious: dict[int, np.ndarray]) -> numba.typed.Dict:
 
 
 def test_coco_evaluate_image_both_empty() -> None:
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         np.zeros((0, 4), dtype=np.float32),
         np.zeros((0, 4), dtype=np.float32),
         np.zeros((0, 0), dtype=np.float32),
@@ -34,7 +34,7 @@ def test_coco_evaluate_image_both_empty() -> None:
 
 
 def test_coco_evaluate_image_preds_empty() -> None:
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         np.zeros((0, 4), dtype=np.float32),
         np.random.rand(1, 4).astype(np.float32),
         np.zeros((0, 1), dtype=np.float32),
@@ -50,7 +50,7 @@ def test_coco_evaluate_image_preds_empty() -> None:
 
 
 def test_coco_evaluate_image_gts_empty() -> None:
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         np.random.rand(1, 4).astype(np.float32),
         np.zeros((0, 4), dtype=np.float32),
         np.zeros((1, 0), dtype=np.float32),
@@ -68,7 +68,7 @@ def test_coco_evaluate_image_gts_empty() -> None:
 def test_coco_evaluate_image_gts_all_ignored() -> None:
     preds_bbox = 10 + np.random.rand(1, 4).astype(np.float32)
     gts_bbox = np.random.rand(2, 4).astype(np.float32)  # Size will be < 1 * 1
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         preds_bbox,
         gts_bbox,
         1 - iou_dist(preds_bbox, gts_bbox),
@@ -86,7 +86,7 @@ def test_coco_evaluate_image_gts_all_ignored() -> None:
 def test_coco_evaluate_image_gts_small_ignored() -> None:
     preds_bbox = 10 + np.random.rand(1, 4).astype(np.float32)
     gts_bbox = np.array([[1, 1, 0.1, 1], [2, 2, 10, 10]], dtype=np.float32)
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         preds_bbox,
         gts_bbox,
         1 - iou_dist(preds_bbox, gts_bbox),
@@ -104,7 +104,7 @@ def test_coco_evaluate_image_gts_small_ignored() -> None:
 def test_coco_evaluate_image_gts_large_ignored() -> None:
     preds_bbox = np.random.rand(1, 4).astype(np.float32)
     gts_bbox = np.array([[1, 1, 0.1, 1], [2, 2, 10, 10]], dtype=np.float32)
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         preds_bbox,
         gts_bbox,
         1 - iou_dist(preds_bbox, gts_bbox),
@@ -122,7 +122,7 @@ def test_coco_evaluate_image_gts_large_ignored() -> None:
 def test_coco_evaluate_image_preds_ignored_matched() -> None:
     preds_bbox = np.array([[2, 2, 10, 10]], dtype=np.float32)
     gts_bbox = np.array([[1, 1, 0.1, 1], [2, 2, 10, 10]], dtype=np.float32)
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         preds_bbox,
         gts_bbox,
         1 - iou_dist(preds_bbox, gts_bbox),
@@ -140,7 +140,7 @@ def test_coco_evaluate_image_preds_ignored_matched() -> None:
 def test_coco_evaluate_image_preds_unmatched_ignored() -> None:
     preds_bbox = np.array([[2, 2, 10, 10]], dtype=np.float32)
     gts_bbox = np.array([[1, 1, 0.1, 1]], dtype=np.float32)
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         preds_bbox,
         gts_bbox,
         1 - iou_dist(preds_bbox, gts_bbox),
@@ -160,7 +160,7 @@ def test_coco_evaluate_image_matching_1() -> None:
     preds_bbox = np.array([[0, 0, 1, 1], [1, 1, 1, 1], [2, 2, 1, 1]], dtype=np.float32)
     gts_bbox = np.array([[1, 1, 1, 1], [3, 3, 10, 10], [0, 0, 1, 1]], dtype=np.float32)
 
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         preds_bbox,
         gts_bbox,
         1 - iou_dist(preds_bbox, gts_bbox),
@@ -187,7 +187,7 @@ def test_coco_evaluate_image_matching_2() -> None:
         [[1, 1, 1, 1], [0, 0, 1, 1], [2.5, 2.5, 1, 1]], dtype=np.float32
     )
 
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         preds_bbox,
         gts_bbox,
         1 - iou_dist(preds_bbox, gts_bbox),
@@ -212,7 +212,7 @@ def test_coco_evaluate_image_matching_3() -> None:
     preds_bbox = np.array([[1, 1, 1, 1], [1.2, 1.2, 1, 1]], dtype=np.float32)
     gts_bbox = np.array([[1, 1, 1, 1]], dtype=np.float32)
 
-    matched, ignored_pred, ignored_gt, n_gt = evaluate_image(
+    matched, ignored_pred, ignored_gt, n_gt = _evaluate_image(
         preds_bbox,
         gts_bbox,
         1 - iou_dist(preds_bbox, gts_bbox),
@@ -228,7 +228,7 @@ def test_coco_evaluate_image_matching_3() -> None:
 
 
 def test_coco_evaluate_dataset_no_gts() -> None:
-    det_matched, det_ignored, gts_ignored = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = _evaluate_dataset(
         preds_bbox=np.random.rand(1, 4).astype(np.float32),
         gts_bbox=np.zeros((0, 4), dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
@@ -244,7 +244,7 @@ def test_coco_evaluate_dataset_no_gts() -> None:
 
 
 def test_coco_evaluate_dataset_gts_all_ignored() -> None:
-    det_matched, det_ignored, gts_ignored = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = _evaluate_dataset(
         preds_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
         ious=_ious_to_numba({0: np.array([[0.1]], dtype=np.float32)}),
@@ -260,7 +260,7 @@ def test_coco_evaluate_dataset_gts_all_ignored() -> None:
 
 
 def test_coco_evaluate_dataset_no_preds() -> None:
-    det_matched, det_ignored, gts_ignored = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = _evaluate_dataset(
         preds_bbox=np.zeros((0, 4), dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((0, 1), dtype=np.float32)}),
@@ -276,7 +276,7 @@ def test_coco_evaluate_dataset_no_preds() -> None:
 
 
 def test_coco_evaluate_dataset_preds_all_ignored() -> None:
-    det_matched, det_ignored, gts_ignored = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = _evaluate_dataset(
         preds_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         ious=_ious_to_numba({0: np.array([[0.1]], dtype=np.float32)}),
@@ -293,7 +293,7 @@ def test_coco_evaluate_dataset_preds_all_ignored() -> None:
 
 def test_coco_evaluate_dataset_no_preds_image() -> None:
     """Preds missing on one image"""
-    det_matched, det_ignored, gts_ignored = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = _evaluate_dataset(
         preds_bbox=np.array(
             [
                 [0, 0, 1, 1],
@@ -319,7 +319,7 @@ def test_coco_evaluate_dataset_no_preds_image() -> None:
 
 
 def test_coco_evaluate_dataset_no_gts_image() -> None:
-    det_matched, det_ignored, gts_ignored = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = _evaluate_dataset(
         preds_bbox=np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         ious=_ious_to_numba(
@@ -369,7 +369,7 @@ def test_coco_evaluate_dataset_example_1() -> None:
         1: 1 - iou_dist(preds_bbox[3:], gts_bbox[3:]),
     }
 
-    det_matched, det_ignored, gts_ignored = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = _evaluate_dataset(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
@@ -414,7 +414,7 @@ def test_coco_evaluate_dataset_example_2() -> None:
         1: 1 - iou_dist(preds_bbox[3:], gts_bbox[3:]),
     }
 
-    det_matched, det_ignored, gts_ignored = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = _evaluate_dataset(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
@@ -505,7 +505,7 @@ def test_coco_evaluate_dataset_example_3(
             preds_bbox[preds_inds[0] : preds_inds[1]], gts_bbox[gt_inds[0] : gt_inds[1]]
         )
 
-    det_matched, det_ignored, gts_ignored = evaluate_dataset(
+    det_matched, det_ignored, gts_ignored = _evaluate_dataset(
         preds_bbox=preds_bbox,
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),

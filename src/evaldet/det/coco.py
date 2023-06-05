@@ -1,4 +1,5 @@
-from typing import Literal, Mapping, Optional, TypedDict, cast
+from enum import Enum
+from typing import Mapping, Optional, TypedDict, cast
 
 import numba
 import numpy as np
@@ -18,7 +19,7 @@ def _nonemean(x: npt.NDArray) -> Optional[float]:
     return float(np.nanmean(x))
 
 
-BASE_50_95_THRESHOLDS = (
+_BASE_50_95_THRESHOLDS = (
     0.5,
     0.55,
     0.6,
@@ -57,10 +58,22 @@ class COCOSummaryResults(TypedDict):
     mean_ap_sizes_per_class: dict[str, dict[str, Optional[float]]]
 
 
+class APInterpolation(str, Enum):
+    coco = "coco"
+    pascal = "pascal"
+
+
 @numba.njit(
-    "Tuple((int32[:], bool_[:], bool_[:], int32))(float32[:,::1], float32[:,::1], float32[:,::1], float32[:], Tuple((float32, float32)), float32)",
+    types.Tuple((types.int32[::1], types.bool_[::1], types.bool_[::1], types.int32))(
+        types.float32[:, ::1],
+        types.float32[:, ::1],
+        types.float32[:, ::1],
+        types.float32[::1],
+        types.Tuple((types.float32, types.float32)),
+        types.float32,
+    ),
 )
-def evaluate_image(
+def _evaluate_image(
     preds_bbox: npt.NDArray[np.float32],
     gts_bbox: npt.NDArray[np.float32],
     ious: npt.NDArray[np.float32],
@@ -163,7 +176,7 @@ def evaluate_image(
     ),
     parallel=False,
 )
-def evaluate_dataset(
+def _evaluate_dataset(
     preds_bbox: npt.NDArray[np.float32],
     gts_bbox: npt.NDArray[np.float32],
     ious: dict[int, npt.NDArray[np.float32]],
@@ -220,7 +233,7 @@ def evaluate_dataset(
         if img in ious:
             img_ious = ious[img]
 
-        (matched_img, ignored_dets_img, ignored_gts_img, _) = evaluate_image(
+        (matched_img, ignored_dets_img, ignored_gts_img, _) = _evaluate_image(
             preds_bbox[preds_start:preds_end],
             gts_bbox[gts_start:gts_end],
             img_ious,
@@ -243,301 +256,292 @@ def evaluate_dataset(
     return det_matched, det_ignored, gts_ignored
 
 
-class COCOMetrics:
+def _check_compatibility(gt: Detections, hyp: Detections) -> None:
+    if hyp.class_names != gt.class_names:
+        raise ValueError(
+            "`class_names` must be the same for ground truths and hypotheses"
+        )
+
+    if hyp.confs is None:
+        raise ValueError("`confs` must be provided for hypotheses")
+
+
+def _compute_ap(
+    precision: Optional[npt.NDArray[np.float64]],
+    recall: Optional[npt.NDArray[np.float64]],
+    ap_interpolation: APInterpolation = APInterpolation.coco,
+) -> Optional[float]:
+    if precision is None or recall is None:
+        return None
+
+    precision = np.concatenate([[0], precision])
+    recall = np.concatenate([[0], recall])
+    precision = np.maximum.accumulate(precision[::-1])[::-1]
+
+    if ap_interpolation == "coco":
+        thresholds = np.linspace(0.0, 1.00, 101, endpoint=True)
+        r_inds = np.searchsorted(recall, thresholds, side="left")
+        prec_a = np.concatenate([precision, [0]])
+        return prec_a[r_inds].mean()
+    elif ap_interpolation == "pascal":
+        return np.trapz(precision, recall)
+    else:
+        raise ValueError(f"Unknown interpolation {ap_interpolation}")
+
+
+def compute_metrics(
+    gt: Detections,
+    hyp: Detections,
+    iou_threshold: float,
+    area_range: tuple[float, float] = (0.0, float("inf")),
+    ap_interpolation: APInterpolation = APInterpolation.coco,
+) -> COCOResults:
     """
-    Class for computing COCO metrics.
+    Compute COCO metrics (mAP, precision and recall).
 
     The metrics are based on the [detection metrics](https://cocodataset.org/#detection-eval)
     of the COCO project. The metrics implemented here replicate the matching mechanism
     of the official ones, with the main difference being that the `"crowd"` attribute
     of ground truth objects is not taken into account here.
 
-    Apart from computing AP and related metrics, you can also compute the confusion
-    matrix, which is computed using the COCO matching mechanism, but ignoring the class
-    information (assuming all objects are of the same class).
+    Args:
+        gt: Ground truth detections.
+        hyp: Hypotheses detections.
+        iou_threshold: IoU threshold for matching.
+        area_range: The upper and lower threshold for object area. Objects outside
+            of this range will be ignored.
+        ap_interpolation: The method to use for interpolating the average precision
+            curve. The `coco` method uses 101 equally spaced point, while the
+            `pascal` method directly computes the area under the (max) curve. In
+            practice the difference between the two methods will be minimal.
+
+    Returns:
+        A dictionary that contains the mean average precision metrics for the whole
+        dataset (averaged class APs), as well as the results for each class (AP,
+        precision and recall).
     """
+    _check_compatibility(gt, hyp)
 
-    def __init__(self, ap_interpolation: Literal["coco", "pascal"] = "coco") -> None:
-        """
-        Initialize the object
+    class_results: dict[str, COCOResult] = {}
 
-        Args:
-            ap_interpolation: The method to use for interpolating the average precision
-                curve. The `coco` method uses 101 equally spaced point, while the
-                `pascal` method directly computes the area under the (max) curve. In
-                practice the difference between the two methods will be minimal.
-        """
-        if ap_interpolation not in ("coco", "pascal"):
-            raise ValueError(
-                "Only 'coco' and 'pascal' ap_interpolation values are allowed."
-            )
+    assert gt.class_names is not None  # keep mypy happy
+    for i, cls_name in enumerate(gt.class_names):
+        hyp_cls = hyp.filter(hyp.classes == i)
+        gt_cls = gt.filter(gt.classes == i)
 
-        self.ap_interpolation = ap_interpolation
+        img_ind_corr = utils.match_images(gt_cls, hyp_cls)
+        ious = utils.compute_ious(hyp_cls.bboxes, gt_cls.bboxes, img_ind_corr)
 
-    @staticmethod
-    def _check_compatibility(gt: Detections, hyp: Detections) -> None:
-        if hyp.class_names != gt.class_names:
-            raise ValueError(
-                "`class_names` must be the same for ground truths and hypotheses"
-            )
-
-        if hyp.confs is None:
-            raise ValueError("`confs` must be provided for hypotheses")
-
-    def _compute_ap(
-        self,
-        precision: Optional[npt.NDArray[np.float64]],
-        recall: Optional[npt.NDArray[np.float64]],
-    ) -> Optional[float]:
-        if precision is None or recall is None:
-            return None
-
-        precision = np.concatenate([[0], precision])
-        recall = np.concatenate([[0], recall])
-        precision = np.maximum.accumulate(precision[::-1])[::-1]
-
-        if self.ap_interpolation == "coco":
-            thresholds = np.linspace(0.0, 1.00, 101, endpoint=True)
-            r_inds = np.searchsorted(recall, thresholds, side="left")
-            prec_a = np.concatenate([precision, [0]])
-            return prec_a[r_inds].mean()
-        elif self.ap_interpolation == "pascal":
-            return np.trapz(precision, recall)
-
-    def compute_metrics(
-        self,
-        gt: Detections,
-        hyp: Detections,
-        iou_threshold: float,
-        area_range: tuple[float, float] = (0.0, float("inf")),
-    ) -> COCOResults:
-        """
-        Compute COCO metrics (mAP, precision and recall).
-
-        Args:
-            gt: Ground truth detections.
-            hyp: Hypotheses detections.
-            iou_threshold: IoU threshold for matching.
-            area_range: The upper and lower threshold for object area. Objects outside
-                of this range will be ignored.
-
-        Returns:
-            A dictionary that contains the mean average precision metrics for the whole
-            dataset (averaged class APs), as well as the results for each class (AP,
-            precision and recall).
-        """
-        self._check_compatibility(gt, hyp)
-
-        class_results: dict[str, COCOResult] = {}
-
-        assert gt.class_names is not None  # keep mypy happy
-        for i, cls_name in enumerate(gt.class_names):
-            hyp_cls = hyp.filter(hyp.classes == i)
-            gt_cls = gt.filter(gt.classes == i)
-
-            img_ind_corr = utils.match_images(gt_cls, hyp_cls)
-            ious = utils.compute_ious(hyp_cls.bboxes, gt_cls.bboxes, img_ind_corr)
-
-            hyp_matched, hyp_ignored, gts_ignored = evaluate_dataset(
-                preds_bbox=hyp_cls.bboxes,
-                gts_bbox=gt_cls.bboxes,
-                ious=ious,
-                preds_conf=hyp_cls.confs,
-                img_ind_corr=img_ind_corr,
-                area_range=area_range,
-                iou_threshold=iou_threshold,
-            )
-            n_gts = len(gt_cls.bboxes) - gts_ignored.sum()
-
-            assert hyp_cls.confs is not None  # keep mypy happy
-
-            precision, recall = prec_recall_curve(
-                hyp_matched[~hyp_ignored] != -1, hyp_cls.confs[~hyp_ignored], n_gts
-            )
-
-            if precision is None or recall is None:
-                class_results[cls_name] = dict(
-                    ap=None, recall=None, precision=None, n_gts=n_gts
-                )
-            else:
-                ap = self._compute_ap(precision, recall)
-
-                class_results[cls_name] = dict(
-                    ap=ap, recall=recall[-1], precision=precision[-1], n_gts=n_gts
-                )
-
-        # Aggregate metrics
-        aps = np.array([res["ap"] for res in class_results.values()], dtype=float)
-        mean_ap = _nonemean(aps)
-        metrics: COCOResults = dict(mean_ap=mean_ap, class_results=class_results)
-        return metrics
-
-    def compute_coco_summary(
-        self,
-        gt: Detections,
-        hyp: Detections,
-        sizes: Mapping[str, tuple[float, float]] = {
-            "small": (0.0, 32**2),
-            "medium": (32**2, 96**2),
-            "large": (96**2, float("inf")),
-        },
-    ) -> COCOSummaryResults:
-        """
-        Compute COCO summary metrics.
-
-        This computes the standard COCO summary metrics:
-        * mAP (overall, and for each class)
-        * mAP at IoU threshold of 0.5 and 0.75 (overall and for each class)
-        * mAP for different sizes of objects (overall and for each class)
-
-        Computing the summary metrics via this method is more efficient than using
-        `compute_metrics` to compute them individually, as some intermediate steps
-        (matching images, computing IoUs) can be shared between metrics.
-
-        Args:
-            gt: Ground truth detections
-            hyp: Hypotheses detections
-            sizes: A dictionary with size names as keys and their area ranges as values.
-
-        Returns:
-            A dictionary with all overall and per class summary metrics.
-        """
-        self._check_compatibility(gt, hyp)
-
-        sizes_all = {"_all": (0.0, float("inf"))} | sizes
-        ap_results: dict[tuple[str, str, int], Optional[float]] = {}
-
-        assert gt.class_names is not None  # keep mypy happy
-        for i_cls, cls_name in enumerate(gt.class_names):
-            hyp_cls = hyp.filter(hyp.classes == i_cls)
-            gt_cls = gt.filter(gt.classes == i_cls)
-
-            img_ind_corr = utils.match_images(gt_cls, hyp_cls)
-
-            ious = utils.compute_ious(hyp_cls.bboxes, gt_cls.bboxes, img_ind_corr)
-
-            for i_thr, iou_threshold in enumerate(BASE_50_95_THRESHOLDS):
-                for size_name, area_range in sizes_all.items():
-                    hyp_matched, hyp_ignored, gts_ignored = evaluate_dataset(
-                        preds_bbox=hyp_cls.bboxes,
-                        gts_bbox=gt_cls.bboxes,
-                        ious=ious,
-                        preds_conf=hyp_cls.confs,
-                        img_ind_corr=img_ind_corr,
-                        area_range=area_range,
-                        iou_threshold=iou_threshold,
-                    )
-                    n_gts = len(gt_cls.bboxes) - gts_ignored.sum()
-
-                    assert hyp_cls.confs is not None  # keep mypy happy
-                    precision, recall = prec_recall_curve(
-                        hyp_matched[~hyp_ignored] != -1,
-                        hyp_cls.confs[~hyp_ignored],
-                        n_gts,
-                    )
-
-                    ap_results[(cls_name, size_name, i_thr)] = self._compute_ap(
-                        precision, recall
-                    )
-
-        # Aggregate metricss
-        aps = np.array([ap for ap in ap_results.values()], dtype=np.float64)
-        cls_arr = np.array([k[0] for k in ap_results])
-        size_arr = np.array([k[1] for k in ap_results])
-        iou_t_arr = np.array([k[2] for k in ap_results])
-
-        results: dict = {}
-        results["mean_ap"] = _nonemean(aps[size_arr == "_all"])
-        results["ap_50"] = _nonemean(aps[(iou_t_arr == 0) & (size_arr == "_all")])
-        results["ap_75"] = _nonemean(aps[(iou_t_arr == 5) & (size_arr == "_all")])
-
-        results["mean_ap_per_class"] = {}
-        results["ap_50_per_class"] = {}
-        results["ap_75_per_class"] = {}
-
-        for cls in gt.class_names:
-            results["mean_ap_per_class"][cls] = _nonemean(
-                aps[(size_arr == "_all") & (cls_arr == cls)]
-            )
-            results["ap_50_per_class"][cls] = _nonemean(
-                aps[(size_arr == "_all") & (cls_arr == cls) & (iou_t_arr == 0)]
-            )
-            results["ap_75_per_class"][cls] = _nonemean(
-                aps[(size_arr == "_all") & (cls_arr == cls) & (iou_t_arr == 5)]
-            )
-
-        results["mean_ap_sizes"] = {}
-        for size_name in sizes:
-            results["mean_ap_sizes"][size_name] = _nonemean(aps[size_arr == size_name])
-
-        results["mean_ap_sizes_per_class"] = {}
-        for cls in gt.class_names:
-            results["mean_ap_sizes_per_class"][cls] = {}
-            for size_name in sizes:
-                results["mean_ap_sizes_per_class"][cls][size_name] = _nonemean(
-                    aps[(size_arr == size_name) & (cls_arr == cls)]
-                )
-
-        return cast(COCOSummaryResults, results)
-
-    def confusion_matrix(
-        self,
-        gt: Detections,
-        hyp: Detections,
-        iou_threshold: float,
-        area_range: tuple[float, float] = (0.0, float("inf")),
-    ) -> npt.NDArray[np.int32]:
-        """
-        Compute the confusion matrix.
-
-        This method computes the confusion matrix, which matches objects in hypotheses
-        and ground truth in a class-agnostic way, and then computes the number of
-        objects in hypotheses of class X that were matched with object of class Y in
-        ground truths. Number of unmatched objects in hypotheses and ground truths is
-        also calculated.
-
-        Args:
-            gt: Ground truth detections. It must contain `image_names` property, which
-                is used to match the images between `gt` and `hyp`. If it contains
-                `class_names`, they must match the ones from `hyp`.
-            hyp: Hypotheses (prediction) detections. It must contain `image_names`
-                property, which is used to match the images between `gt` and `hyp`. If
-                it contains `class_names`, they must match the ones from `gt`.
-            iou_threshold: IoU threshold for matching hypotheses objects to ground
-                truth.
-            area_threshold: A tuple of `(lower_limit, upper_limit)` floats that set
-                the lower and upper threshold for bound box area - detections with area
-                outside of this range will be ignored.
-
-        Returns:
-            A `[C + 1, C + 1]` matrix, where `C` is the number of classes, and the entry
-            at `[i, j]` denotes the number of hypotheses with class index `i` that were
-            matched to a ground truth with the class index `j`. If the row or column
-            index is `C` (last one), then this corresponds to the number of hypotheses
-            or ground truths, respectively, that were not matched.
-        """
-        self._check_compatibility(gt, hyp)
-
-        img_ind_corr = utils.match_images(gt, hyp)
-        ious = utils.compute_ious(hyp.bboxes, gt.bboxes, img_ind_corr)
-
-        det_matched, det_ignored, gts_ignored = evaluate_dataset(
-            preds_bbox=hyp.bboxes,
-            gts_bbox=gt.bboxes,
+        hyp_matched, hyp_ignored, gts_ignored = _evaluate_dataset(
+            preds_bbox=hyp_cls.bboxes,
+            gts_bbox=gt_cls.bboxes,
             ious=ious,
-            preds_conf=hyp.confs,
+            preds_conf=hyp_cls.confs,
             img_ind_corr=img_ind_corr,
             area_range=area_range,
             iou_threshold=iou_threshold,
         )
+        n_gts = len(gt_cls.bboxes) - gts_ignored.sum()
 
-        det_matched = det_matched[~det_ignored]
-        det_classes = hyp.classes[~det_ignored]
+        assert hyp_cls.confs is not None  # keep mypy happy
 
-        assert gt.class_names is not None  # keep mypy happy
-        n_classes = len(gt.class_names)
-        confusion_matrix = utils.confusion_matrix(
-            det_matched, gts_ignored, det_classes, gt.classes, n_classes
+        precision, recall = prec_recall_curve(
+            hyp_matched[~hyp_ignored] != -1, hyp_cls.confs[~hyp_ignored], n_gts
         )
 
-        return confusion_matrix
+        if precision is None or recall is None:
+            class_results[cls_name] = dict(
+                ap=None, recall=None, precision=None, n_gts=n_gts
+            )
+        else:
+            ap = _compute_ap(precision, recall, ap_interpolation)
+
+            class_results[cls_name] = dict(
+                ap=ap, recall=recall[-1], precision=precision[-1], n_gts=n_gts
+            )
+
+    # Aggregate metrics
+    aps = np.array([res["ap"] for res in class_results.values()], dtype=float)
+    mean_ap = _nonemean(aps)
+    metrics: COCOResults = dict(mean_ap=mean_ap, class_results=class_results)
+    return metrics
+
+
+def compute_coco_summary(
+    gt: Detections,
+    hyp: Detections,
+    sizes: Mapping[str, tuple[float, float]] = {
+        "small": (0.0, 32**2),
+        "medium": (32**2, 96**2),
+        "large": (96**2, float("inf")),
+    },
+    ap_interpolation: APInterpolation = APInterpolation.coco,
+) -> COCOSummaryResults:
+    """
+    Compute COCO summary metrics.
+
+    This computes the standard COCO summary metrics:
+    * mAP (overall, and for each class)
+    * mAP at IoU threshold of 0.5 and 0.75 (overall and for each class)
+    * mAP for different sizes of objects (overall and for each class)
+
+    The metrics are based on the [detection metrics](https://cocodataset.org/#detection-eval)
+    of the COCO project. The metrics implemented here replicate the matching mechanism
+    of the official ones, with the main difference being that the `"crowd"` attribute
+    of ground truth objects is not taken into account here.
+
+    Computing the summary metrics via this method is more efficient than using
+    `compute_metrics` to compute them individually, as some intermediate steps
+    (matching images, computing IoUs) can be shared between metrics.
+
+    Args:
+        gt: Ground truth detections
+        hyp: Hypotheses detections
+        sizes: A dictionary with size names as keys and their area ranges as values.
+        ap_interpolation: The method to use for interpolating the average precision
+            curve. The `coco` method uses 101 equally spaced point, while the
+            `pascal` method directly computes the area under the (max) curve. In
+            practice the difference between the two methods will be minimal.
+
+    Returns:
+        A dictionary with all overall and per class summary metrics.
+    """
+    _check_compatibility(gt, hyp)
+
+    sizes_all = {"_all": (0.0, float("inf"))} | sizes
+    ap_results: dict[tuple[str, str, int], Optional[float]] = {}
+
+    assert gt.class_names is not None  # keep mypy happy
+    for i_cls, cls_name in enumerate(gt.class_names):
+        hyp_cls = hyp.filter(hyp.classes == i_cls)
+        gt_cls = gt.filter(gt.classes == i_cls)
+
+        img_ind_corr = utils.match_images(gt_cls, hyp_cls)
+
+        ious = utils.compute_ious(hyp_cls.bboxes, gt_cls.bboxes, img_ind_corr)
+
+        for i_thr, iou_threshold in enumerate(_BASE_50_95_THRESHOLDS):
+            for size_name, area_range in sizes_all.items():
+                hyp_matched, hyp_ignored, gts_ignored = _evaluate_dataset(
+                    preds_bbox=hyp_cls.bboxes,
+                    gts_bbox=gt_cls.bboxes,
+                    ious=ious,
+                    preds_conf=hyp_cls.confs,
+                    img_ind_corr=img_ind_corr,
+                    area_range=area_range,
+                    iou_threshold=iou_threshold,
+                )
+                n_gts = len(gt_cls.bboxes) - gts_ignored.sum()
+
+                assert hyp_cls.confs is not None  # keep mypy happy
+                precision, recall = prec_recall_curve(
+                    hyp_matched[~hyp_ignored] != -1,
+                    hyp_cls.confs[~hyp_ignored],
+                    n_gts,
+                )
+
+                ap_results[(cls_name, size_name, i_thr)] = _compute_ap(
+                    precision, recall, ap_interpolation
+                )
+
+    # Aggregate metricss
+    aps = np.array([ap for ap in ap_results.values()], dtype=np.float64)
+    cls_arr = np.array([k[0] for k in ap_results])
+    size_arr = np.array([k[1] for k in ap_results])
+    iou_t_arr = np.array([k[2] for k in ap_results])
+
+    results: dict = {}
+    results["mean_ap"] = _nonemean(aps[size_arr == "_all"])
+    results["ap_50"] = _nonemean(aps[(iou_t_arr == 0) & (size_arr == "_all")])
+    results["ap_75"] = _nonemean(aps[(iou_t_arr == 5) & (size_arr == "_all")])
+
+    results["mean_ap_per_class"] = {}
+    results["ap_50_per_class"] = {}
+    results["ap_75_per_class"] = {}
+
+    for cls in gt.class_names:
+        results["mean_ap_per_class"][cls] = _nonemean(
+            aps[(size_arr == "_all") & (cls_arr == cls)]
+        )
+        results["ap_50_per_class"][cls] = _nonemean(
+            aps[(size_arr == "_all") & (cls_arr == cls) & (iou_t_arr == 0)]
+        )
+        results["ap_75_per_class"][cls] = _nonemean(
+            aps[(size_arr == "_all") & (cls_arr == cls) & (iou_t_arr == 5)]
+        )
+
+    results["mean_ap_sizes"] = {}
+    for size_name in sizes:
+        results["mean_ap_sizes"][size_name] = _nonemean(aps[size_arr == size_name])
+
+    results["mean_ap_sizes_per_class"] = {}
+    for cls in gt.class_names:
+        results["mean_ap_sizes_per_class"][cls] = {}
+        for size_name in sizes:
+            results["mean_ap_sizes_per_class"][cls][size_name] = _nonemean(
+                aps[(size_arr == size_name) & (cls_arr == cls)]
+            )
+
+    return cast(COCOSummaryResults, results)
+
+
+def confusion_matrix(
+    gt: Detections,
+    hyp: Detections,
+    iou_threshold: float,
+    area_range: tuple[float, float] = (0.0, float("inf")),
+) -> npt.NDArray[np.int32]:
+    """
+    Compute the confusion matrix.
+
+    This method computes the confusion matrix, which matches objects in hypotheses
+    and ground truth in a class-agnostic way, and then computes the number of
+    objects in hypotheses of class X that were matched with object of class Y in
+    ground truths. Number of unmatched objects in hypotheses and ground truths is
+    also calculated.
+
+    Args:
+        gt: Ground truth detections. It must contain `image_names` property, which
+            is used to match the images between `gt` and `hyp`. If it contains
+            `class_names`, they must match the ones from `hyp`.
+        hyp: Hypotheses (prediction) detections. It must contain `image_names`
+            property, which is used to match the images between `gt` and `hyp`. If
+            it contains `class_names`, they must match the ones from `gt`.
+        iou_threshold: IoU threshold for matching hypotheses objects to ground
+            truth.
+        area_threshold: A tuple of `(lower_limit, upper_limit)` floats that set
+            the lower and upper threshold for bound box area - detections with area
+            outside of this range will be ignored.
+
+    Returns:
+        A `[C + 1, C + 1]` matrix, where `C` is the number of classes, and the entry
+        at `[i, j]` denotes the number of hypotheses with class index `i` that were
+        matched to a ground truth with the class index `j`. If the row or column
+        index is `C` (last one), then this corresponds to the number of hypotheses
+        or ground truths, respectively, that were not matched.
+    """
+    _check_compatibility(gt, hyp)
+
+    img_ind_corr = utils.match_images(gt, hyp)
+    ious = utils.compute_ious(hyp.bboxes, gt.bboxes, img_ind_corr)
+
+    det_matched, det_ignored, gts_ignored = _evaluate_dataset(
+        preds_bbox=hyp.bboxes,
+        gts_bbox=gt.bboxes,
+        ious=ious,
+        preds_conf=hyp.confs,
+        img_ind_corr=img_ind_corr,
+        area_range=area_range,
+        iou_threshold=iou_threshold,
+    )
+
+    det_matched = det_matched[~det_ignored]
+    det_classes = hyp.classes[~det_ignored]
+
+    assert gt.class_names is not None  # keep mypy happy
+    n_classes = len(gt.class_names)
+    confusion_matrix = utils.confusion_matrix(
+        det_matched, gts_ignored, det_classes, gt.classes, n_classes
+    )
+
+    return confusion_matrix

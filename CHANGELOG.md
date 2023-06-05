@@ -4,9 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## 0.4.0 - 2023-05-XX
+## 0.4.0 - 2023-06-06
 
-* Drop support for Python 3.8, add support for Python 3.9
+* Drop support for Python 3.8, add support for Python 3.9 (#36)
+* Add module for computing COCO object detection metrics (#36)
+* Add Detections class to represent object detections, and load from and save to COCO and parquet formats (#36)
+* Refactor the individual MOT metrics from classes to functions (#36)
 
 ## [0.3.0] - 2022-12-02
 
