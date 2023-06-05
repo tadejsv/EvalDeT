@@ -1,14 +1,22 @@
-from typing import cast, Literal, Mapping, Optional, TypedDict
+from typing import Literal, Mapping, Optional, TypedDict, cast
+
 import numba
 import numpy as np
 import numpy.typing as npt
 from numba import types
 
 from evaldet import Detections
-from evaldet.utils.confusion_matrix import confusion_matrix as cm
 from evaldet.utils.prec_recall import prec_recall_curve
 
-from .base import DetMetricBase
+from . import utils
+
+
+def _nonemean(x: npt.NDArray) -> Optional[float]:
+    if x.size == 0 or np.all(np.isnan(x)):
+        return None
+
+    return float(np.nanmean(x))
+
 
 BASE_50_95_THRESHOLDS = (
     0.5,
@@ -38,7 +46,12 @@ class COCOResults(TypedDict):
 
 class COCOSummaryResults(TypedDict):
     mean_ap: Optional[float]
+    ap_50: Optional[float]
+    ap_75: Optional[float]
+
     mean_ap_per_class: dict[str, Optional[float]]
+    ap_50_per_class: dict[str, Optional[float]]
+    ap_75_per_class: dict[str, Optional[float]]
 
     mean_ap_sizes: dict[str, Optional[float]]
     mean_ap_sizes_per_class: dict[str, dict[str, Optional[float]]]
@@ -98,84 +111,64 @@ def evaluate_image(
     gts_area = gts_bbox[:, 2] * gts_bbox[:, 3]
     preds_area = preds_bbox[:, 2] * preds_bbox[:, 3]
 
-    ignore_preds_area = np.logical_or(
-        preds_area < area_range[0], preds_area > area_range[1]
-    )
+    ignore_preds_area = (preds_area < area_range[0]) | (preds_area > area_range[1])
 
     # Sort gts by ignore
-    gts_ignore_orig = np.logical_or(gts_area < area_range[0], gts_area > area_range[1])
-    sort_gt = np.argsort(gts_ignore_orig)
-    gts_ignore = gts_ignore_orig[sort_gt]
-    gts_area = gts_area[sort_gt]
-    gts_bbox = gts_bbox[sort_gt]
+    gts_ignore = (gts_area < area_range[0]) | (gts_area > area_range[1])
+    sort_gt = np.argsort(gts_ignore)
     n_gts = int((~gts_ignore).sum())
 
     if preds_conf.size == 0 or gts_bbox.size == 0:
-        return (matched, ignore_preds_area, gts_ignore_orig, n_gts)
+        return (matched, ignore_preds_area, gts_ignore, n_gts)
 
     # Sort preds by conf
     sort_preds = np.argsort(-preds_conf)
-    preds_bbox = preds_bbox[sort_preds]
-    preds_conf = preds_conf[sort_preds]
-    ignore_preds_area = ignore_preds_area[sort_preds]
 
-    # Get the index where to split gts into normal and ignore
-    start_ignore = int(n_gts)
-    if start_ignore == 0 and gts_ignore[0] == 0:
-        start_ignore = len(gts_area)  # Nothing is ignored
+    ious = ious[:, sort_gt]
 
-    ious = ious[sort_preds, :][:, sort_gt]
+    ignore_preds = np.zeros_like(ignore_preds_area)
 
-    ignore_preds = np.zeros(preds_conf.shape, dtype=np.bool_)
-
-    for p_ind in range(matched.shape[0]):
+    for i in range(matched.shape[0]):
+        p_ind = sort_preds[i]
         # Try mathing with normal gts
-        if start_ignore > 0:
-            best_match_ind = np.argmax(ious[p_ind, :start_ignore])
+        if n_gts > 0:
+            best_match_ind = np.argmax(ious[p_ind, :n_gts])
             if ious[p_ind, best_match_ind] > iou_threshold:
                 ious[:, best_match_ind] = -1
                 matched[p_ind] = sort_gt[best_match_ind]
                 continue
 
         # Try matching with ignored gts
-        if start_ignore < len(gts_area):
-            ignore_match_ind = np.argmax(ious[p_ind, start_ignore:]) + start_ignore
+        if n_gts < len(gts_area):
+            ignore_match_ind = np.argmax(ious[p_ind, n_gts:]) + n_gts
             if ious[p_ind, ignore_match_ind] > iou_threshold:
                 ious[:, ignore_match_ind] = -1
                 matched[p_ind] = sort_gt[ignore_match_ind]
                 ignore_preds[p_ind] = True
 
-    ignore_preds = np.logical_or(
-        ignore_preds, np.logical_and(matched == -1, ignore_preds_area)
-    )
+    ignore_preds = ignore_preds | ((matched == -1) & (ignore_preds_area))
 
-    sort_back_preds = np.argsort(sort_preds)
-    matched_orig = matched[sort_back_preds]
-    ignore_preds_orig = ignore_preds[sort_back_preds]
-
-    return matched_orig, ignore_preds_orig, gts_ignore_orig, n_gts
+    return matched, ignore_preds, gts_ignore, n_gts
 
 
 @numba.njit(
     types.Tuple((types.int32[::1], types.bool_[::1], types.bool_[::1]))(
         types.float32[:, ::1],
         types.float32[:, ::1],
-        types.DictType(types.int32, types.float32[:, ::1]),
+        types.DictType(types.int64, types.float32[:, ::1]),
         types.float32[::1],
-        types.DictType(types.int32, types.Tuple((types.int32, types.int32))),
-        types.DictType(types.int32, types.Tuple((types.int32, types.int32))),
+        types.int32[:, ::1],
         types.Tuple((types.float32, types.float32)),
         types.float32,
     ),
-    parallel=True,
+    parallel=False,
 )
 def evaluate_dataset(
     preds_bbox: npt.NDArray[np.float32],
     gts_bbox: npt.NDArray[np.float32],
     ious: dict[int, npt.NDArray[np.float32]],
     preds_conf: npt.NDArray[np.float32],
-    img_ind_dict_preds: dict[int, tuple[int, int]],
-    img_ind_dict_gts: dict[int, tuple[int, int]],
+    img_ind_corr: npt.NDArray[np.float32],
     area_range: tuple[float, float],
     iou_threshold: float,
 ) -> tuple[npt.NDArray[np.int32], npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
@@ -189,13 +182,12 @@ def evaluate_dataset(
           containing IoU similarity scores between predictions and ground truths for
           each image.
         preds_conf: A `[N,]` array of prediction confidence scores.
-        img_ind_dict_preds: A dictionary where keys are image indices, and values are
-          a tuple of 2 integers, denoting the starting and ending position of the
-          image's detection bounding boxes and confidences in `preds_bbox` and
-          `preds_conf`, respectively.
-        img_ ind_dict_gts: A dictionary where keys are image indices, and values are
-          a tuple of 2 integers, denoting the starting and ending position of the
-          image's ground truth bounding boxes `preds_bbox`.
+        img_ind_corr: An `[K, 4]` array, that for each image (in the union of images
+            from both hypotheses and ground truths) contains the start and end indices
+            for that image in both hypotheses and ground truths. A row is of the form
+            `hyp_start, hyp_end, gt_start, gt_end`. If `hyp_end` or `gt_end` is 0, that
+            means that this image does not appear in hypotheses or ground truths,
+            respectivelly.
         area_range: A tuple `(lower_limit, upper_limit)` of limits for bounding box
             areas. Ground truths with area outside of this range will be ignored, as
             will the predictions matched to them and unmatched predictions with area
@@ -217,16 +209,12 @@ def evaluate_dataset(
     gts_ignored = np.zeros((gts_bbox.shape[0],), dtype=np.bool_)
     det_matched = np.full_like(preds_conf, -1, dtype=np.int32)
 
-    keys_preds = set(img_ind_dict_preds.keys())
-    keys_gts = set(img_ind_dict_gts.keys())
-    all_imgs = list(keys_preds.union(keys_gts))
+    for img in numba.prange(len(img_ind_corr)):
+        preds_start, preds_end = img_ind_corr[img, :2]
+        gts_start, gts_end = img_ind_corr[img, 2:]
 
-    for i in numba.prange(len(all_imgs)):
-        img = all_imgs[i]
-
-        default_inds = (numba.int32(0), numba.int32(0))
-        preds_start, preds_end = img_ind_dict_preds.get(img, default_inds)
-        gts_start, gts_end = img_ind_dict_gts.get(img, default_inds)
+        if preds_end == 0 and gts_end == 0:
+            continue
 
         img_ious = np.zeros((0, 0), dtype=np.float32)
         if img in ious:
@@ -255,7 +243,7 @@ def evaluate_dataset(
     return det_matched, det_ignored, gts_ignored
 
 
-class COCOMetrics(DetMetricBase):
+class COCOMetrics:
     """
     Class for computing COCO metrics.
 
@@ -323,6 +311,21 @@ class COCOMetrics(DetMetricBase):
         iou_threshold: float,
         area_range: tuple[float, float] = (0.0, float("inf")),
     ) -> COCOResults:
+        """
+        Compute COCO metrics (mAP, precision and recall).
+
+        Args:
+            gt: Ground truth detections.
+            hyp: Hypotheses detections.
+            iou_threshold: IoU threshold for matching.
+            area_range: The upper and lower threshold for object area. Objects outside
+                of this range will be ignored.
+
+        Returns:
+            A dictionary that contains the mean average precision metrics for the whole
+            dataset (averaged class APs), as well as the results for each class (AP,
+            precision and recall).
+        """
         self._check_compatibility(gt, hyp)
 
         class_results: dict[str, COCOResult] = {}
@@ -332,18 +335,15 @@ class COCOMetrics(DetMetricBase):
             hyp_cls = hyp.filter(hyp.classes == i)
             gt_cls = gt.filter(gt.classes == i)
 
-            gt_img_ind_dict, hyp_img_ind_dict = self._match_images(gt_cls, hyp_cls)
-            ious = self._compute_ious(
-                hyp_cls.bboxes, gt_cls.bboxes, hyp_img_ind_dict, gt_img_ind_dict
-            )
+            img_ind_corr = utils.match_images(gt_cls, hyp_cls)
+            ious = utils.compute_ious(hyp_cls.bboxes, gt_cls.bboxes, img_ind_corr)
 
             hyp_matched, hyp_ignored, gts_ignored = evaluate_dataset(
                 preds_bbox=hyp_cls.bboxes,
                 gts_bbox=gt_cls.bboxes,
                 ious=ious,
                 preds_conf=hyp_cls.confs,
-                img_ind_dict_preds=hyp_img_ind_dict,
-                img_ind_dict_gts=gt_img_ind_dict,
+                img_ind_corr=img_ind_corr,
                 area_range=area_range,
                 iou_threshold=iou_threshold,
             )
@@ -368,10 +368,7 @@ class COCOMetrics(DetMetricBase):
 
         # Aggregate metrics
         aps = np.array([res["ap"] for res in class_results.values()], dtype=float)
-        mean_ap = np.nanmean(aps)
-        if np.isnan(mean_ap):
-            mean_ap = None
-
+        mean_ap = _nonemean(aps)
         metrics: COCOResults = dict(mean_ap=mean_ap, class_results=class_results)
         return metrics
 
@@ -379,13 +376,32 @@ class COCOMetrics(DetMetricBase):
         self,
         gt: Detections,
         hyp: Detections,
-        iou_thresholds: tuple[float, ...] = BASE_50_95_THRESHOLDS,
         sizes: Mapping[str, tuple[float, float]] = {
             "small": (0.0, 32**2),
             "medium": (32**2, 96**2),
             "large": (96**2, float("inf")),
         },
     ) -> COCOSummaryResults:
+        """
+        Compute COCO summary metrics.
+
+        This computes the standard COCO summary metrics:
+        * mAP (overall, and for each class)
+        * mAP at IoU threshold of 0.5 and 0.75 (overall and for each class)
+        * mAP for different sizes of objects (overall and for each class)
+
+        Computing the summary metrics via this method is more efficient than using
+        `compute_metrics` to compute them individually, as some intermediate steps
+        (matching images, computing IoUs) can be shared between metrics.
+
+        Args:
+            gt: Ground truth detections
+            hyp: Hypotheses detections
+            sizes: A dictionary with size names as keys and their area ranges as values.
+
+        Returns:
+            A dictionary with all overall and per class summary metrics.
+        """
         self._check_compatibility(gt, hyp)
 
         sizes_all = {"_all": (0.0, float("inf"))} | sizes
@@ -396,20 +412,18 @@ class COCOMetrics(DetMetricBase):
             hyp_cls = hyp.filter(hyp.classes == i_cls)
             gt_cls = gt.filter(gt.classes == i_cls)
 
-            gt_img_ind_dict, hyp_img_ind_dict = self._match_images(gt_cls, hyp_cls)
-            ious = self._compute_ious(
-                hyp_cls.bboxes, gt_cls.bboxes, hyp_img_ind_dict, gt_img_ind_dict
-            )
+            img_ind_corr = utils.match_images(gt_cls, hyp_cls)
 
-            for i_thr, iou_threshold in enumerate(iou_thresholds):
+            ious = utils.compute_ious(hyp_cls.bboxes, gt_cls.bboxes, img_ind_corr)
+
+            for i_thr, iou_threshold in enumerate(BASE_50_95_THRESHOLDS):
                 for size_name, area_range in sizes_all.items():
                     hyp_matched, hyp_ignored, gts_ignored = evaluate_dataset(
                         preds_bbox=hyp_cls.bboxes,
                         gts_bbox=gt_cls.bboxes,
                         ious=ious,
                         preds_conf=hyp_cls.confs,
-                        img_ind_dict_preds=hyp_img_ind_dict,
-                        img_ind_dict_gts=gt_img_ind_dict,
+                        img_ind_corr=img_ind_corr,
                         area_range=area_range,
                         iou_threshold=iou_threshold,
                     )
@@ -426,35 +440,41 @@ class COCOMetrics(DetMetricBase):
                         precision, recall
                     )
 
-        # Aggregate metrics
+        # Aggregate metricss
         aps = np.array([ap for ap in ap_results.values()], dtype=np.float64)
-        cls_arr = np.array([k[0] for k in ap_results.keys()])
-        size_arr = np.array([k[1] for k in ap_results.keys()])
-
-        def nonemean(x: npt.NDArray) -> Optional[float]:
-            mean = np.nanmean(x)
-            if np.isnan(mean):
-                return None
-            return mean
+        cls_arr = np.array([k[0] for k in ap_results])
+        size_arr = np.array([k[1] for k in ap_results])
+        iou_t_arr = np.array([k[2] for k in ap_results])
 
         results: dict = {}
-        results["mean_ap"] = nonemean(aps[size_arr == "_all"])
+        results["mean_ap"] = _nonemean(aps[size_arr == "_all"])
+        results["ap_50"] = _nonemean(aps[(iou_t_arr == 0) & (size_arr == "_all")])
+        results["ap_75"] = _nonemean(aps[(iou_t_arr == 5) & (size_arr == "_all")])
 
         results["mean_ap_per_class"] = {}
+        results["ap_50_per_class"] = {}
+        results["ap_75_per_class"] = {}
+
         for cls in gt.class_names:
-            results["mean_ap_per_class"][cls] = nonemean(
+            results["mean_ap_per_class"][cls] = _nonemean(
                 aps[(size_arr == "_all") & (cls_arr == cls)]
+            )
+            results["ap_50_per_class"][cls] = _nonemean(
+                aps[(size_arr == "_all") & (cls_arr == cls) & (iou_t_arr == 0)]
+            )
+            results["ap_75_per_class"][cls] = _nonemean(
+                aps[(size_arr == "_all") & (cls_arr == cls) & (iou_t_arr == 5)]
             )
 
         results["mean_ap_sizes"] = {}
-        for size_name in sizes.keys():
-            results["mean_ap_sizes"][size_name] = nonemean(aps[size_arr == size_name])
+        for size_name in sizes:
+            results["mean_ap_sizes"][size_name] = _nonemean(aps[size_arr == size_name])
 
         results["mean_ap_sizes_per_class"] = {}
         for cls in gt.class_names:
             results["mean_ap_sizes_per_class"][cls] = {}
-            for size_name in sizes.keys():
-                results["mean_ap_sizes_per_class"][cls][size_name] = nonemean(
+            for size_name in sizes:
+                results["mean_ap_sizes_per_class"][cls][size_name] = _nonemean(
                     aps[(size_arr == size_name) & (cls_arr == cls)]
                 )
 
@@ -498,18 +518,15 @@ class COCOMetrics(DetMetricBase):
         """
         self._check_compatibility(gt, hyp)
 
-        gt_img_ind_dict, hyp_img_ind_dict = self._match_images(gt, hyp)
-        ious = self._compute_ious(
-            hyp.bboxes, gt.bboxes, hyp_img_ind_dict, gt_img_ind_dict
-        )
+        img_ind_corr = utils.match_images(gt, hyp)
+        ious = utils.compute_ious(hyp.bboxes, gt.bboxes, img_ind_corr)
 
         det_matched, det_ignored, gts_ignored = evaluate_dataset(
             preds_bbox=hyp.bboxes,
             gts_bbox=gt.bboxes,
             ious=ious,
             preds_conf=hyp.confs,
-            img_ind_dict_preds=hyp_img_ind_dict,
-            img_ind_dict_gts=gt_img_ind_dict,
+            img_ind_corr=img_ind_corr,
             area_range=area_range,
             iou_threshold=iou_threshold,
         )
@@ -519,7 +536,7 @@ class COCOMetrics(DetMetricBase):
 
         assert gt.class_names is not None  # keep mypy happy
         n_classes = len(gt.class_names)
-        confusion_matrix = cm(
+        confusion_matrix = utils.confusion_matrix(
             det_matched, gts_ignored, det_classes, gt.classes, n_classes
         )
 

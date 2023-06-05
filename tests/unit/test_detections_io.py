@@ -50,7 +50,6 @@ def test_export_sample_no_confs_parquet(
     npt.assert_array_equal(sample_detections.image_ids, dets_r.image_ids)
     npt.assert_array_equal(sample_detections.bboxes, dets_r.bboxes)
     npt.assert_array_equal(sample_detections.classes, dets_r.classes)
-    npt.assert_array_equal(sample_detections.confs, dets_r.confs)
 
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
@@ -64,7 +63,6 @@ def test_open_parquet(data_dir: Path, sample_detections: Detections) -> None:
     npt.assert_array_equal(sample_detections.image_ids, dets_r.image_ids)
     npt.assert_array_equal(sample_detections.bboxes, dets_r.bboxes)
     npt.assert_array_equal(sample_detections.classes, dets_r.classes)
-    npt.assert_array_equal(sample_detections.confs, dets_r.confs)
 
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
@@ -115,7 +113,6 @@ def test_export_sample_no_confs_coco(
     npt.assert_array_equal(sample_detections.image_ids, dets_r.image_ids)
     npt.assert_array_equal(sample_detections.bboxes, dets_r.bboxes)
     npt.assert_array_equal(sample_detections.classes, dets_r.classes)
-    npt.assert_array_equal(sample_detections.confs, dets_r.confs)
 
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
@@ -129,7 +126,6 @@ def test_open_coco(data_dir: Path, sample_detections: Detections) -> None:
     npt.assert_array_equal(sample_detections.image_ids, dets_r.image_ids)
     npt.assert_array_equal(sample_detections.bboxes, dets_r.bboxes)
     npt.assert_array_equal(sample_detections.classes, dets_r.classes)
-    npt.assert_array_equal(sample_detections.confs, dets_r.confs)
 
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names

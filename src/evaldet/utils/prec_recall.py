@@ -38,11 +38,8 @@ def prec_recall_curve(
     if len(hyp_matched) == 0:
         return (np.array([0.0]), np.array([0]))
 
-    sort_arr = np.argsort(-hyp_conf)
-    hyp_conf = hyp_conf[sort_arr]
-    hyp_matched = hyp_matched[sort_arr]
-
-    precision = np.cumsum(hyp_matched) / np.arange(1, len(hyp_matched) + 1)
-    recall = np.cumsum(hyp_matched) / n_gts
+    hyp_matched_cum_sum = np.cumsum(hyp_matched[np.argsort(-hyp_conf)])
+    precision = hyp_matched_cum_sum / np.arange(1, len(hyp_matched) + 1)
+    recall = hyp_matched_cum_sum / n_gts
 
     return precision, recall

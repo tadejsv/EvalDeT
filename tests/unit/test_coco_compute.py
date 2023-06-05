@@ -2,7 +2,6 @@ import numba
 import numpy as np
 import numpy.testing as npt
 import pytest
-from numba import types
 
 from evaldet.det.coco import evaluate_dataset, evaluate_image
 from evaldet.dist import iou_dist
@@ -10,22 +9,12 @@ from evaldet.dist import iou_dist
 
 def _ious_to_numba(dious: dict[int, np.ndarray]) -> numba.typed.Dict:
     ious = numba.typed.Dict.empty(
-        key_type=numba.int32, value_type=numba.float32[:, ::1]
+        key_type=numba.int64, value_type=numba.float32[:, ::1]
     )
     for key, val in dious.items():
         ious[key] = val
 
     return ious
-
-
-def _image_dict_to_numba(fdict: dict[int, tuple[int, int]]) -> numba.typed.Dict:
-    images = numba.typed.Dict.empty(
-        key_type=numba.int32, value_type=types.Tuple((types.int32, types.int32))
-    )
-    for key, val in fdict.items():
-        images[key] = val
-
-    return images
 
 
 def test_coco_evaluate_image_both_empty() -> None:
@@ -244,8 +233,7 @@ def test_coco_evaluate_dataset_no_gts() -> None:
         gts_bbox=np.zeros((0, 4), dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
         preds_conf=np.array([0.5], dtype=np.float32),
-        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
-        img_ind_dict_gts=_image_dict_to_numba({}),
+        img_ind_corr=np.array([[0, 1, 0, 0]], dtype=np.int32),
         area_range=(0, 100),
         iou_threshold=0.5,
     )
@@ -259,10 +247,9 @@ def test_coco_evaluate_dataset_gts_all_ignored() -> None:
     det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
-        ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
+        ious=_ious_to_numba({0: np.array([[0.1]], dtype=np.float32)}),
         preds_conf=np.array([0.5], dtype=np.float32),
-        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
-        img_ind_dict_gts=_image_dict_to_numba({0: (0, 1)}),
+        img_ind_corr=np.array([[0, 1, 0, 1]], dtype=np.int32),
         area_range=(0.5, 100),
         iou_threshold=0.5,
     )
@@ -278,8 +265,7 @@ def test_coco_evaluate_dataset_no_preds() -> None:
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
         ious=_ious_to_numba({0: np.zeros((0, 1), dtype=np.float32)}),
         preds_conf=np.zeros((0,), dtype=np.float32),
-        img_ind_dict_preds=_image_dict_to_numba({}),
-        img_ind_dict_gts=_image_dict_to_numba({0: (0, 1)}),
+        img_ind_corr=np.array([[0, 0, 0, 1]], dtype=np.int32),
         area_range=(0, 100),
         iou_threshold=0.5,
     )
@@ -293,10 +279,9 @@ def test_coco_evaluate_dataset_preds_all_ignored() -> None:
     det_matched, det_ignored, gts_ignored = evaluate_dataset(
         preds_bbox=np.array([[0, 0, 0.1, 1]], dtype=np.float32),
         gts_bbox=np.array([[0, 0, 1, 1]], dtype=np.float32),
-        ious=_ious_to_numba({0: np.zeros((1, 0), dtype=np.float32)}),
+        ious=_ious_to_numba({0: np.array([[0.1]], dtype=np.float32)}),
         preds_conf=np.array([0.5], dtype=np.float32),
-        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
-        img_ind_dict_gts=_image_dict_to_numba({0: (0, 1)}),
+        img_ind_corr=np.array([[0, 1, 0, 1]], dtype=np.int32),
         area_range=(0.5, 100),
         iou_threshold=0.5,
     )
@@ -323,8 +308,7 @@ def test_coco_evaluate_dataset_no_preds_image() -> None:
             }
         ),
         preds_conf=np.array([0.5], dtype=np.float32),
-        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1)}),
-        img_ind_dict_gts=_image_dict_to_numba({0: (0, 1), 1: (1, 2)}),
+        img_ind_corr=np.array([[0, 1, 0, 1], [0, 0, 1, 2]], dtype=np.int32),
         area_range=(0, 100),
         iou_threshold=0.5,
     )
@@ -345,8 +329,7 @@ def test_coco_evaluate_dataset_no_gts_image() -> None:
             }
         ),
         preds_conf=np.array([0.5, 0.6], dtype=np.float32),
-        img_ind_dict_preds=_image_dict_to_numba({0: (0, 1), 1: (1, 2)}),
-        img_ind_dict_gts=_image_dict_to_numba({0: (0, 1)}),
+        img_ind_corr=np.array([[0, 1, 0, 1], [1, 2, 0, 0]], dtype=np.int32),
         area_range=(0, 100),
         iou_threshold=0.5,
     )
@@ -391,8 +374,7 @@ def test_coco_evaluate_dataset_example_1() -> None:
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
         preds_conf=preds_conf,
-        img_ind_dict_preds=_image_dict_to_numba({0: (0, 3), 1: (3, 6)}),
-        img_ind_dict_gts=_image_dict_to_numba({0: (0, 3), 1: (3, 6)}),
+        img_ind_corr=np.array([[0, 3, 0, 3], [3, 6, 3, 6]], dtype=np.int32),
         area_range=(0, 100),
         iou_threshold=0.3,
     )
@@ -437,8 +419,7 @@ def test_coco_evaluate_dataset_example_2() -> None:
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
         preds_conf=preds_conf,
-        img_ind_dict_preds=_image_dict_to_numba({0: (0, 3), 1: (3, 6)}),
-        img_ind_dict_gts=_image_dict_to_numba({0: (0, 3), 1: (3, 6)}),
+        img_ind_corr=np.array([[0, 3, 0, 3], [3, 6, 3, 6]], dtype=np.int32),
         area_range=(0.5, 100),
         iou_threshold=0.3,
     )
@@ -500,35 +481,27 @@ def test_coco_evaluate_dataset_example_3(
         [0.89, 0.82, 0.96, 0.99, 0.81, 0.86, 0.76, 0.95, 0.92, 0.85, 0.98, 0.94],
         dtype=np.float32,
     )
-    img_ind_dict_preds = {
-        0: (0, 2),
-        1: (2, 3),
-        2: (3, 4),
-        3: (4, 5),
-        4: (5, 7),
-        5: (7, 8),
-        6: (8, 9),
-        7: (9, 10),
-        8: (10, 11),
-        9: (11, 12),
-    }
-    img_ind_dict_gts = {
-        0: (0, 2),
-        1: (2, 3),
-        2: (3, 4),
-        3: (4, 6),
-        4: (6, 8),
-        5: (8, 9),
-        6: (9, 10),
-        8: (10, 11),
-        9: (11, 12),
-    }
+    img_ind_corr = np.array(
+        [
+            [0, 2, 0, 2],
+            [2, 3, 2, 3],
+            [3, 4, 3, 4],
+            [4, 5, 4, 6],
+            [5, 7, 6, 8],
+            [7, 8, 8, 9],
+            [8, 9, 9, 10],
+            [9, 10, 0, 0],
+            [10, 11, 10, 11],
+            [11, 12, 11, 12],
+        ],
+        dtype=np.int32,
+    )
 
     ious = {}
-    for k in set(img_ind_dict_preds.keys()).union(img_ind_dict_gts.keys()):
-        gt_inds = img_ind_dict_gts.get(k, (0, 0))
-        preds_inds = img_ind_dict_preds.get(k, (0, 0))
-        ious[k] = 1 - iou_dist(
+    for i in range(len(img_ind_corr)):
+        gt_inds = img_ind_corr[i, 2:]
+        preds_inds = img_ind_corr[i, :2]
+        ious[i] = 1 - iou_dist(
             preds_bbox[preds_inds[0] : preds_inds[1]], gts_bbox[gt_inds[0] : gt_inds[1]]
         )
 
@@ -537,8 +510,7 @@ def test_coco_evaluate_dataset_example_3(
         gts_bbox=gts_bbox,
         ious=_ious_to_numba(ious),
         preds_conf=preds_conf,
-        img_ind_dict_preds=_image_dict_to_numba(img_ind_dict_preds),
-        img_ind_dict_gts=_image_dict_to_numba(img_ind_dict_gts),
+        img_ind_corr=img_ind_corr,
         area_range=(0, 100),
         iou_threshold=iou_threshold,
     )

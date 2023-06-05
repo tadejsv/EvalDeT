@@ -67,5 +67,5 @@ warn_unused_ignores = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["scipy.*", "pyarrow.*", "numba.*"]
+module = ["scipy.*", "pyarrow.*", "numba.*", "deepdiff.*"]
 ignore_missing_imports = true

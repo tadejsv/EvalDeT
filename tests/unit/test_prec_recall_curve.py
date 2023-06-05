@@ -4,23 +4,25 @@ import numpy.testing as npt
 from evaldet.utils.prec_recall import prec_recall_curve as prc
 
 
-def test_prec_recall_curve_no_gts():
+def test_prec_recall_curve_no_gts() -> None:
     assert prc(np.array([False]), np.array([1.0]), 0) == (None, None)
 
 
-def test_prec_recall_curve_no_preds():
+def test_prec_recall_curve_no_preds() -> None:
     prec, rec = prc(np.array([]), np.array([]), 1)
+    assert prec is not None and rec is not None
     npt.assert_array_equal(prec, np.array([0.0]))
     npt.assert_array_equal(rec, np.array([0.0]))
 
 
-def test_prec_recall_curve_no_matching():
+def test_prec_recall_curve_no_matching() -> None:
     prec, rec = prc(np.array([False, False]), np.array([1.0, 1.0]), 2)
+    assert prec is not None and rec is not None
     npt.assert_array_equal(prec, np.array([0.0, 0.0]))
     npt.assert_array_equal(rec, np.array([0.0, 0.0]))
 
 
-def test_prec_recall_curve_normal():
+def test_prec_recall_curve_normal() -> None:
     det_matched = np.array(
         [
             0,
@@ -56,6 +58,7 @@ def test_prec_recall_curve_normal():
         dtype=np.float32,
     )
     prec, rec = prc(det_matched, det_conf, 12)
+    assert prec is not None and rec is not None
     npt.assert_almost_equal(
         prec,
         np.array(

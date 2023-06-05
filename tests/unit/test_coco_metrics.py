@@ -3,8 +3,8 @@ import numpy.testing as npt
 import pytest
 from deepdiff import DeepDiff
 
-from evaldet.detections import Detections
 from evaldet.det.coco import COCOMetrics
+from evaldet.detections import Detections
 
 
 @pytest.fixture(scope="function")
@@ -116,12 +116,80 @@ def normal_gt_2() -> Detections:
 
 @pytest.fixture(scope="function")
 def example_hyp() -> Detections:
-    pass
+    return Detections(
+        [0, 1, 2, 3, 4, 5, 6, 6, 7, 7, 8, 9],
+        np.array(
+            [
+                [12.0, 44.0, 332.0, 437.0],
+                [220.0, 344.0, 180.0, 87.0],
+                [166.0, 0.0, 311.0, 365.0],
+                [49.0, 7.0, 269.0, 493.0],
+                [6.0, 55.0, 489.0, 347.0],
+                [65.0, 74.0, 305.0, 257.0],
+                [67.0, 117.0, 162.0, 187.0],
+                [281.0, 109.0, 163.0, 211.0],
+                [7.0, 9.0, 342.0, 256.0],
+                [151.0, 123.0, 352.0, 252.0],
+                [29.0, 0.0, 239.0, 287.0],
+                [47.0, 43.0, 179.0, 255.0],
+            ],
+            dtype=np.float32,
+        ),
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ("cat",),
+        (
+            "2007_000549",
+            "2007_000733",
+            "2007_003525",
+            "2007_004856",
+            "2007_005460",
+            "2007_005688",
+            "2007_009346",
+            "2008_002045",
+            "2008_006599",
+            "2010_004175",
+        ),
+        confs=[0.94, 0.85, 0.95, 0.92, 0.951, 0.81, 0.86, 0.76, 0.89, 0.82, 0.99, 0.98],
+    )
 
 
 @pytest.fixture(scope="function")
 def example_gt() -> Detections:
-    pass
+    return Detections(
+        [0, 2, 3, 4, 5, 5, 6, 6, 7, 7, 8, 9],
+        np.array(
+            [
+                [1.0, 49.0, 340.0, 450.0],
+                [160.0, 1.0, 288.0, 374.0],
+                [28.0, 1.0, 307.0, 495.0],
+                [40.0, 4.0, 444.0, 366.0],
+                [170.0, 44.0, 289.0, 207.0],
+                [72.0, 123.0, 315.0, 211.0],
+                [60.0, 123.0, 160.0, 182.0],
+                [243.0, 105.0, 194.0, 212.0],
+                [1.0, 16.0, 351.0, 256.0],
+                [130.0, 139.0, 370.0, 227.0],
+                [34.0, 1.0, 247.0, 282.0],
+                [1.0, 39.0, 247.0, 261.0],
+            ],
+            dtype=np.float32,
+        ),
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ("cat",),
+        (
+            "2007_000549",
+            "2007_000733",
+            "2007_003525",
+            "2007_004856",
+            "2007_005460",
+            "2007_005688",
+            "2007_009346",
+            "2008_002045",
+            "2008_006599",
+            "2010_004175",
+        ),
+        confs=None,
+    )
 
 
 #########################################
@@ -417,6 +485,311 @@ def test_coco_metrics_class_missing() -> None:
     }
 
 
+@pytest.mark.parametrize(
+    "ap_interpolation,result",
+    [
+        (
+            "pascal",
+            {
+                "mean_ap": 0.75,
+                "ap_50": 0.75,
+                "ap_75": 0.75,
+                "mean_ap_per_class": {"cls1": 0.75},
+                "ap_50_per_class": {"cls1": 0.75},
+                "ap_75_per_class": {"cls1": 0.75},
+                "mean_ap_sizes": {"size": 0.75},
+                "mean_ap_sizes_per_class": {
+                    "cls1": {"size": 0.75},
+                },
+            },
+        ),
+        (
+            "coco",
+            {
+                "mean_ap": 76 / 101,
+                "ap_50": 76 / 101,
+                "ap_75": 76 / 101,
+                "mean_ap_per_class": {"cls1": 76 / 101},
+                "ap_50_per_class": {"cls1": 76 / 101},
+                "ap_75_per_class": {"cls1": 76 / 101},
+                "mean_ap_sizes": {"size": 76 / 101},
+                "mean_ap_sizes_per_class": {
+                    "cls1": {"size": 76 / 101},
+                },
+            },
+        ),
+    ],
+)
+def test_coco_summary_simple(ap_interpolation: str, result: dict) -> None:
+    """4 dets 1 class, one non-matching, others perfect"""
+    hyp = Detections(
+        [0, 0, 0, 0],
+        np.array([[0, 0, 1, 1], [1, 1, 1, 1], [2, 2, 1, 1], [3, 3, 1, 1]]),
+        [0, 0, 0, 0],
+        ("cls1",),
+        ("im",),
+        confs=[1.0, 1.0, 1.0, 0.9],
+    )
+
+    gts = Detections(
+        [0, 0, 0, 0],
+        np.array([[0, 0, 1, 1], [1, 1, 1, 1], [2, 2, 1, 1], [4, 4, 1, 1]]),
+        [0, 0, 0, 0],
+        ("cls1",),
+        ("im",),
+        confs=None,
+    )
+
+    coco = COCOMetrics(ap_interpolation)  # type: ignore
+    summary = coco.compute_coco_summary(gts, hyp, sizes={"size": (0, float("inf"))})
+
+    assert not DeepDiff(
+        summary,
+        result,
+        ignore_order=True,
+        significant_digits=6,
+        ignore_numeric_type_changes=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "ap_interpolation,result",
+    [
+        (
+            "pascal",
+            {
+                "mean_ap": 0.55,
+                "ap_50": 0.75,
+                "ap_75": 0.5,
+                "mean_ap_per_class": {"cls1": 0.55},
+                "ap_50_per_class": {"cls1": 0.75},
+                "ap_75_per_class": {"cls1": 0.5},
+                "mean_ap_sizes": {"size": 0.55},
+                "mean_ap_sizes_per_class": {
+                    "cls1": {"size": 0.55},
+                },
+            },
+        ),
+        (
+            "coco",
+            {
+                "mean_ap": 56 / 101,
+                "ap_50": 76 / 101,
+                "ap_75": 51 / 101,
+                "mean_ap_per_class": {"cls1": 56 / 101},
+                "ap_50_per_class": {"cls1": 76 / 101},
+                "ap_75_per_class": {"cls1": 51 / 101},
+                "mean_ap_sizes": {"size": 56 / 101},
+                "mean_ap_sizes_per_class": {
+                    "cls1": {"size": 56 / 101},
+                },
+            },
+        ),
+    ],
+)
+def test_coco_summary_different_iou_thresholds(
+    ap_interpolation: str, result: dict
+) -> None:
+    """4 dets 1 class, different IoUs"""
+    hyp = Detections(
+        [0, 0, 0, 0],
+        np.array([[0, 0, 1, 1], [1, 1, 1, 1], [2, 2, 1, 1], [3, 3, 1, 1]]),
+        [0, 0, 0, 0],
+        ("cls1",),
+        ("im",),
+        confs=[1.0, 1.0, 0.9, 0.8],
+    )
+
+    gts = Detections(
+        [0, 0, 0, 0],
+        np.array([[0, 0, 1, 1], [1, 1, 1, 1], [2, 2, 0.75, 0.75], [3, 3, 0.5, 0.5]]),
+        [0, 0, 0, 0],
+        ("cls1",),
+        ("im",),
+        confs=None,
+    )
+
+    coco = COCOMetrics(ap_interpolation)  # type: ignore
+    summary = coco.compute_coco_summary(gts, hyp, sizes={"size": (0, float("inf"))})
+
+    assert not DeepDiff(
+        summary,
+        result,
+        ignore_order=True,
+        significant_digits=6,
+        ignore_numeric_type_changes=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "ap_interpolation,result",
+    [
+        (
+            "pascal",
+            {
+                "mean_ap": 3 / 5,
+                "ap_50": 0.6,
+                "ap_75": 0.6,
+                "mean_ap_per_class": {"cls1": 0.6},
+                "ap_50_per_class": {"cls1": 0.6},
+                "ap_75_per_class": {"cls1": 0.6},
+                "mean_ap_sizes": {"small": 2 / 3, "large": 1 / 2},
+                "mean_ap_sizes_per_class": {
+                    "cls1": {"small": 2 / 3, "large": 1 / 2},
+                },
+            },
+        ),
+        (
+            "coco",
+            {
+                "mean_ap": 61 / 101,
+                "ap_50": 61 / 101,
+                "ap_75": 61 / 101,
+                "mean_ap_per_class": {"cls1": 61 / 101},
+                "ap_50_per_class": {"cls1": 61 / 101},
+                "ap_75_per_class": {"cls1": 61 / 101},
+                "mean_ap_sizes": {"small": 67 / 101, "large": 51 / 101},
+                "mean_ap_sizes_per_class": {
+                    "cls1": {"small": 67 / 101, "large": 51 / 101},
+                },
+            },
+        ),
+    ],
+)
+def test_coco_summary_different_sizes(ap_interpolation: str, result: dict) -> None:
+    """5 dets 1 class, 2 size classes (3/2): 1 non-matching first, 1 second"""
+    hyp = Detections(
+        [0, 0, 0, 0, 0],
+        np.array(
+            [[0, 0, 1, 1], [1, 1, 1, 1], [2, 2, 1, 1], [30, 30, 2, 2], [40, 40, 2, 2]]
+        ),
+        [0, 0, 0, 0, 0],
+        ("cls1",),
+        ("im",),
+        confs=[1.0, 1.0, 0.9, 1.0, 0.8],
+    )
+
+    gts = Detections(
+        [0, 0, 0, 0, 0],
+        np.array(
+            [[0, 0, 1, 1], [1, 1, 1, 1], [3, 3, 1, 1], [30, 30, 2, 2], [45, 45, 2, 2]]
+        ),
+        [0, 0, 0, 0, 0],
+        ("cls1",),
+        ("im",),
+        confs=None,
+    )
+
+    coco = COCOMetrics(ap_interpolation)  # type: ignore
+    summary = coco.compute_coco_summary(
+        gts, hyp, sizes={"small": (0, 2), "large": (2, 10)}
+    )
+
+    assert not DeepDiff(
+        summary,
+        result,
+        ignore_order=True,
+        significant_digits=6,
+        ignore_numeric_type_changes=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "ap_interpolation,result",
+    [
+        (
+            "pascal",
+            {
+                "mean_ap": 1 / 2,
+                "ap_50": 1 / 2,
+                "ap_75": 1 / 2,
+                "mean_ap_per_class": {"cls1": 2 / 3, "cls2": 1 / 3},
+                "ap_50_per_class": {"cls1": 2 / 3, "cls2": 1 / 3},
+                "ap_75_per_class": {"cls1": 2 / 3, "cls2": 1 / 3},
+                "mean_ap_sizes": {"small": 2 / 3, "large": 1 / 3},
+                "mean_ap_sizes_per_class": {
+                    "cls1": {"small": 2 / 3, "large": None},
+                    "cls2": {"small": None, "large": 1 / 3},
+                },
+            },
+        ),
+        (
+            "coco",
+            {
+                "mean_ap": 1 / 2,
+                "ap_50": 1 / 2,
+                "ap_75": 1 / 2,
+                "mean_ap_per_class": {"cls1": 67 / 101, "cls2": 34 / 101},
+                "ap_50_per_class": {"cls1": 67 / 101, "cls2": 34 / 101},
+                "ap_75_per_class": {"cls1": 67 / 101, "cls2": 34 / 101},
+                "mean_ap_sizes": {"small": 67 / 101, "large": 34 / 101},
+                "mean_ap_sizes_per_class": {
+                    "cls1": {"small": 67 / 101, "large": None},
+                    "cls2": {"small": None, "large": 34 / 101},
+                },
+            },
+        ),
+    ],
+)
+def test_coco_summary_different_sizes_classes(
+    ap_interpolation: str, result: dict
+) -> None:
+    """2 classes, 3 dets per class, class 1 only size 1, class 2 only size 2"""
+    hyp = Detections(
+        [0, 0, 0, 0, 0, 0],
+        np.array(
+            [
+                [0, 0, 1, 1],
+                [1, 1, 1, 1],
+                [2, 2, 1, 1],
+                [30, 30, 2, 2],
+                [40, 40, 2, 2],
+                [50, 50, 2, 2],
+            ]
+        ),
+        [0, 0, 0, 1, 1, 1],
+        ("cls1", "cls2"),
+        ("im",),
+        confs=[1.0, 1.0, 0.9, 1.0, 0.85, 0.8],
+    )
+
+    gts = Detections(
+        [0, 0, 0, 0, 0, 0],
+        np.array(
+            [
+                [0, 0, 1, 1],
+                [1, 1, 1, 1],
+                [3, 3, 1, 1],
+                [30, 30, 2, 2],
+                [45, 45, 2, 2],
+                [60, 60, 2, 2],
+            ]
+        ),
+        [0, 0, 0, 1, 1, 1],
+        ("cls1", "cls2"),
+        ("im",),
+        confs=None,
+    )
+
+    coco = COCOMetrics(ap_interpolation)  # type: ignore
+    summary = coco.compute_coco_summary(
+        gts, hyp, sizes={"small": (0, 2), "large": (2, 10)}
+    )
+
+    assert not DeepDiff(
+        summary,
+        result,
+        ignore_order=True,
+        significant_digits=6,
+        ignore_numeric_type_changes=True,
+    )
+
+
+#####################################
+# Test on examples
+#####################################
+
+
 def test_coco_cm_normal1(normal_hyp_1: Detections, normal_gt_1: Detections) -> None:
     """Easy case, perfect matching"""
 
@@ -509,7 +882,7 @@ def test_coco_metrics_normal1(
     ap_interpolation: str,
     result: dict,
 ) -> None:
-    coco = COCOMetrics(ap_interpolation)
+    coco = COCOMetrics(ap_interpolation)  # type: ignore
     metrics = coco.compute_metrics(normal_gt_1, normal_hyp_1, 0.5)
 
     assert not DeepDiff(
@@ -574,7 +947,7 @@ def test_coco_metrics_normal2(
     ap_interpolation: str,
     result: dict,
 ) -> None:
-    coco = COCOMetrics(ap_interpolation)
+    coco = COCOMetrics(ap_interpolation)  # type: ignore
     metrics = coco.compute_metrics(
         normal_gt_2, normal_hyp_2, 0.5, area_range=(0.5, 100)
     )
@@ -595,7 +968,19 @@ def test_coco_metrics_normal2(
             "pascal",
             {
                 "mean_ap": 13 / 54,
+                "ap_50": 13 / 54,
+                "ap_75": 13 / 54,
                 "mean_ap_per_class": {
+                    "cls1": 10 / 18,
+                    "cls2": 0,
+                    "cls3": 1 / 6,
+                },
+                "ap_50_per_class": {
+                    "cls1": 10 / 18,
+                    "cls2": 0,
+                    "cls3": 1 / 6,
+                },
+                "ap_75_per_class": {
                     "cls1": 10 / 18,
                     "cls2": 0,
                     "cls3": 1 / 6,
@@ -628,7 +1013,19 @@ def test_coco_metrics_normal2(
             "coco",
             {
                 "mean_ap": 73 / 303,
+                "ap_50": 73 / 303,
+                "ap_75": 73 / 303,
                 "mean_ap_per_class": {
+                    "cls1": 56 / 101,
+                    "cls2": 0,
+                    "cls3": 17 / 101,
+                },
+                "ap_50_per_class": {
+                    "cls1": 56 / 101,
+                    "cls2": 0,
+                    "cls3": 17 / 101,
+                },
+                "ap_75_per_class": {
                     "cls1": 56 / 101,
                     "cls2": 0,
                     "cls3": 17 / 101,
@@ -665,11 +1062,11 @@ def test_coco_summary_normal1(
     ap_interpolation: str,
     result: dict,
 ) -> None:
-    coco = COCOMetrics(ap_interpolation)
-    metrics = coco.compute_coco_summary(normal_gt_1, normal_hyp_1)
+    coco = COCOMetrics(ap_interpolation)  # type: ignore
+    summary = coco.compute_coco_summary(normal_gt_1, normal_hyp_1)
 
     assert not DeepDiff(
-        metrics,
+        summary,
         result,
         ignore_order=True,
         significant_digits=6,
@@ -684,7 +1081,19 @@ def test_coco_summary_normal1(
             "pascal",
             {
                 "mean_ap": 7 / 72,
+                "ap_50": 7 / 72,
+                "ap_75": 7 / 72,
                 "mean_ap_per_class": {
+                    "cls1": 1 / 8,
+                    "cls2": 0,
+                    "cls3": 1 / 6,
+                },
+                "ap_75_per_class": {
+                    "cls1": 1 / 8,
+                    "cls2": 0,
+                    "cls3": 1 / 6,
+                },
+                "ap_50_per_class": {
                     "cls1": 1 / 8,
                     "cls2": 0,
                     "cls3": 1 / 6,
@@ -717,7 +1126,19 @@ def test_coco_summary_normal1(
             "coco",
             {
                 "mean_ap": 10 / 101,
+                "ap_50": 10 / 101,
+                "ap_75": 10 / 101,
                 "mean_ap_per_class": {
+                    "cls1": 13 / 101,
+                    "cls2": 0,
+                    "cls3": 17 / 101,
+                },
+                "ap_50_per_class": {
+                    "cls1": 13 / 101,
+                    "cls2": 0,
+                    "cls3": 17 / 101,
+                },
+                "ap_75_per_class": {
                     "cls1": 13 / 101,
                     "cls2": 0,
                     "cls3": 17 / 101,
@@ -754,13 +1175,43 @@ def test_coco_summary_normal2(
     ap_interpolation: str,
     result: dict,
 ) -> None:
-    coco = COCOMetrics(ap_interpolation)
-    metrics = coco.compute_coco_summary(normal_gt_2, normal_hyp_2)
+    coco = COCOMetrics(ap_interpolation)  # type: ignore
+    summary = coco.compute_coco_summary(normal_gt_2, normal_hyp_2)
 
     assert not DeepDiff(
-        metrics,
+        summary,
         result,
         ignore_order=True,
         significant_digits=6,
         ignore_numeric_type_changes=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "ap_interpolation,iou_threshold,result",
+    [
+        ("pascal", 0.5, {"ap": 0.8958, "precision": 0.9167, "recall": 0.9167}),
+        ("coco", 0.5, {"ap": 0.8902, "precision": 0.9167, "recall": 0.9167}),
+        ("pascal", 0.75, {"ap": 0.5097, "precision": 2 / 3, "recall": 2 / 3}),
+        ("coco", 0.75, {"ap": 0.5092, "precision": 2 / 3, "recall": 2 / 3}),
+    ],
+)
+def test_coco_metrics_example(
+    example_hyp: Detections,
+    example_gt: Detections,
+    ap_interpolation: str,
+    iou_threshold: float,
+    result: dict,
+) -> None:
+    """Easy case, perfect matching"""
+
+    coco = COCOMetrics(ap_interpolation)  # type: ignore
+    metrics = coco.compute_metrics(example_gt, example_hyp, iou_threshold)
+
+    assert metrics["mean_ap"] == pytest.approx(result["ap"], abs=1e-4)
+    assert metrics["class_results"]["cat"]["precision"] == pytest.approx(
+        result["precision"], abs=1e-4
+    )
+    assert metrics["class_results"]["cat"]["recall"] == pytest.approx(
+        result["recall"], abs=1e-4
     )

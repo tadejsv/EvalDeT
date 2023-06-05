@@ -6,7 +6,8 @@ import numpy.typing as npt
 from scipy.optimize import linear_sum_assignment
 
 from evaldet.tracks import Tracks
-from evaldet.utils import sparse
+
+from .utils import create_coo_array
 
 
 class IDResults(t.TypedDict):
@@ -66,7 +67,7 @@ def calculate_id_metrics(
 
     # Calculate matching as a LAP, get FN, FP and TP from matched entries
     # row_m_inds, col_m_inds = linear_sum_assignment(cost_matrix)
-    matches_matrix = sparse.create_coo_array(matches, (len(gts), len(hyps)))
+    matches_matrix = create_coo_array(matches, (len(gts), len(hyps)))
     matches_array = matches_matrix.toarray()
     row_m_inds, col_m_inds = linear_sum_assignment(matches_array, maximize=True)
 

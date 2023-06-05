@@ -57,7 +57,7 @@ class Detections:
             confs: An optional sequence or array of confidences (scores).
             class_names: A sequence (list, tuple) of class names. The `i`-th element in
                 the sequence (zero indexed) is the class name for detections with class
-                label `i`. The length should be larger than the max class label in 
+                label `i`. The length should be larger than the max class label in
                 `classes`.
             image_names: A sequence (list, tuple) of image names - this is used for
                 matching ground truth and prediction detection for metrics. The `i`-th
@@ -95,7 +95,11 @@ class Detections:
 
         else:
             image_ids = np.array(image_ids)
-            sort_inds = np.argsort(image_ids)
+
+            if confs is not None:
+                sort_inds = np.lexsort((confs, image_ids))  # type: ignore
+            else:
+                sort_inds = np.argsort(image_ids)
 
             self._image_ids = np.array(image_ids[sort_inds], copy=True, dtype=np.int32)
 

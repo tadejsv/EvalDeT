@@ -6,7 +6,8 @@ import numpy.typing as npt
 from scipy.optimize import linear_sum_assignment
 
 from evaldet.tracks import Tracks
-from evaldet.utils import sparse
+
+from .utils import create_coo_array
 
 _EPS = 1 / 1000
 
@@ -87,7 +88,7 @@ def calculate_hota_metrics(
             for row_ind, col_ind in np.argwhere(dist_matrix < alpha):
                 TPA_max_vals[(gt_frame_inds[row_ind], hyp_frame_inds[col_ind])] += 1
 
-        TPA_max = sparse.create_coo_array(TPA_max_vals, (n_gt, n_hyp)).toarray()
+        TPA_max = create_coo_array(TPA_max_vals, (n_gt, n_hyp)).toarray()
 
         # Compute optimistic A_max, to be used for actual matching
         A_max = TPA_max / (FNA_max + FPA_max - TPA_max)
@@ -114,7 +115,7 @@ def calculate_hota_metrics(
                     TPA_vals[(gt_frame_inds[row_ind], hyp_frame_inds[col_ind])] += 1
                     locs += 1 - dist_matrix[row_ind, col_ind]
 
-        TPA = sparse.create_coo_array(TPA_vals, (n_gt, n_hyp)).toarray()
+        TPA = create_coo_array(TPA_vals, (n_gt, n_hyp)).toarray()
 
         # Compute proper scores
         TP = TPA.sum()
