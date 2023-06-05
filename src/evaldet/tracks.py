@@ -287,7 +287,7 @@ class Tracks:
 
         accumulator: dict[str, list] = co.defaultdict(list)
 
-        frames = root.findall(_FRAME_KEY)
+        frames = root.findall("frame")
         for frame in frames:
             tracks_f = frame.find("target_list").findall("target")  # type: ignore
 
@@ -297,10 +297,10 @@ class Tracks:
                 assert box is not None
 
                 det_item = {
-                    _ID_KEY: track.attrib[_ID_KEY],
+                    _ID_KEY: track.attrib["id"],
                     _FRAME_KEY: current_frame,
-                    _HEIGHT_KEY: box.attrib[_HEIGHT_KEY],
-                    _WIDTH_KEY: box.attrib[_WIDTH_KEY],
+                    _HEIGHT_KEY: box.attrib["height"],
+                    _WIDTH_KEY: box.attrib["width"],
                     _XMIN_KEY: box.attrib["left"],
                     _YMIN_KEY: box.attrib["top"],
                 }
@@ -371,7 +371,7 @@ class Tracks:
 
         tracks_cvat = root.findall("track")
         for track_cvat in tracks_cvat:
-            track_id = track_cvat.attrib[_ID_KEY]
+            track_id = track_cvat.attrib["id"]
             track_class = classes_list.index(track_cvat.attrib["label"])
 
             for box in track_cvat.findall("box"):
@@ -380,7 +380,7 @@ class Tracks:
 
                 det_item = {
                     _ID_KEY: track_id,
-                    _FRAME_KEY: box.attrib[_FRAME_KEY],
+                    _FRAME_KEY: box.attrib["frame"],
                     _HEIGHT_KEY: float(box.attrib["ybr"]) - float(box.attrib["ytl"]),
                     _WIDTH_KEY: float(box.attrib["xbr"]) - float(box.attrib["xtl"]),
                     _XMIN_KEY: box.attrib["xtl"],
