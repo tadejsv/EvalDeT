@@ -3,7 +3,12 @@ import numpy.testing as npt
 import pytest
 from deepdiff import DeepDiff
 
-from evaldet.det.coco import compute_coco_summary, compute_metrics, confusion_matrix
+from evaldet.det.coco import (
+    APInterpolation,
+    compute_coco_summary,
+    compute_metrics,
+    confusion_matrix,
+)
 from evaldet.detections import Detections
 
 
@@ -500,7 +505,7 @@ def test_coco_metrics_class_missing() -> None:
         ),
     ],
 )
-def test_coco_summary_simple(ap_interpolation: str, result: dict) -> None:
+def test_coco_summary_simple(ap_interpolation: APInterpolation, result: dict) -> None:
     """4 dets 1 class, one non-matching, others perfect"""
     hyp = Detections(
         [0, 0, 0, 0],
@@ -569,7 +574,7 @@ def test_coco_summary_simple(ap_interpolation: str, result: dict) -> None:
     ],
 )
 def test_coco_summary_different_iou_thresholds(
-    ap_interpolation: str, result: dict
+    ap_interpolation: APInterpolation, result: dict
 ) -> None:
     """4 dets 1 class, different IoUs"""
     hyp = Detections(
@@ -638,7 +643,9 @@ def test_coco_summary_different_iou_thresholds(
         ),
     ],
 )
-def test_coco_summary_different_sizes(ap_interpolation: str, result: dict) -> None:
+def test_coco_summary_different_sizes(
+    ap_interpolation: APInterpolation, result: dict
+) -> None:
     """5 dets 1 class, 2 size classes (3/2): 1 non-matching first, 1 second"""
     hyp = Detections(
         [0, 0, 0, 0, 0],
@@ -716,7 +723,7 @@ def test_coco_summary_different_sizes(ap_interpolation: str, result: dict) -> No
     ],
 )
 def test_coco_summary_different_sizes_classes(
-    ap_interpolation: str, result: dict
+    ap_interpolation: APInterpolation, result: dict
 ) -> None:
     """2 classes, 3 dets per class, class 1 only size 1, class 2 only size 2"""
     hyp = Detections(
@@ -863,7 +870,7 @@ def test_coco_cm_normal2(normal_hyp_2: Detections, normal_gt_2: Detections) -> N
 def test_coco_metrics_normal1(
     normal_hyp_1: Detections,
     normal_gt_1: Detections,
-    ap_interpolation: str,
+    ap_interpolation: APInterpolation,
     result: dict,
 ) -> None:
     metrics = compute_metrics(
@@ -929,7 +936,7 @@ def test_coco_metrics_normal1(
 def test_coco_metrics_normal2(
     normal_hyp_2: Detections,
     normal_gt_2: Detections,
-    ap_interpolation: str,
+    ap_interpolation: APInterpolation,
     result: dict,
 ) -> None:
     metrics = compute_metrics(
@@ -1047,7 +1054,7 @@ def test_coco_metrics_normal2(
 def test_coco_summary_normal1(
     normal_hyp_1: Detections,
     normal_gt_1: Detections,
-    ap_interpolation: str,
+    ap_interpolation: APInterpolation,
     result: dict,
 ) -> None:
     summary = compute_coco_summary(
@@ -1161,7 +1168,7 @@ def test_coco_summary_normal1(
 def test_coco_summary_normal2(
     normal_hyp_2: Detections,
     normal_gt_2: Detections,
-    ap_interpolation: str,
+    ap_interpolation: APInterpolation,
     result: dict,
 ) -> None:
     summary = compute_coco_summary(
@@ -1189,7 +1196,7 @@ def test_coco_summary_normal2(
 def test_coco_metrics_example(
     example_hyp: Detections,
     example_gt: Detections,
-    ap_interpolation: str,
+    ap_interpolation: APInterpolation,
     iou_threshold: float,
     result: dict,
 ) -> None:
