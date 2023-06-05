@@ -24,7 +24,8 @@ classifiers = [
 dependencies = [
   "numpy~=1.23",
   "scipy~=1.9",
-  "pyarrow~=11.0"
+  "numba~=1.56",
+  "pyarrow>=10.0"
 ]
 dynamic = ["version"]
 

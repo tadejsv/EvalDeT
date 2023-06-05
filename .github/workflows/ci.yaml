@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Setup mamba
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: env.yaml
           extra-specs: python=3.9
@@ -40,7 +40,7 @@ jobs:
         with:
           lfs: true
       - name: Setup mamba
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: env.yaml
           extra-specs: python=${{ matrix.python-version }}
