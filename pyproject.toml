@@ -10,21 +10,22 @@ authors = [
   { name = "Tadej", email = "tadej.svetina@gmail.com" },
 ]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = ["evaluation", "tracking", "object detection", "computer vision"]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Development Status :: 4 - Beta",
     "Topic :: Scientific/Engineering :: Image Recognition",
 ]
 dependencies = [
   "numpy~=1.23",
   "scipy~=1.9",
-  "pyarrow~=10.0"
+  "numba~=0.56",
+  "pyarrow>=10.0"
 ]
 dynamic = ["version"]
 
@@ -36,22 +37,6 @@ Documentation = "https://evaldet.readthedocs.io"
 Issues = "https://github.com/tadejsv/evaldet/issues"
 Source = "https://github.com/sasp-ai/evaldet"
 
-[project.optional-dependencies]
-ci = [
-    "flake8~=5.0.4",
-    "pytest~=7.1.2",
-    "black~=22.0.6",
-    "isort~=5.10.1",
-    "mypy~=0.971",
-    "pre-commit~=2.20.0",
-    "freezegun~=1.2.2"
-]
-docs = [
-    "Shpinx~=5.1.1",
-    "pydata-sphinx-theme~=0.9.2",
-    "sphinx-autodoc-typehints~=1.19.1",
-]
-
 [tool.hatch.build.targets.sdist]
 exclude = [
   "/.github",
@@ -60,18 +45,28 @@ exclude = [
   "/tests"
 ]
 
+[tool.ruff]
+select = ["E", "F", "Q", "N", "ANN", "T20", "TID", "SIM"]
+ignore = ["N806", "N805", "E501", "ANN101", "ANN102", "SIM108"]
+target-version = "py310"
+extend-exclude = ["old_docs/source/conf.py"]
+
+[tool.ruff.flake8-quotes]
+docstring-quotes = "double"
+
 [tool.isort]
 profile = "black"
 
 [tool.mypy]
-exclude = ['^tests/.*\.py', 'docs/source/conf.py']
+exclude = ['old_docs/source/conf.py']
 disallow_untyped_defs = true
-ignore_missing_imports = true
-# disallow_any_unimported = true
+ignore_missing_imports = false
+disallow_any_unimported = false
 no_implicit_optional = true
 check_untyped_defs = true
 warn_unused_ignores = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["scipy"]
+module = ["scipy.*", "pyarrow.*", "numba.*", "deepdiff.*"]
+ignore_missing_imports = true

@@ -2,13 +2,15 @@ import logging
 import typing as t
 
 import numpy as np
+import numpy.typing as npt
 
-from .dist import iou_dist
-from .mot_metrics.clearmot import CLEARMOTMetrics, CLEARMOTResults
-from .mot_metrics.hota import HOTAMetrics, HOTAResults
-from .mot_metrics.identity import IDMetrics, IDResults
-from .tracks import Tracks
-from .utils import timer
+from evaldet.dist import iou_dist
+from evaldet.tracks import Tracks
+from evaldet.utils import timer
+
+from .clearmot import CLEARMOTResults, calculate_clearmot_metrics
+from .hota import HOTAResults, calculate_hota_metrics
+from .identity import IDResults, calculate_id_metrics
 
 
 class MOTMetricsResults(t.TypedDict):
@@ -19,7 +21,7 @@ class MOTMetricsResults(t.TypedDict):
     hota: t.Optional[HOTAResults]
 
 
-class MOTMetrics(CLEARMOTMetrics, IDMetrics, HOTAMetrics):
+class MOTMetrics:
     """The class for computing MOT metrics.
 
     To compute the metrics, use the ``compute`` method of this class, it will compute
@@ -29,8 +31,7 @@ class MOTMetrics(CLEARMOTMetrics, IDMetrics, HOTAMetrics):
     efficiently share pre-computed IoU distances.
     """
 
-    _ious: t.List[np.ndarray]
-    _ious_dict: t.Dict[int, int]
+    _ious_dict: dict[int, npt.NDArray[np.float32]]
 
     def __init__(
         self, clearmot_dist_threshold: float = 0.5, id_dist_threshold: float = 0.5
@@ -49,22 +50,6 @@ class MOTMetrics(CLEARMOTMetrics, IDMetrics, HOTAMetrics):
         self._id_dist_threshold = id_dist_threshold
 
         self._logger = logging.getLogger(self.__class__.__name__)
-
-    def _precompute_iou(self, ground_truth: Tracks, hypotheses: Tracks) -> None:
-        all_frames = sorted(set(ground_truth.frames).intersection(hypotheses.frames))
-
-        self._ious = []
-        self._ious_dict = {}
-        for ind, frame in enumerate(all_frames):
-            ious_f = iou_dist(
-                ground_truth[frame].detections, hypotheses[frame].detections
-            )
-            self._ious.append(ious_f)
-            self._ious_dict[frame] = ind
-
-    def _get_iou_frame(self, frame: int) -> np.ndarray:
-        """Get the IoU matrix for a fame."""
-        return self._ious[self._ious_dict[frame]]
 
     def compute(
         self,
@@ -98,7 +83,7 @@ class MOTMetrics(CLEARMOTMetrics, IDMetrics, HOTAMetrics):
             - HOTA metrics (both average and individual alpha values). Note that I use
             the matching algorithm from the paper, which differs from what the official
             repository (TrackEval) is using - see
-            `this issue <https://github.com/JonathonLuiten/TrackEval/issues/22>`__
+            [this issue](https://github.com/JonathonLuiten/TrackEval/issues/22)
             for more details
 
                 - HOTA
@@ -115,7 +100,7 @@ class MOTMetrics(CLEARMOTMetrics, IDMetrics, HOTAMetrics):
 
         Returns:
             A dictionary of computed metrics. Metrics are saved under the key of their
-            metric family (``"clearmot"``, ``"id"``, ``"hota"``).
+            metric family (`"clearmot"`, `"id"`, `"hota"`).
         """
         if not (clearmot_metrics or id_metrics or hota_metrics):
             raise ValueError("You must select some metrics to compute.")
@@ -124,36 +109,53 @@ class MOTMetrics(CLEARMOTMetrics, IDMetrics, HOTAMetrics):
             raise ValueError("No objects in ``ground_truths``, nothing to compute.")
 
         with timer.timer(self._logger, "Precompute IoU"):
-            self._precompute_iou(ground_truth, hypotheses)
+            self._ious_dict = _compute_ious(ground_truth, hypotheses)
 
         if clearmot_metrics:
             with timer.timer(self._logger, "Compute CLEARMOT Metrics"):
-                clrmt_metrics = self._calculate_clearmot_metrics(
-                    ground_truth, hypotheses, self._clearmot_dist_threshold
+                clrmt_metrics = calculate_clearmot_metrics(
+                    ground_truth,
+                    hypotheses,
+                    self._ious_dict,
+                    self._clearmot_dist_threshold,
                 )
         else:
             clrmt_metrics = None
 
         if id_metrics:
             with timer.timer(self._logger, "Compute ID Metrics"):
-                id_metrics_res = self._calculate_id_metrics(
-                    ground_truth, hypotheses, self._id_dist_threshold
+                id_metrics_res = calculate_id_metrics(
+                    ground_truth, hypotheses, self._ious_dict, self._id_dist_threshold
                 )
         else:
             id_metrics_res = None
 
         if hota_metrics:
             with timer.timer(self._logger, "Compute HOTA Metrics"):
-                hota_metrics_res = self._calculate_hota_metrics(
-                    ground_truth, hypotheses
+                hota_metrics_res = calculate_hota_metrics(
+                    ground_truth,
+                    hypotheses,
+                    self._ious_dict,
                 )
         else:
             hota_metrics_res = None
 
         # Remove IoU matrix to release memory
-        del self._ious
         del self._ious_dict
 
         return MOTMetricsResults(
             clearmot=clrmt_metrics, id=id_metrics_res, hota=hota_metrics_res
         )
+
+
+def _compute_ious(
+    tracks_1: Tracks, tracks_2: Tracks
+) -> dict[int, npt.NDArray[np.float32]]:
+    all_frames = sorted(set(tracks_1.frames).intersection(tracks_2.frames))
+
+    ious: dict[int, npt.NDArray[np.float32]] = {}
+    for frame in all_frames:
+        ious_f = iou_dist(tracks_1[frame].bboxes, tracks_2[frame].bboxes)
+        ious[frame] = ious_f
+
+    return ious

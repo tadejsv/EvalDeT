@@ -1,0 +1,125 @@
+{
+    "licences": [],
+    "info": {
+        "year": 2023,
+        "date_created": "2023-05-23T00:08:09"
+    },
+    "images": [
+        {
+            "id": 0,
+            "file_name": "car1"
+        },
+        {
+            "id": 1,
+            "file_name": "car2"
+        },
+        {
+            "id": 2,
+            "file_name": "car3"
+        }
+    ],
+    "categories": [
+        {
+            "id": 0,
+            "name": "horse"
+        },
+        {
+            "id": 1,
+            "name": "cat"
+        },
+        {
+            "id": 2,
+            "name": "car"
+        }
+    ],
+    "annotations": [
+        {
+            "image_id": 0,
+            "category_id": 2,
+            "bbox": [
+                323.83,
+                104.06,
+                43.77,
+                35.43
+            ],
+            "score": 0.9
+        },
+        {
+            "image_id": 0,
+            "category_id": 2,
+            "bbox": [
+                273.1,
+                88.77,
+                55.59,
+                24.32
+            ],
+            "score": 0.9
+        },
+        {
+            "image_id": 0,
+            "category_id": 2,
+            "bbox": [
+                375.24,
+                80.43,
+                26.41,
+                22.24
+            ],
+            "score": 0.9
+        },
+        {
+            "image_id": 1,
+            "category_id": 2,
+            "bbox": [
+                320.98,
+                105.24,
+                44.67,
+                35.71
+            ],
+            "score": 0.9
+        },
+        {
+            "image_id": 1,
+            "category_id": 2,
+            "bbox": [
+                273.1,
+                88.88,
+                55.7,
+                24.52
+            ],
+            "score": 0.9
+        },
+        {
+            "image_id": 1,
+            "category_id": 2,
+            "bbox": [
+                374.69,
+                80.78,
+                26.4,
+                22.23
+            ],
+            "score": 0.9
+        },
+        {
+            "image_id": 2,
+            "category_id": 2,
+            "bbox": [
+                329.27,
+                96.65,
+                56.53,
+                32.45
+            ],
+            "score": 0.9
+        },
+        {
+            "image_id": 2,
+            "category_id": 2,
+            "bbox": [
+                0.0,
+                356.7,
+                76.6,
+                122.67
+            ],
+            "score": 0.9
+        }
+    ]
+}

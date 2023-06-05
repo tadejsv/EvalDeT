@@ -1,10 +1,11 @@
 import numpy as np
 
-from evaldet import MOTMetrics, Tracks
-from evaldet.utils.preprocess import preprocess_mot_1720
+from evaldet import Tracks
+from evaldet.mot import MOTMetrics
+from evaldet.mot.utils import preprocess_mot_1720
 
 
-def test_tud_campus():
+def test_tud_campus() -> None:
     gt = Tracks.from_mot("tests/data/integration/tud_campus_gt.csv")
     hyp = Tracks.from_mot("tests/data/integration/tud_campus_hyp.csv")
 
@@ -40,7 +41,7 @@ def test_tud_campus():
     for metric_family, metrics in exp_results.items():
         for key, metric in metrics.items():
             np.testing.assert_array_almost_equal(
-                results[metric_family][key], metric, decimal=3
+                results[metric_family][key], metric, decimal=3  # type: ignore
             )
 
     # Check that the results are similar to those obtained with TrackEval
@@ -54,11 +55,12 @@ def test_tud_campus():
         "LocA": 0.7701,
     }
 
+    assert results["hota"] is not None
     for key, orig_val in orig_hota_results.items():
-        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)
+        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore
 
 
-def test_tud_stadtmitte():
+def test_tud_stadtmitte() -> None:
     gt = Tracks.from_mot("tests/data/integration/tud_stadtmitte_gt.csv")
     hyp = Tracks.from_mot("tests/data/integration/tud_stadtmitte_hyp.csv")
 
@@ -94,7 +96,7 @@ def test_tud_stadtmitte():
     for metric_family, metrics in exp_results.items():
         for key, metric in metrics.items():
             np.testing.assert_array_almost_equal(
-                results[metric_family][key], metric, decimal=3
+                results[metric_family][key], metric, decimal=3  # type: ignore
             )
 
     # Check that the results are similar to those obtained with TrackEval
@@ -108,14 +110,15 @@ def test_tud_stadtmitte():
         "LocA": 0.7375,
     }
 
+    assert results["hota"] is not None
     for key, orig_val in orig_hota_results.items():
-        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)
+        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore
 
 
-def test_mot20_01():
+def test_mot20_01() -> None:
     gt = Tracks.from_mot_gt("tests/data/integration/MOT20-01_gt.csv")
     hyp = Tracks.from_mot("tests/data/integration/MOT20-01_MPNTrack_hyp.csv")
-    preprocess_mot_1720(gt, hyp)
+    gt, hyp = preprocess_mot_1720(gt, hyp)
 
     mot_metrics = MOTMetrics()
     results = mot_metrics.compute(
@@ -149,7 +152,7 @@ def test_mot20_01():
     for metric_family, metrics in exp_results.items():
         for key, metric in metrics.items():
             np.testing.assert_array_almost_equal(
-                results[metric_family][key], metric, decimal=3
+                results[metric_family][key], metric, decimal=3  # type: ignore
             )
 
     # Check that the results are similar to those obtained with TrackEval
@@ -163,14 +166,15 @@ def test_mot20_01():
         "LocA": 0.8505,
     }
 
+    assert results["hota"] is not None
     for key, orig_val in orig_hota_results.items():
-        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)
+        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore
 
 
-def test_mot20_03():
+def test_mot20_03() -> None:
     gt = Tracks.from_mot_gt("tests/data/integration/MOT20-03_gt.csv")
     hyp = Tracks.from_mot("tests/data/integration/MOT20-03_MPNTrack_hyp.csv")
-    preprocess_mot_1720(gt, hyp)
+    gt, hyp = preprocess_mot_1720(gt, hyp)
 
     mot_metrics = MOTMetrics()
     results = mot_metrics.compute(
@@ -204,7 +208,7 @@ def test_mot20_03():
     for metric_family, metrics in exp_results.items():
         for key, metric in metrics.items():
             np.testing.assert_array_almost_equal(
-                results[metric_family][key], metric, decimal=3
+                results[metric_family][key], metric, decimal=3  # type: ignore
             )
 
     # Check that the results are similar to those obtained with TrackEval
@@ -218,5 +222,6 @@ def test_mot20_03():
         "LocA": 0.8360,
     }
 
+    assert results["hota"] is not None
     for key, orig_val in orig_hota_results.items():
-        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)
+        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore

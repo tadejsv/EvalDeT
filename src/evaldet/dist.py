@@ -1,29 +1,45 @@
+import numba
 import numpy as np
+import numpy.typing as npt
 
 
-def iou_dist(bboxes_1: np.ndarray, bboxes_2: np.ndarray) -> np.ndarray:
+@numba.njit(
+    numba.float32[:, ::1](numba.float32[:, ::1], numba.float32[:, ::1]),
+    fastmath=True,
+    parallel=True,
+)
+def iou_dist(
+    bboxes_1: npt.NDArray[np.float32], bboxes_2: npt.NDArray[np.float32]
+) -> npt.NDArray[np.float32]:
     """Compute the IoU distance between two batches of bounding boxes.
 
     The IoU distance is computed as 1 minus the IoU similarity.
 
     Args:
-        bboxes_1: An ``[N, 4]`` array of bounding boxes in the xywh format.
-        bboxes_2: An ``[M, 4]`` array of bounding boxes in the xywh format.
+        bboxes_1: An `[N, 4]` array of bounding boxes in the xywh format.
+        bboxes_2: An `[M, 4]` array of bounding boxes in the xywh format.
 
     Returns:
-        An ``[N, M]`` array of pairwise IoU distances.
+        An `[N, M]` array of pairwise IoU distances.
     """
 
-    b1, b2 = np.expand_dims(bboxes_1, 1), np.expand_dims(bboxes_2, 0)
+    ious = np.zeros((bboxes_1.shape[0], bboxes_2.shape[0]), dtype=np.float32)
 
-    xx1 = np.maximum(b1[..., 0], b2[..., 0])
-    yy1 = np.maximum(b1[..., 1], b2[..., 1])
-    xx2 = np.minimum(b1[..., 0] + b1[..., 2], b2[..., 0] + b2[..., 2])
-    yy2 = np.minimum(b1[..., 1] + b1[..., 3], b2[..., 1] + b2[..., 3])
-    w = np.maximum(0.0, xx2 - xx1)
-    h = np.maximum(0.0, yy2 - yy1)
-    intersection = w * h
-    union = b1[..., 2] * b1[..., 3] + b2[..., 2] * b2[..., 3] - intersection
-    iou = intersection / union
+    for i in numba.prange(bboxes_1.shape[0]):
+        for j in numba.prange(bboxes_2.shape[0]):
+            xx1 = max(bboxes_1[i, 0], bboxes_2[j, 0])
+            xx2 = min(bboxes_1[i, 0] + bboxes_1[i, 2], bboxes_2[j, 0] + bboxes_2[j, 2])
+            yy1 = max(bboxes_1[i, 1], bboxes_2[j, 1])
+            yy2 = min(bboxes_1[i, 1] + bboxes_1[i, 3], bboxes_2[j, 1] + bboxes_2[j, 3])
 
-    return 1 - iou
+            zero = numba.float32(0)
+            intersection = max(zero, xx2 - xx1) * max(zero, yy2 - yy1)
+            if intersection > 0:
+                union = (
+                    bboxes_1[i, 2] * bboxes_1[i, 3]
+                    + bboxes_2[j, 2] * bboxes_2[j, 3]
+                    - intersection
+                )
+                ious[i, j] = intersection / union
+
+    return 1 - ious

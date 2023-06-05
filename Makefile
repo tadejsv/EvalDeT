@@ -1,6 +1,6 @@
 .PHONY: lint
 lint:
-	flake8 .
+	ruff .
 	black --check .
 	isort --check-only .
 	mypy .
