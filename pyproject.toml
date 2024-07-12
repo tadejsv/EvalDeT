@@ -22,9 +22,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Recognition",
 ]
 dependencies = [
-  "numpy~=1.23",
-  "scipy~=1.9",
-  "numba~=0.56",
+  "numpy>=1.23",
+  "scipy>=1.9",
+  "numba>=0.56",
   "pyarrow>=10.0"
 ]
 dynamic = ["version"]
