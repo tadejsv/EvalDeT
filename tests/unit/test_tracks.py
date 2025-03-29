@@ -72,7 +72,7 @@ def test_negative_frame_id(tracks_with_one_item: Tracks) -> None:
 
 
 def test_filter_frame_wrong_shape(tracks_with_one_item: Tracks) -> None:
-    with pytest.raises(ValueError, match="Shape of the filter should equal"):
+    with pytest.raises(ValueError, match="Shape of the mask should equal"):
         tracks_with_one_item.filter(np.ones((100,)).astype(bool))
 
 
