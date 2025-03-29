@@ -12,9 +12,11 @@ def test_coco_integration_coco(data_dir: Path) -> None:
 
     summary = compute_coco_summary(gts, hyp)
 
-    assert summary["mean_ap"] == pytest.approx(0.503647, 1e-2)
-    assert summary["ap_50"] == pytest.approx(0.696973, 1e-4)
-    assert summary["ap_75"] == pytest.approx(0.571667, 1e-3)
-    assert summary["mean_ap_sizes"]["small"] == pytest.approx(0.593252, 2e-3)
-    assert summary["mean_ap_sizes"]["medium"] == pytest.approx(0.557991, 1e-4)
-    assert summary["mean_ap_sizes"]["large"] == pytest.approx(0.489363, 1e-5)
+    # These differences are due to differences in sorting of detections with
+    # the same confidence score
+    assert summary["mean_ap"] == pytest.approx(0.503637486, 1e-3)
+    assert summary["ap_50"] == pytest.approx(0.697863184, 1e-6)
+    assert summary["ap_75"] == pytest.approx(0.571587401, 1e-6)
+    assert summary["mean_ap_sizes"]["small"] == pytest.approx(0.593280034, 2e-3)
+    assert summary["mean_ap_sizes"]["medium"] == pytest.approx(0.557948082, 1e-6)
+    assert summary["mean_ap_sizes"]["large"] == pytest.approx(0.489363210, 1e-6)

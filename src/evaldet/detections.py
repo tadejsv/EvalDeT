@@ -7,14 +7,12 @@ import datetime as dt
 import json
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-DetsType = TypeVar("DetsType", bound="Detections")
 
 _SEP = b"\x00"
 
@@ -233,6 +231,8 @@ class Detections:
             coco_dict: dict[str, Any] = json.load(f)
 
         images: list[dict[str, int | str]] = coco_dict["images"]
+        images = sorted(images, key=lambda x: x["id"])
+
         categories: list[dict[str, int | str]] = coco_dict["categories"]
         annotations: list[dict[str, Any]] = coco_dict["annotations"]
 
