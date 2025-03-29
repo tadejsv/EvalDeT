@@ -41,7 +41,9 @@ def test_tud_campus() -> None:
     for metric_family, metrics in exp_results.items():
         for key, metric in metrics.items():
             np.testing.assert_array_almost_equal(
-                results[metric_family][key], metric, decimal=3  # type: ignore
+                results[metric_family][key],  # type: ignore[literal-required]
+                metric,
+                decimal=3,
             )
 
     # Check that the results are similar to those obtained with TrackEval
@@ -57,7 +59,7 @@ def test_tud_campus() -> None:
 
     assert results["hota"] is not None
     for key, orig_val in orig_hota_results.items():
-        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore
+        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore[literal-required]
 
 
 def test_tud_stadtmitte() -> None:
@@ -96,7 +98,9 @@ def test_tud_stadtmitte() -> None:
     for metric_family, metrics in exp_results.items():
         for key, metric in metrics.items():
             np.testing.assert_array_almost_equal(
-                results[metric_family][key], metric, decimal=3  # type: ignore
+                results[metric_family][key],  # type: ignore[literal-required]
+                metric,
+                decimal=3,
             )
 
     # Check that the results are similar to those obtained with TrackEval
@@ -112,7 +116,7 @@ def test_tud_stadtmitte() -> None:
 
     assert results["hota"] is not None
     for key, orig_val in orig_hota_results.items():
-        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore
+        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore[literal-required]
 
 
 def test_mot20_01() -> None:
@@ -152,7 +156,9 @@ def test_mot20_01() -> None:
     for metric_family, metrics in exp_results.items():
         for key, metric in metrics.items():
             np.testing.assert_array_almost_equal(
-                results[metric_family][key], metric, decimal=3  # type: ignore
+                results[metric_family][key],  # type: ignore[literal-required]
+                metric,
+                decimal=3,
             )
 
     # Check that the results are similar to those obtained with TrackEval
@@ -168,7 +174,7 @@ def test_mot20_01() -> None:
 
     assert results["hota"] is not None
     for key, orig_val in orig_hota_results.items():
-        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore
+        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore[literal-required]
 
 
 def test_mot20_03() -> None:
@@ -208,7 +214,9 @@ def test_mot20_03() -> None:
     for metric_family, metrics in exp_results.items():
         for key, metric in metrics.items():
             np.testing.assert_array_almost_equal(
-                results[metric_family][key], metric, decimal=3  # type: ignore
+                results[metric_family][key],  # type: ignore[literal-required]
+                metric,
+                decimal=3,
             )
 
     # Check that the results are similar to those obtained with TrackEval
@@ -224,4 +232,4 @@ def test_mot20_03() -> None:
 
     assert results["hota"] is not None
     for key, orig_val in orig_hota_results.items():
-        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore
+        np.testing.assert_array_almost_equal(results["hota"][key], orig_val, decimal=2)  # type: ignore[literal-required]

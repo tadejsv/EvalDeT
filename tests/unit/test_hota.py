@@ -16,7 +16,7 @@ def test_hyp_missing_frame(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     assert metrics["HOTA"] == 0.5
     assert metrics["LocA"] == 1.0
     for metric in ["HOTA_alpha", "AssA_alpha", "DetA_alpha", "LocA_alpha"]:
-        assert metrics[metric].var() == 0  # type: ignore
+        assert metrics[metric].var() == 0  # type: ignore[literal-required]
 
 
 def test_gt_missing_frame(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
@@ -30,7 +30,7 @@ def test_gt_missing_frame(missing_frame_pair: tuple[Tracks, Tracks]) -> None:
     assert metrics["HOTA"] == 0.5
     assert metrics["LocA"] == 1.0
     for metric in ["HOTA_alpha", "AssA_alpha", "DetA_alpha", "LocA_alpha"]:
-        assert metrics[metric].var() == 0  # type: ignore
+        assert metrics[metric].var() == 0  # type: ignore[literal-required]
 
 
 def test_no_matches() -> None:
@@ -45,7 +45,7 @@ def test_no_matches() -> None:
     assert metrics["HOTA"] == 0
     assert metrics["LocA"] == 1.0
     for metric in ["HOTA_alpha", "AssA_alpha", "DetA_alpha", "LocA_alpha"]:
-        assert metrics[metric].var() == 0  # type: ignore
+        assert metrics[metric].var() == 0  # type: ignore[literal-required]
 
 
 def test_alphas() -> None:
@@ -93,7 +93,7 @@ def test_priority_matching_1() -> None:
 
     gt = Tracks(
         ids=[0] * 10 + [0, 1],
-        frame_nums=list(range(10)) + [10, 10],
+        frame_nums=[*list(range(10)), 10, 10],
         bboxes=np.array(
             [[0, 0, 1, 1]] * 10 + [[0, 0, 1, 1 + 1e-5], [0, 0, 1, 1 - 1e-5]]
         ),
@@ -103,7 +103,7 @@ def test_priority_matching_1() -> None:
     # and distance from 1 below 0.5
     hyp = Tracks(
         ids=[0] * 10 + [0],
-        frame_nums=list(range(10)) + [10],
+        frame_nums=[*list(range(10)), 10],
         bboxes=np.array([[0, 0, 1, 1]] * 10 + [[0, 0, 1, 0.5]]),
     )
 

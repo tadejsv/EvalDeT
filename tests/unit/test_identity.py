@@ -106,7 +106,7 @@ def test_proper_cost_function() -> None:
         frame_nums=[0, 1], ids=[0, 0], bboxes=np.array([[0, 0, 1, 1], [0, 0, 1, 1]])
     )
 
-    hyp_frame_nums = [0, 0, 1, 1] + list(range(2, 10))
+    hyp_frame_nums = [0, 0, 1, 1, *list(range(2, 10))]
     hyp_ids = [0, 1, 0, 1] + [1] * len(range(2, 10))
     hyp_detections = np.array(
         [[0, 0, 1, 1], [0, 0, 1, 1], [10, 10, 1, 1], [0, 0, 1, 1]]

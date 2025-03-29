@@ -11,7 +11,7 @@ from evaldet.detections import Detections
 
 
 def test_export_empty_parquet(tmp_path: Path) -> None:
-    dets = Detections([], [], [], class_names=("cls",), image_names=tuple())
+    dets = Detections([], [], [], class_names=("cls",), image_names=())
     dets.to_parquet(tmp_path / "dets.parquet")
 
     dets_r = Detections.from_parquet(tmp_path / "dets.parquet")
@@ -74,7 +74,7 @@ def test_open_parquet(data_dir: Path, sample_detections: Detections) -> None:
 
 
 def test_export_empty_coco(tmp_path: Path) -> None:
-    dets = Detections([], [], [], class_names=("cls",), image_names=tuple())
+    dets = Detections([], [], [], class_names=("cls",), image_names=())
     dets.to_coco(tmp_path / "dets.json")
 
     dets_r = Detections.from_coco(tmp_path / "dets.json")

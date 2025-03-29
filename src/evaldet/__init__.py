@@ -1,4 +1,8 @@
-__version__ = "0.4.1"
+"""Evaluation for Detection and Tracking."""
 
-from .detections import Detections  # noqa: F401
-from .tracks import Tracks  # noqa: F401
+__version__ = "0.4.2"
+
+__all__ = ["Detections", "Tracks"]
+
+from .detections import Detections
+from .tracks import Tracks

@@ -1,5 +1,8 @@
+"""COCO object detection metrics."""
+
+from collections.abc import Mapping
 from enum import Enum
-from typing import Mapping, Optional, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 import numba
 import numpy as np
@@ -12,7 +15,7 @@ from evaldet.utils.prec_recall import prec_recall_curve
 from . import utils
 
 
-def _nonemean(x: npt.NDArray) -> Optional[float]:
+def _nonemean(x: npt.NDArray[np.float32]) -> float | None:
     if x.size == 0 or np.all(np.isnan(x)):
         return None
 
@@ -34,36 +37,53 @@ _BASE_50_95_THRESHOLDS = (
 
 
 class COCOResult(TypedDict):
-    ap: Optional[float]
-    recall: Optional[float]
-    precision: Optional[float]
+    """
+    A typed dictionary for storing the results of the per-class COCO metric evaluation.
+    """
+
+    ap: float | None
+    recall: float | None
+    precision: float | None
     n_gts: int
 
 
 class COCOResults(TypedDict):
-    mean_ap: Optional[float]
+    """
+    A typed dictionary for storing the results of the COCO metric evaluation
+    (across all classes).
+    """
+
+    mean_ap: float | None
     class_results: dict[str, COCOResult]
 
 
 class COCOSummaryResults(TypedDict):
-    mean_ap: Optional[float]
-    ap_50: Optional[float]
-    ap_75: Optional[float]
+    """
+    A typed dictionary for storing the COCO summary results.
+    """
 
-    mean_ap_per_class: dict[str, Optional[float]]
-    ap_50_per_class: dict[str, Optional[float]]
-    ap_75_per_class: dict[str, Optional[float]]
+    mean_ap: float | None
+    ap_50: float | None
+    ap_75: float | None
 
-    mean_ap_sizes: dict[str, Optional[float]]
-    mean_ap_sizes_per_class: dict[str, dict[str, Optional[float]]]
+    mean_ap_per_class: dict[str, float | None]
+    ap_50_per_class: dict[str, float | None]
+    ap_75_per_class: dict[str, float | None]
+
+    mean_ap_sizes: dict[str, float | None]
+    mean_ap_sizes_per_class: dict[str, dict[str, float | None]]
 
 
 class APInterpolation(str, Enum):
+    """
+    Enum for specifying the method of Average Precision (AP) interpolation.
+    """
+
     coco = "coco"
     pascal = "pascal"
 
 
-@numba.njit(
+@numba.njit(  # type: ignore[misc]
     types.Tuple((types.int32[::1], types.bool_[::1], types.bool_[::1], types.int32))(
         types.float32[:, ::1],
         types.float32[:, ::1],
@@ -117,6 +137,7 @@ def _evaluate_image(
             - a boolean array of shape `[M, ]`, indicating whether the ground truth was
               ignored or not
             - an integer denoting the number of non-ignored ground truths in the image
+
     """
     matched = np.full(preds_conf.shape, -1, dtype=np.int32)
 
@@ -164,7 +185,7 @@ def _evaluate_image(
     return matched, ignore_preds, gts_ignore, n_gts
 
 
-@numba.njit(
+@numba.njit(  # type: ignore[misc]
     types.Tuple((types.int32[::1], types.bool_[::1], types.bool_[::1]))(
         types.float32[:, ::1],
         types.float32[:, ::1],
@@ -217,6 +238,7 @@ def _evaluate_dataset(
               ignored or not
             - a boolean array of shape `[M, ]`, indicating whether the ground truth was
               ignored or not
+
     """
     det_ignored = np.zeros_like(preds_conf, dtype=np.bool_)
     gts_ignored = np.zeros((gts_bbox.shape[0],), dtype=np.bool_)
@@ -267,10 +289,10 @@ def _check_compatibility(gt: Detections, hyp: Detections) -> None:
 
 
 def _compute_ap(
-    precision: Optional[npt.NDArray[np.float64]],
-    recall: Optional[npt.NDArray[np.float64]],
+    precision: npt.NDArray[np.float64] | None,
+    recall: npt.NDArray[np.float64] | None,
     ap_interpolation: APInterpolation = APInterpolation.coco,
-) -> Optional[float]:
+) -> float | None:
     if precision is None or recall is None:
         return None
 
@@ -282,11 +304,13 @@ def _compute_ap(
         thresholds = np.linspace(0.0, 1.00, 101, endpoint=True)
         r_inds = np.searchsorted(recall, thresholds, side="left")
         prec_a = np.concatenate([precision, [0]])
-        return prec_a[r_inds].mean()
-    elif ap_interpolation == "pascal":
-        return np.trapz(precision, recall)
-    else:
-        raise ValueError(f"Unknown interpolation {ap_interpolation}")
+        return prec_a[r_inds].mean()  # type: ignore[no-any-return]
+
+    if ap_interpolation == "pascal":
+        return np.trapezoid(precision, recall)  # type: ignore[no-any-return]
+
+    # No matching ap_interpolation
+    raise ValueError(f"Unknown interpolation {ap_interpolation}")
 
 
 def compute_metrics(
@@ -319,12 +343,12 @@ def compute_metrics(
         A dictionary that contains the mean average precision metrics for the whole
         dataset (averaged class APs), as well as the results for each class (AP,
         precision and recall).
+
     """
     _check_compatibility(gt, hyp)
 
     class_results: dict[str, COCOResult] = {}
 
-    assert gt.class_names is not None  # keep mypy happy
     for i, cls_name in enumerate(gt.class_names):
         hyp_cls = hyp.filter(hyp.classes == i)
         gt_cls = gt.filter(gt.classes == i)
@@ -343,28 +367,40 @@ def compute_metrics(
         )
         n_gts = len(gt_cls.bboxes) - gts_ignored.sum()
 
-        assert hyp_cls.confs is not None  # keep mypy happy
+        if hyp_cls.confs is None:
+            msg = "hyp_cls.confs should not be None"
+            raise ValueError(msg)
 
         precision, recall = prec_recall_curve(
             hyp_matched[~hyp_ignored] != -1, hyp_cls.confs[~hyp_ignored], n_gts
         )
 
         if precision is None or recall is None:
-            class_results[cls_name] = dict(
-                ap=None, recall=None, precision=None, n_gts=n_gts
-            )
+            class_results[cls_name] = {
+                "ap": None,
+                "recall": None,
+                "precision": None,
+                "n_gts": n_gts,
+            }
         else:
             ap = _compute_ap(precision, recall, ap_interpolation)
 
-            class_results[cls_name] = dict(
-                ap=ap, recall=recall[-1], precision=precision[-1], n_gts=n_gts
-            )
+            class_results[cls_name] = {
+                "ap": ap,
+                "recall": recall[-1],
+                "precision": precision[-1],
+                "n_gts": n_gts,
+            }
 
     # Aggregate metrics
     aps = np.array([res["ap"] for res in class_results.values()], dtype=float)
     mean_ap = _nonemean(aps)
-    metrics: COCOResults = dict(mean_ap=mean_ap, class_results=class_results)
+    metrics: COCOResults = {"mean_ap": mean_ap, "class_results": class_results}
     return metrics
+
+
+_IOU_50_INDEX = 0
+_IOU_75_INDEX = 5
 
 
 def compute_coco_summary(
@@ -405,13 +441,13 @@ def compute_coco_summary(
 
     Returns:
         A dictionary with all overall and per class summary metrics.
+
     """
     _check_compatibility(gt, hyp)
 
-    sizes_all = {"_all": (0.0, float("inf"))} | sizes
-    ap_results: dict[tuple[str, str, int], Optional[float]] = {}
+    sizes_all = {"_all": (0.0, float("inf"))} | sizes  # type: ignore[operator]
+    ap_results: dict[tuple[str, str, int], float | None] = {}
 
-    assert gt.class_names is not None  # keep mypy happy
     for i_cls, cls_name in enumerate(gt.class_names):
         hyp_cls = hyp.filter(hyp.classes == i_cls)
         gt_cls = gt.filter(gt.classes == i_cls)
@@ -433,7 +469,10 @@ def compute_coco_summary(
                 )
                 n_gts = len(gt_cls.bboxes) - gts_ignored.sum()
 
-                assert hyp_cls.confs is not None  # keep mypy happy
+                if hyp_cls.confs is None:
+                    msg = "hyp_cls.confs should not be None"
+                    raise ValueError(msg)
+
                 precision, recall = prec_recall_curve(
                     hyp_matched[~hyp_ignored] != -1,
                     hyp_cls.confs[~hyp_ignored],
@@ -445,15 +484,19 @@ def compute_coco_summary(
                 )
 
     # Aggregate metricss
-    aps = np.array([ap for ap in ap_results.values()], dtype=np.float64)
+    aps = np.array(list(ap_results.values()), dtype=np.float64)
     cls_arr = np.array([k[0] for k in ap_results])
     size_arr = np.array([k[1] for k in ap_results])
     iou_t_arr = np.array([k[2] for k in ap_results])
 
-    results: dict = {}
+    results: dict[str, Any] = {}
     results["mean_ap"] = _nonemean(aps[size_arr == "_all"])
-    results["ap_50"] = _nonemean(aps[(iou_t_arr == 0) & (size_arr == "_all")])
-    results["ap_75"] = _nonemean(aps[(iou_t_arr == 5) & (size_arr == "_all")])
+    results["ap_50"] = _nonemean(
+        aps[(iou_t_arr == _IOU_50_INDEX) & (size_arr == "_all")]
+    )
+    results["ap_75"] = _nonemean(
+        aps[(iou_t_arr == _IOU_75_INDEX) & (size_arr == "_all")]
+    )
 
     results["mean_ap_per_class"] = {}
     results["ap_50_per_class"] = {}
@@ -464,10 +507,10 @@ def compute_coco_summary(
             aps[(size_arr == "_all") & (cls_arr == cls)]
         )
         results["ap_50_per_class"][cls] = _nonemean(
-            aps[(size_arr == "_all") & (cls_arr == cls) & (iou_t_arr == 0)]
+            aps[(size_arr == "_all") & (cls_arr == cls) & (iou_t_arr == _IOU_50_INDEX)]
         )
         results["ap_75_per_class"][cls] = _nonemean(
-            aps[(size_arr == "_all") & (cls_arr == cls) & (iou_t_arr == 5)]
+            aps[(size_arr == "_all") & (cls_arr == cls) & (iou_t_arr == _IOU_75_INDEX)]
         )
 
     results["mean_ap_sizes"] = {}
@@ -482,7 +525,7 @@ def compute_coco_summary(
                 aps[(size_arr == size_name) & (cls_arr == cls)]
             )
 
-    return cast(COCOSummaryResults, results)
+    return cast("COCOSummaryResults", results)
 
 
 def confusion_matrix(
@@ -509,7 +552,7 @@ def confusion_matrix(
             it contains `class_names`, they must match the ones from `gt`.
         iou_threshold: IoU threshold for matching hypotheses objects to ground
             truth.
-        area_threshold: A tuple of `(lower_limit, upper_limit)` floats that set
+        area_range: A tuple of `(lower_limit, upper_limit)` floats that set
             the lower and upper threshold for bound box area - detections with area
             outside of this range will be ignored.
 
@@ -519,6 +562,7 @@ def confusion_matrix(
         matched to a ground truth with the class index `j`. If the row or column
         index is `C` (last one), then this corresponds to the number of hypotheses
         or ground truths, respectively, that were not matched.
+
     """
     _check_compatibility(gt, hyp)
 
@@ -538,10 +582,7 @@ def confusion_matrix(
     det_matched = det_matched[~det_ignored]
     det_classes = hyp.classes[~det_ignored]
 
-    assert gt.class_names is not None  # keep mypy happy
     n_classes = len(gt.class_names)
-    confusion_matrix = utils.confusion_matrix(
+    return utils.confusion_matrix(  # type: ignore[no-any-return]
         det_matched, gts_ignored, det_classes, gt.classes, n_classes
     )
-
-    return confusion_matrix

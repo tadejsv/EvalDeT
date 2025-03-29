@@ -1,4 +1,4 @@
-from typing import Optional
+"""Module containing a util function for computing the precision-recall curve."""
 
 import numpy as np
 import numpy.typing as npt
@@ -8,7 +8,7 @@ def prec_recall_curve(
     hyp_matched: npt.NDArray[np.bool_],
     hyp_conf: npt.NDArray[np.float32],
     n_gts: int,
-) -> tuple[Optional[npt.NDArray[np.float64]], Optional[npt.NDArray[np.float64]]]:
+) -> tuple[npt.NDArray[np.float64] | None, npt.NDArray[np.float64] | None]:
     """
     Calculate the precision-recall curve.
 
@@ -30,8 +30,8 @@ def prec_recall_curve(
 
         If there are no hypotheses (`N==0`), by convention the precision-recall curve
         will contain only the `(0,0)` point.
-    """
 
+    """
     if n_gts == 0:
         return None, None
 

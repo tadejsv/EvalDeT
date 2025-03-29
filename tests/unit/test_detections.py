@@ -4,14 +4,14 @@ import pytest
 from evaldet import Detections
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def empty_dets() -> Detections:
-    return Detections([], [], [], class_names=tuple(), image_names=tuple())
+    return Detections([], [], [], class_names=(), image_names=())
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def dets_with_one_item() -> Detections:
-    dets = Detections(
+    return Detections(
         [0],
         np.array([[0, 0, 1, 1]]),
         [1],
@@ -19,19 +19,17 @@ def dets_with_one_item() -> Detections:
         class_names=("cls1", "cls2"),
         image_names=("im"),
     )
-    return dets
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def dets_with_one_item_no_conf() -> Detections:
-    dets = Detections(
+    return Detections(
         [0],
         np.array([[0, 0, 1, 1]]),
         classes=[1],
         class_names=("cls1", "cls2"),
         image_names=("im"),
     )
-    return dets
 
 
 ##############################
@@ -227,8 +225,8 @@ def test_init_empty_no_names() -> None:
     np.testing.assert_array_equal(det.confs, np.zeros((0,), dtype=np.float32))
     np.testing.assert_array_equal(det.classes, np.zeros((0,), dtype=np.int32))
 
-    assert det.class_names == tuple()
-    assert det.image_names == tuple()
+    assert det.class_names == ()
+    assert det.image_names == ()
 
 
 def test_init_no_confs() -> None:
@@ -278,10 +276,10 @@ def test_filter() -> None:
     np.testing.assert_array_equal(detf.confs, np.array([0.9], dtype=np.float32))
     np.testing.assert_array_equal(detf.classes, np.array([1], dtype=np.int32))
 
-    detf.image_ind_dict == {1: (0, 1)}
+    assert detf.image_ind_dict == {1: (0, 1)}
 
-    detf.image_names == det.image_names
-    detf.class_names == det.class_names
+    assert detf.image_names == det.image_names
+    assert detf.class_names == det.class_names
 
 
 def test_filter_no_confs() -> None:
