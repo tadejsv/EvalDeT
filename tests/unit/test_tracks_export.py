@@ -2,6 +2,7 @@ import datetime as dt
 import pathlib
 
 import freezegun
+import pyarrow.parquet as pq
 import pytest
 
 from evaldet import Tracks
@@ -100,23 +101,17 @@ def test_export_normal_parquet(
 ) -> None:
     sample_tracks.to_parquet(tmp_path / "out.parquet")
 
-    with open(tmp_path / "out.parquet", "rb") as f:
-        output = f.read()
+    table = pq.read_table(tmp_path / "out.parquet")
+    exp_table = pq.read_table(data_dir / "out.parquet")
 
-    with open(data_dir / "out.parquet", "rb") as f:
-        exp_output = f.read()
-
-    assert output == exp_output
+    assert table == exp_table
 
 
 def test_export_empty_parquet(tmp_path: pathlib.Path, data_dir: pathlib.Path) -> None:
     empty_tracks = Tracks([], [], [])
     empty_tracks.to_parquet(tmp_path / "empty.parquet")
 
-    with open(tmp_path / "empty.parquet", "rb") as f:
-        output = f.read()
+    table = pq.read_table(tmp_path / "empty.parquet")
+    exp_table = pq.read_table(data_dir / "empty.parquet")
 
-    with open(data_dir / "empty.parquet", "rb") as f:
-        exp_output = f.read()
-
-    assert output == exp_output
+    assert table == exp_table
