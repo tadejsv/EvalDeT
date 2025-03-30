@@ -4,7 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.4.2 - 2024-04-YY
+
+### Changed
+
+* Housekeeping (#41)
+
 ## 0.4.1 - 2024-07-12
+
+### Changed
 
 * Remove upper limits on dependencies (#38)
 

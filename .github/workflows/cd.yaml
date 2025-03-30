@@ -1,23 +1,19 @@
-name: Upload release to PyPI
-
+name: CD
 on:
   release:
-    types: [published]
+    types:
+      - created
 
 jobs:
-  upload:
+  publish:
+    name: Publish to PyPI
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -l {0}
+    env:
+      UV_PUBLISH_TOKEN: ${{ secrets.UV_PUBLISH_TOKEN }}    
     steps:
-    - uses: actions/checkout@v3
-    - name: Setup mamba
-      uses: mamba-org/setup-micromamba@v1
-      with:
-        environment-file: env.yaml
-    - name: Build and publish
-      env:
-        HATCH_INDEX_USER: __token__
-        HATCH_INDEX_AUTH: ${{ secrets.PYPI_TOKEN }}
-      run: hatch build && hatch publish
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@just
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Publish
+        run: just publish

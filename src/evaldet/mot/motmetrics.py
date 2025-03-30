@@ -1,3 +1,5 @@
+"""Module with objects for computing MOT metrics from various metric families."""
+
 import logging
 import typing as t
 
@@ -14,15 +16,18 @@ from .identity import IDResults, calculate_id_metrics
 
 
 class MOTMetricsResults(t.TypedDict):
-    """The result of the MOT metric computtion."""
+    """
+    A typed dictionary for storing the results of various MOT metrics evaluations.
+    """
 
-    clearmot: t.Optional[CLEARMOTResults]
-    id: t.Optional[IDResults]
-    hota: t.Optional[HOTAResults]
+    clearmot: CLEARMOTResults | None
+    id: IDResults | None
+    hota: HOTAResults | None
 
 
 class MOTMetrics:
-    """The class for computing MOT metrics.
+    """
+    The class for computing MOT metrics.
 
     To compute the metrics, use the ``compute`` method of this class, it will compute
     all the required MOT metrics.
@@ -36,7 +41,8 @@ class MOTMetrics:
     def __init__(
         self, clearmot_dist_threshold: float = 0.5, id_dist_threshold: float = 0.5
     ) -> None:
-        """Initialize the object.
+        """
+        Initialize the object.
 
         Args:
             clearmot_dist_threshold: The distance threshold for the computation of
@@ -45,6 +51,7 @@ class MOTMetrics:
                 between two detections.
             id_dist_threshold: The distance threshold for the computation of the
                 ID metrics - used to determine whether to match two objects.
+
         """
         self._clearmot_dist_threshold = clearmot_dist_threshold
         self._id_dist_threshold = id_dist_threshold
@@ -59,7 +66,8 @@ class MOTMetrics:
         id_metrics: bool = False,
         hota_metrics: bool = True,
     ) -> MOTMetricsResults:
-        """Compute multi-object tracking (MOT) metrics.
+        """
+        Compute multi-object tracking (MOT) metrics.
 
         Right now, the following metrics can be computed
 
@@ -101,12 +109,15 @@ class MOTMetrics:
         Returns:
             A dictionary of computed metrics. Metrics are saved under the key of their
             metric family (`"clearmot"`, `"id"`, `"hota"`).
+
         """
         if not (clearmot_metrics or id_metrics or hota_metrics):
-            raise ValueError("You must select some metrics to compute.")
+            msg = "You must select some metrics to compute."
+            raise ValueError(msg)
 
         if not len(ground_truth):
-            raise ValueError("No objects in ``ground_truths``, nothing to compute.")
+            msg = "No objects in ``ground_truths``, nothing to compute."
+            raise ValueError(msg)
 
         with timer.timer(self._logger, "Precompute IoU"):
             self._ious_dict = _compute_ious(ground_truth, hypotheses)

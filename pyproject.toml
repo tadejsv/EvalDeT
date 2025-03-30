@@ -10,14 +10,15 @@ authors = [
   { name = "Tadej", email = "tadej.svetina@gmail.com" },
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["evaluation", "tracking", "object detection", "computer vision"]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Development Status :: 4 - Beta",
     "Topic :: Scientific/Engineering :: Image Recognition",
 ]
@@ -46,16 +47,36 @@ exclude = [
 ]
 
 [tool.ruff]
-select = ["E", "F", "Q", "N", "ANN", "T20", "TID", "SIM"]
-ignore = ["N806", "N805", "E501", "ANN101", "ANN102", "SIM108"]
-target-version = "py310"
 extend-exclude = ["old_docs/source/conf.py"]
 
-[tool.ruff.flake8-quotes]
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "FBT001",
+    "FBT002",
+    "D200",
+    "D203",
+    "D205",
+    "D212",
+    "D401",
+    "COM812",
+    "ISC001",
+    "PERF203",
+    "PTH123",
+    "G004",
+    "DTZ005",
+    "PLR0913",
+    "TRY003",
+    "EM101",
+    "EM102",
+]
+
+[tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
 
-[tool.isort]
-profile = "black"
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D", "ANN401", "ARG001", "ARG002", "S101", "SLF001", "PLR2004", "NPY002"]
+"src/evaldet/mot/*" = ["N806"]
 
 [tool.mypy]
 exclude = ['old_docs/source/conf.py']
@@ -70,3 +91,12 @@ show_error_codes = true
 [[tool.mypy.overrides]]
 module = ["scipy.*", "pyarrow.*", "numba.*", "deepdiff.*"]
 ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "deepdiff>=8.4.2",
+    "freezegun>=1.5.1",
+    "mypy>=1.15.0",
+    "pytest>=8.3.5",
+    "ruff>=0.11.2",
+]

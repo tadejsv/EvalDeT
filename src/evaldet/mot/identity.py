@@ -1,3 +1,5 @@
+"""ID family of MOT metrics."""
+
 import collections as co
 import typing as t
 
@@ -11,6 +13,10 @@ from .utils import create_coo_array
 
 
 class IDResults(t.TypedDict):
+    """
+    A typed dictionary for storing the results of the ID metric evaluation.
+    """
+
     IDTP: float
     IDFP: float
     IDFN: float
@@ -25,12 +31,13 @@ def calculate_id_metrics(
     ious: dict[int, npt.NDArray[np.float32]],
     dist_threshold: float = 0.5,
 ) -> IDResults:
-    """Calculate ID (identity) metrics.
+    """
+    Calculate ID (identity) metrics.
 
     Args:
         ground_truth: Ground truth tracks.
         hypotheses: Hypotheses tracks.
-        ious_threshold: A dictionary where keys are frame numbers (indices), and values
+        ious: A dictionary where keys are frame numbers (indices), and values
             are numpy matrices of IOU distances between detection in ground truth and
             hypotheses for that frame. IOUs must be present for all frames that are
             present in both ground truth and hypotheses.
@@ -46,8 +53,8 @@ def calculate_id_metrics(
             - IDFP (ID false positives)
             - IDFN (ID false negatives)
             - IDTP (ID true positives)
-    """
 
+    """
     gts = tuple(ground_truth.ids_count.keys())
     gts_id_ind_dict = {_id: ind for ind, _id in enumerate(gts)}
     hyps = tuple(hypotheses.ids_count.keys())
@@ -66,7 +73,6 @@ def calculate_id_metrics(
             matches[(gt_frame_inds[gt_ind], htp_frame_inds[hyp_ind])] += 1
 
     # Calculate matching as a LAP, get FN, FP and TP from matched entries
-    # row_m_inds, col_m_inds = linear_sum_assignment(cost_matrix)
     matches_matrix = create_coo_array(matches, (len(gts), len(hyps)))
     matches_array = matches_matrix.toarray()
     row_m_inds, col_m_inds = linear_sum_assignment(matches_array, maximize=True)

@@ -50,7 +50,7 @@ def simple_case() -> tuple[Tracks, Tracks]:
 
 @pytest.fixture(scope="module")
 def sample_tracks() -> Tracks:
-    tracks = Tracks(
+    return Tracks(
         frame_nums=[660] * 3 + [661] * 3 + [800] * 2,
         ids=[1, 2, 3, 1, 2, 3, 2, 4],
         bboxes=np.array(
@@ -68,12 +68,11 @@ def sample_tracks() -> Tracks:
         classes=[2] * 8,
         confs=[0.9] * 8,
     )
-    return tracks
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def sample_detections() -> Detections:
-    dets = Detections(
+    return Detections(
         image_ids=[0] * 3 + [1] * 3 + [2] * 2,
         bboxes=np.array(
             [
@@ -92,4 +91,3 @@ def sample_detections() -> Detections:
         class_names=["horse", "cat", "car"],
         image_names=["car1", "car2", "car3"],
     )
-    return dets

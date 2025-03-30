@@ -1,9 +1,11 @@
+"""Module with functions for computing distances between two sets of bounding boxes."""
+
 import numba
 import numpy as np
 import numpy.typing as npt
 
 
-@numba.njit(
+@numba.njit(  # type: ignore[misc]
     numba.float32[:, ::1](numba.float32[:, ::1], numba.float32[:, ::1]),
     fastmath=True,
     parallel=True,
@@ -11,7 +13,8 @@ import numpy.typing as npt
 def iou_dist(
     bboxes_1: npt.NDArray[np.float32], bboxes_2: npt.NDArray[np.float32]
 ) -> npt.NDArray[np.float32]:
-    """Compute the IoU distance between two batches of bounding boxes.
+    """
+    Compute the IoU distance between two batches of bounding boxes.
 
     The IoU distance is computed as 1 minus the IoU similarity.
 
@@ -21,8 +24,8 @@ def iou_dist(
 
     Returns:
         An `[N, M]` array of pairwise IoU distances.
-    """
 
+    """
     ious = np.zeros((bboxes_1.shape[0], bboxes_2.shape[0]), dtype=np.float32)
 
     for i in numba.prange(bboxes_1.shape[0]):

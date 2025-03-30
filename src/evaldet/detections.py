@@ -1,20 +1,25 @@
+"""
+Module defining a general class for holding object detections,
+as well as reading from and converting to various format.
+"""
+
 import datetime as dt
 import json
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence, TypeVar, Union
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-DetsType = TypeVar("DetsType", bound="Detections")
-
 _SEP = b"\x00"
 
 
 class Detections:
-    """A class representing object detections (with bounding boxes).
+    """
+    A class representing object detections (with bounding boxes).
 
     It can read and save to the following file formats
 
@@ -31,7 +36,7 @@ class Detections:
     _image_ids: npt.NDArray[np.int32]
     _bboxes: npt.NDArray[np.float32]
     _classes: npt.NDArray[np.int32]
-    _confs: Optional[npt.NDArray[np.float32]]
+    _confs: npt.NDArray[np.float32] | None
     _image_ind_dict: dict[int, tuple[int, int]]
 
     _class_names: tuple[str, ...]
@@ -39,18 +44,18 @@ class Detections:
 
     def __init__(
         self,
-        image_ids: Union[npt.NDArray[np.int32], Sequence[int]],
-        bboxes: Union[Sequence[npt.NDArray[np.float32]], npt.NDArray[np.float32]],
-        classes: Union[npt.NDArray[np.int32], Sequence[int]],
+        image_ids: npt.NDArray[np.int32] | Sequence[int],
+        bboxes: Sequence[npt.NDArray[np.float32]] | npt.NDArray[np.float32],
+        classes: npt.NDArray[np.int32] | Sequence[int],
         class_names: Sequence[str],
         image_names: Sequence[str],
-        confs: Optional[Union[npt.NDArray[np.float32], Sequence[float]]] = None,
+        confs: npt.NDArray[np.float32] | Sequence[float] | None = None,
     ) -> None:
         """
         Create a `Detections` instance.
 
         Args:
-            image_ids: A sequence or array of track ids. It is assumed to be 0-indexed.
+            image_ids: A sequence or array of image ids. It is assumed to be 0-indexed.
             bboxes: A sequence or array of detection bounding boxes, which should be
                 in the format `xywh`, using a top-left-origin coordinate system.
             classes: A sequence or array of classes (labels), assumed to be 0-indexed.
@@ -63,8 +68,8 @@ class Detections:
                 matching ground truth and prediction detection for metrics. The `i`-th
                 element in the sequence (zero indexed) is the image name for all images
                 with the label `i`. The length should be larger than the max image label
-        """
 
+        """
         if len(image_ids) != len(bboxes):
             raise ValueError(
                 "`image_ids` and `bboxes` should contain the same number of items."
@@ -76,16 +81,18 @@ class Detections:
             )
 
         if confs is not None and len(confs) != len(image_ids):
-            raise ValueError(
+            msg = (
                 "If `confs` is given, it should contain the same number of items"
                 " as `image_ids`."
             )
+            raise ValueError(msg)
 
         if len(bboxes) > 0 and bboxes[0].shape != (4,):
-            raise ValueError(
+            msg = (
                 "Each row of `bboxes` should be an 4-item array, but got"
                 f" shape {bboxes[0].shape}"
             )
+            raise ValueError(msg)
 
         if len(image_ids) == 0:
             self._image_ids = np.zeros((0,), dtype=np.int32)
@@ -97,7 +104,7 @@ class Detections:
             image_ids = np.array(image_ids)
 
             if confs is not None:
-                sort_inds = np.lexsort((confs, image_ids))  # type: ignore
+                sort_inds = np.lexsort((confs, image_ids))  # type: ignore[arg-type]
             else:
                 sort_inds = np.argsort(image_ids)
 
@@ -121,20 +128,22 @@ class Detections:
         # Check that class_names cover all classes
         num_classes = self._classes.max(initial=-1) + 1
         if len(class_names) < num_classes:
-            raise ValueError(
+            msg = (
                 f"The number of class names ({len(class_names)}) is less than"
                 f" the number of classes in the data ({num_classes})"
             )
+            raise ValueError(msg)
 
         self._class_names = tuple(class_names)
 
         # Check that image_names cover all images
         num_images = self._image_ids.max(initial=-1) + 1
         if len(image_names) < num_images:
-            raise ValueError(
+            msg = (
                 f"The number of image names ({len(image_names)}) is less than the"
                 f"number of images in the data ({num_images})"
             )
+            raise ValueError(msg)
 
         self._image_names = tuple(image_names)
 
@@ -147,22 +156,32 @@ class Detections:
 
         u_image_ids, start_inds = np.unique(self._image_ids, return_index=True)
         image_start_inds = start_inds.tolist()
-        image_end_inds = start_inds[1:].tolist() + [len(self._image_ids)]
+        image_end_inds = [*start_inds[1:].tolist(), len(self._image_ids)]
 
-        image_start_end_inds = zip(image_start_inds, image_end_inds)
-        self._image_ind_dict = dict(zip(u_image_ids.tolist(), image_start_end_inds))
+        image_start_end_inds = zip(image_start_inds, image_end_inds, strict=True)
+        self._image_ind_dict = dict(
+            zip(u_image_ids.tolist(), image_start_end_inds, strict=True)
+        )
 
     @staticmethod
     def strs_to_bytes(strs: tuple[str, ...]) -> bytes:
-        return _SEP.join((x.encode("utf8") for x in strs))
+        """
+        Convert a tuple of strings into a single bytes object joined by the separator.
+        """
+        return _SEP.join(x.encode("utf8") for x in strs)
 
     @staticmethod
     def bytes_to_strs(strs: bytes) -> tuple[str, ...]:
+        """
+        Convert a bytes object, separated by the separator, back into a tuple of
+        strings.
+        """
         return tuple(x.decode("utf8") for x in strs.split(_SEP))
 
     @classmethod
-    def from_coco(cls, file_path: Union[str, Path]) -> "Detections":
-        """Read the detections from a json file in the COCO format.
+    def from_coco(cls, file_path: str | Path) -> "Detections":
+        """
+        Read the detections from a json file in the COCO format.
 
         The file should have this structure:
 
@@ -206,13 +225,16 @@ class Detections:
 
         Args:
             file_path: Path where the detections file is located
-        """
-        with open(file_path, "r") as f:
-            coco_dict: dict = json.load(f)
 
-        images: list[dict] = coco_dict["images"]
-        categories: list[dict] = coco_dict["categories"]
-        annotations: list[dict] = coco_dict["annotations"]
+        """
+        with open(file_path) as f:
+            coco_dict: dict[str, Any] = json.load(f)
+
+        images: list[dict[str, int | str]] = coco_dict["images"]
+        images = sorted(images, key=lambda x: x["id"])
+
+        categories: list[dict[str, int | str]] = coco_dict["categories"]
+        annotations: list[dict[str, Any]] = coco_dict["annotations"]
 
         img_ind_dict = {im["id"]: i for i, im in enumerate(images)}
         cat_ind_dict = {cat["id"]: i for i, cat in enumerate(categories)}
@@ -234,8 +256,8 @@ class Detections:
             if confs is not None:
                 confs[i] = ann["score"]
 
-        image_names: tuple[str, ...] = tuple(im["file_name"] for im in images)
-        class_names: tuple[str, ...] = tuple(cat["name"] for cat in categories)
+        image_names: tuple[str, ...] = tuple(im["file_name"] for im in images)  # type: ignore[misc]
+        class_names: tuple[str, ...] = tuple(cat["name"] for cat in categories)  # type: ignore[misc]
 
         return cls(
             image_ids=image_ids,
@@ -255,8 +277,9 @@ class Detections:
     #     pass
 
     @classmethod
-    def from_parquet(cls, file_path: Union[str, Path]) -> "Detections":
-        """Read the detections from a parquet file.
+    def from_parquet(cls, file_path: str | Path) -> "Detections":
+        """
+        Read the detections from a parquet file.
 
         The file should have the following columns:
 
@@ -270,8 +293,8 @@ class Detections:
 
         Args:
             file_path: Path where the detections file is located
-        """
 
+        """
         table = pq.read_table(file_path)
 
         image_ids = table["image_id"].to_numpy()
@@ -283,10 +306,7 @@ class Detections:
 
         bboxes = np.stack([x, y, w, h]).T.copy()
 
-        if "conf" in table.column_names:
-            confs = table["conf"].to_numpy()
-        else:
-            confs = None
+        confs = table["conf"].to_numpy() if "conf" in table.column_names else None
 
         metadata = table.schema.metadata
         class_names = cls.bytes_to_strs(metadata[b"class_names"])
@@ -301,34 +321,45 @@ class Detections:
             image_names=image_names,
         )
 
-    def filter(self, filter: npt.NDArray[np.bool_]) -> "Detections":
-        if filter.shape != self._image_ids.shape:
-            raise ValueError(
+    def filter(self, mask: npt.NDArray[np.bool_]) -> "Detections":
+        """
+        Filter the detections using a boolean mask.
+
+        This method will filter all attributes according to the mask provided.
+
+        Args:
+            mask: A boolean array, should be the same length as ids and other
+                attributes.
+
+        Return:
+            The filtered detections
+
+        """
+        if mask.shape != self._image_ids.shape:
+            msg = (
                 "Shape of the filter should equal the shape of `image_ids`, got"
-                f" {filter.shape}"
+                f" {mask.shape}"
             )
+            raise ValueError(msg)
 
-        if self.confs is None:
-            filtered_confs = self.confs
-        else:
-            filtered_confs = self.confs[filter]
+        filtered_confs = self.confs if self.confs is None else self.confs[mask]
 
-        filtered_dets = Detections(
-            image_ids=self.image_ids[filter],
-            bboxes=self.bboxes[filter],
-            classes=self.classes[filter],
+        return Detections(
+            image_ids=self.image_ids[mask],
+            bboxes=self.bboxes[mask],
+            classes=self.classes[mask],
             confs=filtered_confs,
             class_names=self.class_names,
             image_names=self.image_names,
         )
 
-        return filtered_dets
-
-    def to_coco(self, file_path: Union[str, Path]) -> None:
-        """Export detections to COCO format
+    def to_coco(self, file_path: str | Path) -> None:
+        """
+        Export detections to COCO format.
 
         Args:
-            file_name: Relative or absolute file name to save to.
+            file_path: Relative or absolute file name to save to.
+
         """
         if self.image_names is None:
             num_images = self.image_ids.max(initial=-1) + 1
@@ -346,9 +377,9 @@ class Detections:
                 {"id": i, "name": name} for i, name in enumerate(self.class_names)
             ]
 
-        annotations: list[dict] = []
+        annotations: list[dict[str, Any]] = []
         for i in range(len(self.bboxes)):
-            ann: dict = {}
+            ann: dict[str, Any] = {}
             ann["image_id"] = int(self.image_ids[i])
             ann["category_id"] = int(self.classes[i])
             ann["bbox"] = [round(x, 3) for x in self.bboxes[i].tolist()]
@@ -372,19 +403,20 @@ class Detections:
         with open(file_path, "w+") as f:
             json.dump(coco_dict, f)
 
-    def to_pascal_voc(self) -> None:
-        pass
+    # def to_pascal_voc(self) -> None:
+    #     pass
 
-    def to_yolo(self) -> None:
-        pass
+    # def to_yolo(self) -> None:
+    #     pass
 
-    def to_parquet(self, file_path: Union[str, Path]) -> None:
-        """Export detections to parquet format.
+    def to_parquet(self, file_path: str | Path) -> None:
+        """
+        Export detections to parquet format.
 
         Args:
-            file_name: Relative or absolute file name to save to.
-        """
+            file_path: Relative or absolute file name to save to.
 
+        """
         columns: list[pa.Array] = [
             pa.array(self._image_ids),
             pa.array(self._bboxes[:, 0]),
@@ -418,38 +450,48 @@ class Detections:
 
     @property
     def num_dets(self) -> int:
-        """Number of detections"""
+        """Number of detections."""
         return len(self._bboxes)
 
     @property
     def num_classes(self) -> int:
-        """Number of classes with detections"""
+        """Number of classes with detections."""
         return len(np.unique(self._classes))
 
     @property
     def image_ids(self) -> npt.NDArray[np.int32]:
+        """The array of image IDs associated with each bounding box."""
         return self._image_ids
 
     @property
     def bboxes(self) -> npt.NDArray[np.float32]:
+        """The array of bounding boxes, each defined by [x_min, y_min, x_max, y_max]."""
         return self._bboxes
 
     @property
     def classes(self) -> npt.NDArray[np.int32]:
+        """The array of integer class labels for each bounding box."""
         return self._classes
 
     @property
-    def confs(self) -> Optional[npt.NDArray[np.float32]]:
+    def confs(self) -> npt.NDArray[np.float32] | None:
+        """The array of confidence scores if available, otherwise None."""
         return self._confs
 
     @property
     def image_ind_dict(self) -> dict[int, tuple[int, int]]:
+        """
+        A dictionary mapping image IDs to start and end indices for all
+        bounding boxes belonging to the image.
+        """
         return self._image_ind_dict
 
     @property
     def class_names(self) -> tuple[str, ...]:
+        """A tuple of class names corresponding to the integer class labels."""
         return self._class_names
 
     @property
     def image_names(self) -> tuple[str, ...]:
+        """A tuple of image names corresponding to the image IDs."""
         return self._image_names

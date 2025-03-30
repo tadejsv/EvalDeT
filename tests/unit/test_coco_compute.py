@@ -1,13 +1,14 @@
 import numba
 import numpy as np
 import numpy.testing as npt
+import numpy.typing as npty
 import pytest
 
 from evaldet.det.coco import _evaluate_dataset, _evaluate_image
 from evaldet.dist import iou_dist
 
 
-def _ious_to_numba(dious: dict[int, np.ndarray]) -> numba.typed.Dict:
+def _ious_to_numba(dious: dict[int, npty.NDArray[np.float32]]) -> numba.typed.Dict:
     ious = numba.typed.Dict.empty(
         key_type=numba.int64, value_type=numba.float32[:, ::1]
     )
@@ -430,14 +431,14 @@ def test_coco_evaluate_dataset_example_2() -> None:
 
 
 @pytest.mark.parametrize(
-    "iou_threshold,exp_match",
-    (
+    ("iou_threshold", "exp_match"),
+    [
         (0.5, np.array([0, 1, 2, 3, 4, 6, 7, 8, 9, -1, 10, 11], dtype=np.int32)),
         (0.75, np.array([0, 1, 2, 3, -1, 6, 7, -1, 9, -1, -1, 11], dtype=np.int32)),
-    ),
+    ],
 )
 def test_coco_evaluate_dataset_example_3(
-    iou_threshold: float, exp_match: np.ndarray
+    iou_threshold: float, exp_match: npty.NDArray[np.int32]
 ) -> None:
     """
     Inspired by example here

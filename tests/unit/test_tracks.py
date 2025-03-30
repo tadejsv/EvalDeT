@@ -6,33 +6,29 @@ import pytest
 from evaldet import Tracks
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def empty_tracks() -> Tracks:
     return Tracks([], [], [])
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def tracks_with_one_item() -> Tracks:
-    tracks = Tracks([0], [0], np.array([[0, 0, 1, 1]]), [1], [0.5])
-    return tracks
+    return Tracks([0], [0], np.array([[0, 0, 1, 1]]), [1], [0.5])
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def tracks_with_one_item_no_conf() -> Tracks:
-    tracks = Tracks([0], [0], np.array([[0, 0, 1, 1]]), classes=[1])
-    return tracks
+    return Tracks([0], [0], np.array([[0, 0, 1, 1]]), classes=[1])
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def tracks_with_one_item_no_class() -> Tracks:
-    tracks = Tracks([0], [0], np.array([[0, 0, 1, 1]]), confs=[0.5])
-    return tracks
+    return Tracks([0], [0], np.array([[0, 0, 1, 1]]), confs=[0.5])
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def tracks_with_one_item_nothing() -> Tracks:
-    tracks = Tracks([0], [0], np.array([[0, 0, 1, 1]]))
-    return tracks
+    return Tracks([0], [0], np.array([[0, 0, 1, 1]]))
 
 
 ##############################
@@ -76,7 +72,7 @@ def test_negative_frame_id(tracks_with_one_item: Tracks) -> None:
 
 
 def test_filter_frame_wrong_shape(tracks_with_one_item: Tracks) -> None:
-    with pytest.raises(ValueError, match="Shape of the filter should equal"):
+    with pytest.raises(ValueError, match="Shape of the mask should equal"):
         tracks_with_one_item.filter(np.ones((100,)).astype(bool))
 
 
@@ -186,7 +182,7 @@ def test_filter() -> None:
     np.testing.assert_array_equal(ftr.confs, np.array([0.9], dtype=np.float32))
     np.testing.assert_array_equal(ftr.classes, np.array([1], dtype=np.int32))
 
-    ftr._frame_ind_dict == {1: (0, 1)}
+    assert ftr._frame_ind_dict == {1: (0, 1)}
 
 
 def test_contains_true(tracks_with_one_item: Tracks) -> None:

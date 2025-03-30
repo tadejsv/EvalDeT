@@ -6,9 +6,9 @@ from evaldet.det.utils import compute_ious, confusion_matrix, match_images
 from evaldet.detections import Detections
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def empty_dets() -> Detections:
-    return Detections([], [], [], confs=[], class_names=("cls",), image_names=tuple())
+    return Detections([], [], [], confs=[], class_names=("cls",), image_names=())
 
 
 def test_confusion_matrix_empty_gts_and_preds1() -> None:

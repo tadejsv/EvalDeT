@@ -1,9 +1,14 @@
+"""
+Module defining a general class for holding object detections,
+as well as reading from and converting to various format.
+"""
+
 import collections as co
 import csv
 import datetime as dt
 import pathlib
 import typing as t
-import xml.etree.ElementTree as ET  # noqa
+import xml.etree.ElementTree as ET
 
 import numpy as np
 import numpy.typing as npt
@@ -21,17 +26,17 @@ _HEIGHT_KEY = "height"
 
 
 class FrameTracks(t.NamedTuple):
+    """A named tuple holding the attributes of tracks in a given frame."""
+
     bboxes: npt.NDArray[np.float32]
     ids: npt.NDArray[np.int32]
     classes: npt.NDArray[np.int32]
     confs: npt.NDArray[np.float32]
 
 
-TracksType = t.TypeVar("TracksType", bound="Tracks")
-
-
 class Tracks:
-    """A class representing objects' tracks in a MOT setting.
+    """
+    A class representing objects' tracks in a MOT setting.
 
     It can read the following MOT file formats
 
@@ -43,7 +48,7 @@ class Tracks:
 
     Internally, all the attributes are saved as a single numpy array, and sorted by
     frame numbers. This enables easy access, as well as easy conversion to/from formats
-    that to not store detections by frames (but by tracks).
+    that do not store detections by frames (but by tracks).
 
     The frame numbers will be zero-indexed internally, so for the MOT files 1 will be
     subtracted from all frame numbers.
@@ -58,19 +63,20 @@ class Tracks:
 
     @classmethod
     def from_csv(
-        cls: t.Type[TracksType],
-        csv_file: t.Union[str, pathlib.Path],
+        cls,
+        csv_file: str | pathlib.Path,
         fieldnames: t.Sequence[str],
         zero_indexed: bool = True,
-    ) -> TracksType:
-        """Get detections from a CSV file.
+    ) -> "Tracks":
+        """
+        Get detections from a CSV file.
 
         The CSV file should have a normal comma (,) as a separator, and should not
         include a header.
 
         Args:
             csv_file: path to the CSV file
-            filednames: The names of the fields. This will be passed to
+            fieldnames: The names of the fields. This will be passed to
                 `csv.DictReader`. It should contain the names of the fields, in order
                 that they appear. The following names will be used (others will be
                 disregarded):
@@ -85,30 +91,30 @@ class Tracks:
             zero_indexed: If the frame numbers are zero indexed. Otherwise they are
                 assumed to be 1 indexed, and 1 will be subtracted from all frame numbers
                 to make them zero indexed.
+
         """
         with open(csv_file, newline="") as file:
             csv_reader = csv.DictReader(file, fieldnames=fieldnames, dialect="unix")
-            accumulator: dict[str, list] = co.defaultdict(list)
+            accumulator: dict[str, list[t.Any]] = co.defaultdict(list)
 
             for line_num, line in enumerate(csv_reader):
                 try:
                     cls._add_to_tracks_accumulator(accumulator, line)
 
                 except ValueError as e:
-                    raise ValueError(
+                    msg = (
                         "Error when converting values to numbers on line"
                         f" {line_num}. Please check that all the values are numeric"
                         " and that the file follows the MOT format."
-                    ) from e
+                    )
+                    raise ValueError(msg) from e
 
-        tracks = cls(**accumulator, zero_indexed=zero_indexed)
-        return tracks
+        return cls(**accumulator, zero_indexed=zero_indexed)
 
     @classmethod
-    def from_mot(
-        cls: t.Type[TracksType], file_path: t.Union[pathlib.Path, str]
-    ) -> TracksType:
-        """Creates a Tracks object from detections file in the MOT format.
+    def from_mot(cls, file_path: pathlib.Path | str) -> "Tracks":
+        """
+        Creates a Tracks object from detections file in the MOT format.
 
         The format should look like this
 
@@ -125,8 +131,8 @@ class Tracks:
         Args:
             file_path: Path where the detections file is located. The file should be
                 in the format described above, and should not have a header.
-        """
 
+        """
         fieldnames = [
             _FRAME_KEY,
             _ID_KEY,
@@ -141,9 +147,7 @@ class Tracks:
         return cls.from_csv(file_path, fieldnames, zero_indexed=False)
 
     @classmethod
-    def from_mot_gt(
-        cls: t.Type[TracksType], file_path: t.Union[pathlib.Path, str]
-    ) -> TracksType:
+    def from_mot_gt(cls, file_path: pathlib.Path | str) -> "Tracks":
         """
         Creates a Tracks object from detections file in the MOT ground truth format.
         This format has some more information compared to the normal.
@@ -162,8 +166,8 @@ class Tracks:
         Args:
             file_path: Path where the detections file is located. The file should be
                 in the format described above, and should not have a header.
-        """
 
+        """
         fieldnames = [
             _FRAME_KEY,
             _ID_KEY,
@@ -179,10 +183,9 @@ class Tracks:
         return cls.from_csv(file_path, fieldnames, zero_indexed=False)
 
     @classmethod
-    def from_mot_cvat(
-        cls: t.Type[TracksType], file_path: t.Union[pathlib.Path, str]
-    ) -> "Tracks":
-        """Creates a Tracks object from detections file in the CVAT's MOT format.
+    def from_mot_cvat(cls, file_path: pathlib.Path | str) -> "Tracks":
+        """
+        Creates a Tracks object from detections file in the CVAT's MOT format.
 
         The format should look like this::
 
@@ -201,8 +204,8 @@ class Tracks:
         Args:
             file_path: Path where the detections file is located. The file should be
                 in the format described above, and should not have a header.
-        """
 
+        """  # noqa: E501
         fieldnames = [
             _FRAME_KEY,
             _ID_KEY,
@@ -218,12 +221,13 @@ class Tracks:
 
     @classmethod
     def from_ua_detrac(
-        cls: t.Type[TracksType],
-        file_path: t.Union[pathlib.Path, str],
-        classes_attr_name: t.Optional[str] = None,
-        classes_list: t.Optional[t.Sequence[str]] = None,
-    ) -> TracksType:
-        """Creates a Tracks object from detections file in the UA-DETRAC XML format.
+        cls,
+        file_path: pathlib.Path | str,
+        classes_attr_name: str | None = None,
+        classes_list: t.Sequence[str] | None = None,
+    ) -> "Tracks":
+        """
+        Creates a Tracks object from detections file in the UA-DETRAC XML format.
 
         Here's how this file might look like:
 
@@ -274,27 +278,32 @@ class Tracks:
             classes_list: The list of all possible class values - must be provided if
                 `classes_attr_name` is provided. The values from that attribute in the
                 file will then be replaced by the index of that value in this list.
-        """
 
+        """  # noqa: E501
         if classes_attr_name and not classes_list:
-            raise ValueError(
+            msg = (
                 "If you provide `classes_attr_name`,"
                 " you must also provide `classes_list`"
             )
+            raise ValueError(msg)
 
-        xml_tree = ET.parse(file_path)
+        xml_tree = ET.parse(file_path)  # noqa: S314
         root = xml_tree.getroot()
 
-        accumulator: dict[str, list] = co.defaultdict(list)
+        accumulator: dict[str, list[t.Any]] = co.defaultdict(list)
 
         frames = root.findall("frame")
         for frame in frames:
-            tracks_f = frame.find("target_list").findall("target")  # type: ignore
+            frame_targets = frame.find("target_list")
+            if frame_targets is None:
+                raise ValueError("frame_targets (target_list) should not be None.")
+            tracks_f = frame_targets.findall("target")
 
             current_frame = frame.attrib["num"]
             for track in tracks_f:
                 box = track.find("box")
-                assert box is not None
+                if box is None:
+                    raise ValueError("box should not be None")
 
                 det_item = {
                     _ID_KEY: track.attrib["id"],
@@ -307,8 +316,13 @@ class Tracks:
 
                 if classes_attr_name:
                     attrs = track.find("attribute")
-                    class_val = attrs.attrib[classes_attr_name]  # type: ignore
-                    det_item[_CLASS_KEY] = classes_list.index(class_val)  # type: ignore
+                    if attrs is None:
+                        raise ValueError("attrs should not be None")
+                    if classes_list is None:
+                        raise ValueError("classes_list should not be None")
+
+                    class_val = attrs.attrib[classes_attr_name]
+                    det_item[_CLASS_KEY] = classes_list.index(class_val)
 
                 cls._add_to_tracks_accumulator(accumulator, det_item)
 
@@ -316,10 +330,10 @@ class Tracks:
 
     @classmethod
     def from_cvat_video(
-        cls: t.Type[TracksType],
-        file_path: t.Union[pathlib.Path, str],
+        cls,
+        file_path: pathlib.Path | str,
         classes_list: t.Sequence[str],
-    ) -> TracksType:
+    ) -> "Tracks":
         """
         Creates a Tracks object from detections file in the CVAT for Video XML format.
 
@@ -363,11 +377,11 @@ class Tracks:
             classes_list: The list of all possible class values. The values from that
                 attribute in the file will then be replaced by the index of that value
                 in this list.
-        """
 
-        xml_tree = ET.parse(file_path)
+        """  # noqa: E501
+        xml_tree = ET.parse(file_path)  # noqa: S314
         root = xml_tree.getroot()
-        accumulator: dict[str, list] = co.defaultdict(list)
+        accumulator: dict[str, list[t.Any]] = co.defaultdict(list)
 
         tracks_cvat = root.findall("track")
         for track_cvat in tracks_cvat:
@@ -393,10 +407,9 @@ class Tracks:
         return cls(**accumulator, zero_indexed=True)
 
     @classmethod
-    def from_parquet(
-        cls: t.Type[TracksType], file_path: t.Union[pathlib.Path, str]
-    ) -> TracksType:
-        """Read the tracks from a parquet file.
+    def from_parquet(cls, file_path: pathlib.Path | str) -> "Tracks":
+        """
+        Read the tracks from a parquet file.
 
         The file should have the following columns:
 
@@ -406,11 +419,11 @@ class Tracks:
 
         Args:
             file_path: Path where the detections file is located
-        """
 
+        """
         table = pq.read_table(file_path)
         table_cols = table.column_names
-        tracks = cls(
+        return cls(
             ids=table[_ID_KEY].to_numpy(),
             frame_nums=table[_FRAME_KEY].to_numpy(),
             bboxes=np.stack(
@@ -425,10 +438,11 @@ class Tracks:
             classes=table[_CLASS_KEY] if _CLASS_KEY in table_cols else None,
             confs=table[_CONF_KEY] if _CONF_KEY in table_cols else None,
         )
-        return tracks
 
     @staticmethod
-    def _add_to_tracks_accumulator(accumulator: dict, new_obj: dict) -> None:
+    def _add_to_tracks_accumulator(
+        accumulator: dict[str, t.Any], new_obj: dict[str, t.Any]
+    ) -> None:
         frame_num, track_id = int(new_obj[_FRAME_KEY]), int(float(new_obj[_ID_KEY]))
 
         xmin, ymin = float(new_obj[_XMIN_KEY]), float(new_obj[_YMIN_KEY])
@@ -449,11 +463,11 @@ class Tracks:
 
     def __init__(
         self,
-        ids: t.Union[t.Sequence[int], npt.NDArray[np.int32]],
-        frame_nums: t.Union[t.Sequence[int], npt.NDArray[np.int32]],
-        bboxes: t.Union[t.Sequence[npt.NDArray[np.float32]], npt.NDArray[np.float32]],
-        classes: t.Optional[t.Union[t.Sequence[int], npt.NDArray[np.int32]]] = None,
-        confs: t.Optional[t.Union[t.Sequence[float], npt.NDArray[np.float32]]] = None,
+        ids: t.Sequence[int] | npt.NDArray[np.int32],
+        frame_nums: t.Sequence[int] | npt.NDArray[np.int32],
+        bboxes: t.Sequence[npt.NDArray[np.float32]] | npt.NDArray[np.float32],
+        classes: t.Sequence[int] | npt.NDArray[np.int32] | None = None,
+        confs: t.Sequence[float] | npt.NDArray[np.float32] | None = None,
         zero_indexed: bool = True,
     ) -> None:
         """
@@ -471,34 +485,36 @@ class Tracks:
             zero_indexed: If the frame numbers are zero indexed. If not, it is assumed
                 that they are 1-indexed - that is, they start with 1, and will be
                 transformed to 0-indexed internally, by subtracting 1 from them.
+
         """
         if len(ids) != len(bboxes):
-            raise ValueError(
-                "`bboxes` and `ids` should contain the same number of items."
-            )
+            msg = "`bboxes` and `ids` should contain the same number of items."
+            raise ValueError(msg)
 
         if len(ids) != len(frame_nums):
-            raise ValueError(
-                "`ids` and `frame_nums` should contain the same number of items."
-            )
+            msg = "`ids` and `frame_nums` should contain the same number of items."
+            raise ValueError(msg)
 
         if classes is not None and len(classes) != len(ids):
-            raise ValueError(
+            msg = (
                 "If `classes` is given, it should contain the same number of items"
                 " as `ids`."
             )
+            raise ValueError(msg)
 
         if confs is not None and len(confs) != len(ids):
-            raise ValueError(
+            msg = (
                 "If `confs` is given, it should contain the same number of items"
                 " as `ids`."
             )
+            raise ValueError(msg)
 
         if len(bboxes) > 0 and bboxes[0].shape != (4,):
-            raise ValueError(
+            msg = (
                 "Each row of `bboxes` should be an 4-item array, but got"
                 f" shape {bboxes[0].shape}"
             )
+            raise ValueError(msg)
 
         if len(ids) == 0:
             self._frame_nums = np.zeros((0,), dtype=np.int32)
@@ -546,82 +562,89 @@ class Tracks:
 
         u_frame_nums, start_inds = np.unique(self._frame_nums, return_index=True)
         frame_start_inds = start_inds.tolist()
-        frame_end_inds = start_inds[1:].tolist() + [len(self._frame_nums)]
+        frame_end_inds = [*start_inds[1:].tolist(), len(self._frame_nums)]
 
-        frame_start_end_inds = zip(frame_start_inds, frame_end_inds)
-        self._frame_ind_dict = dict(zip(u_frame_nums.tolist(), frame_start_end_inds))
+        frame_start_end_inds = zip(frame_start_inds, frame_end_inds, strict=True)
+        self._frame_ind_dict = dict(
+            zip(u_frame_nums.tolist(), frame_start_end_inds, strict=True)
+        )
 
-    def filter(self, filter: np.ndarray) -> "Tracks":
-        """Filter the tracks using a boolean mask.
+    def filter(self, mask: npt.NDArray[np.bool]) -> "Tracks":
+        """
+        Filter the tracks using a boolean mask.
 
         This method will filter all attributes according to the mask provided.
 
         Args:
-            filter: A boolean array, should be the same length as ids and other
+            mask: A boolean array, should be the same length as ids and other
                 attributes.
 
         Return:
             The filtered tracks
+
         """
+        if mask.shape != self.ids.shape:
+            msg = f"Shape of the mask should equal the shape of ids, got {mask.shape}"
+            raise ValueError(msg)
 
-        if filter.shape != self.ids.shape:
-            raise ValueError(
-                "Shape of the filter should equal the shape of ids, got"
-                f" {filter.shape}"
-            )
-
-        filtered_tracks = Tracks(
-            ids=self._ids[filter],
-            frame_nums=self._frame_nums[filter],
-            bboxes=self._bboxes[filter],
-            classes=self._classes[filter],
-            confs=self._confs[filter],
+        return Tracks(
+            ids=self._ids[mask],
+            frame_nums=self._frame_nums[mask],
+            bboxes=self._bboxes[mask],
+            classes=self._classes[mask],
+            confs=self._confs[mask],
         )
-
-        return filtered_tracks
 
     @property
     def ids(self) -> npt.NDArray[np.int32]:
+        """The array of ids of tracks for all detections."""
         return self._ids
 
     @property
     def frame_nums(self) -> npt.NDArray[np.int32]:
+        """The array of frame numbers (indices) for all detections."""
         return self._frame_nums
 
     @property
     def bboxes(self) -> npt.NDArray[np.float32]:
+        """The array of bounding boxes for all detections."""
         return self._bboxes
 
     @property
     def classes(self) -> npt.NDArray[np.int32]:
+        """The array of classes for all detections."""
         return self._classes
 
     @property
     def confs(self) -> npt.NDArray[np.float32]:
+        """The array of confidence scores for all detections."""
         return self._confs
 
     @property
-    def all_classes(self) -> t.Set[int]:
+    def all_classes(self) -> set[int]:
         """Get a set of all classes in the collection."""
         return set(np.unique(self._classes).tolist())
 
     @property
-    def ids_count(self) -> t.Dict[int, int]:
-        """Get the number of frames that each id is present in.
+    def ids_count(self) -> dict[int, int]:
+        """
+        Get the number of frames that each id is present in.
 
         Returns:
             A dictionary where keys are the track ids, and values
             are the numbers of frames they appear in.
+
         """
         ids, counts = np.unique(self._ids, return_counts=True)
-        return dict(zip(ids.tolist(), counts.tolist()))
+        return dict(zip(ids.tolist(), counts.tolist(), strict=True))
 
     @property
-    def frames(self) -> t.Set[int]:
+    def frames(self) -> set[int]:
         """Get an ordered list of all frame numbers in the collection."""
         return set(self._frame_ind_dict.keys())
 
     def __len__(self) -> int:
+        """Get the number of tracks."""
         return len(self._ids)
 
     def __contains__(self, idx: int) -> bool:
@@ -630,26 +653,33 @@ class Tracks:
 
     @t.overload
     def __getitem__(self, idx: int) -> FrameTracks:
-        """Get the frame with number `idx`.
-
-        Note that indexing with negative values is not supported.
-        """
+        pass
 
     @t.overload
     def __getitem__(self, idx: slice) -> "Tracks":
-        """Select only a subset of frames, as defined by the slice.
+        pass
+
+    def __getitem__(self, idx: int | slice) -> t.Union[FrameTracks, "Tracks"]:
+        """
+        Get a specific frame, or select only a subset of frames.
 
         Note that the `step` argument is not supported and will result in an error
         being raised if it is supplied. Negative indices for start or stop argument are
         similarly not supported.
-        """
 
-    def __getitem__(self, idx: t.Union[int, slice]) -> t.Union[FrameTracks, "Tracks"]:
+        Args:
+            idx: Can be either a non-negative integer - in this case, the specific frame
+                will be returned, or a slice, in which case a tracks will be returned
+                for the subset of frames defined by the slice.
+
+        """
         if isinstance(idx, int):
             if idx < 0:
-                raise ValueError("Indexing with negative values is not supported.")
+                msg = "Indexing with negative values is not supported."
+                raise ValueError(msg)
             if idx not in self:
-                raise KeyError(f"The frame {idx} does not exist.")
+                msg = f"The frame {idx} does not exist."
+                raise KeyError(msg)
 
             start, end = self._frame_ind_dict[idx]
             return FrameTracks(
@@ -659,7 +689,7 @@ class Tracks:
                 confs=self._confs[start:end],
             )
 
-        elif isinstance(idx, slice):
+        if isinstance(idx, slice):
             start, stop, step = idx.start, idx.stop, idx.step
             if step is not None:
                 raise ValueError("Slicing with the step argument is not supported.")
@@ -673,7 +703,7 @@ class Tracks:
             start = self._frame_ind_dict[min(keep_frames)][0]
             end = self._frame_ind_dict[max(keep_frames)][1]
 
-            new_tracks = type(self)(
+            return type(self)(
                 ids=self._ids[start:end],
                 frame_nums=self._frame_nums[start:end],
                 bboxes=self._bboxes[start:end],
@@ -681,17 +711,17 @@ class Tracks:
                 confs=self._confs[start:end],
             )
 
-            return new_tracks
-        else:
-            raise ValueError("Unrecognized index type")
+        msg = "Unrecognized index type"
+        raise ValueError(msg)
 
-    def to_cvat_video(
+    def to_cvat_video(  # noqa: PLR0915
         self,
-        filename: t.Union[pathlib.Path, str],
+        filename: pathlib.Path | str,
         labels: t.Sequence[str],
         image_size: tuple[int, int] = (1, 1),
     ) -> None:
-        """Export detections to CVAT for Video 1.1 format.
+        """
+        Export detections to CVAT for Video 1.1 format.
 
         More information on the format can be found
         [here](https://opencv.github.io/cvat/docs/manual/advanced/xml_format/).
@@ -702,23 +732,18 @@ class Tracks:
                 maximum label index - 1 (the first label corresponds to label at the
                 0-th index).
             image_size: The size of the image in the `[w, h]` format, in pixels.
-        """
 
-        if len(self._ids) == 0:
-            max_label_ind = 1
-        else:
-            max_label_ind = max(self.all_classes) + 1
+        """
+        max_label_ind = max(self.all_classes, default=0) + 1
         if len(labels) < max_label_ind:
-            raise ValueError(
+            msg = (
                 f"The length of provied labels {len(labels)} is less than the largest"
                 f" label id (+1) among tracklets {max_label_ind}."
             )
+            raise ValueError(msg)
 
         w, h = image_size
-        if len(self.frames) == 0:
-            max_frame = 1
-        else:
-            max_frame = max(self.frames)
+        max_frame = max(self.frames, default=1)
 
         annotations = ET.Element("annotations")
         version = ET.SubElement(annotations, "version")
@@ -790,7 +815,9 @@ class Tracks:
                 source=type(self).__name__,
             )
 
-            for i, (ind, frame_num) in enumerate(zip(id_inds, track_frames)):
+            for i, (ind, frame_num) in enumerate(
+                zip(id_inds, track_frames, strict=True)
+            ):
                 bbox = self.bboxes[ind]
                 ET.SubElement(
                     track_el,
@@ -827,11 +854,13 @@ class Tracks:
 
     def to_csv(
         self,
-        dirname: t.Union[pathlib.Path, str],
+        dirname: pathlib.Path | str,
         labels: t.Sequence[str],
     ) -> None:
         """
-        Export detections to a simple CSV format. The format comprises of two files:
+        Export detections to a simple CSV format.
+
+        The format comprises of two files:
         `dets.csv`, containing the detections, and `labels.txt`, which contains
         the names of the labels (corresponding to label indices in `dets.csv`). The
         rows in `dets.csv` have the following format:
@@ -846,17 +875,15 @@ class Tracks:
             labels: A list/tuple of label names. The length should be at least the
                 maximum label index - 1 (the first label corresponds to label at the
                 0-th index).
-        """
 
-        if len(self.ids) == 0:
-            max_label_ind = 1
-        else:
-            max_label_ind = max(self.all_classes) + 1
+        """
+        max_label_ind = max(self.all_classes, default=0) + 1
         if len(labels) < max_label_ind:
-            raise ValueError(
+            msg = (
                 f"The length of provied labels {len(labels)} is less than the largest"
                 f" label id (+1) among tracklets {max_label_ind}."
             )
+            raise ValueError(msg)
 
         # Create directory and write labels file
         pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
@@ -879,7 +906,7 @@ class Tracks:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
 
             for ind in range(len(self.ids)):
-                item: dict[str, t.Union[str, int, float]] = {
+                item: dict[str, str | int | float] = {
                     "frame_id": self.frame_nums[ind],
                     "track_id": self.ids[ind],
                     "conf": self.confs[ind],
@@ -891,13 +918,14 @@ class Tracks:
                 }
                 writer.writerow(item)
 
-    def to_parquet(self, file_path: t.Union[pathlib.Path, str]) -> None:
-        """Export detections to parquet format.
+    def to_parquet(self, file_path: pathlib.Path | str) -> None:
+        """
+        Export detections to parquet format.
 
         Args:
-            file_name: Relative or absolute file name to save to.
-        """
+            file_path: Relative or absolute file name to save to.
 
+        """
         table = pa.Table.from_arrays(
             [
                 pa.array(self._ids),

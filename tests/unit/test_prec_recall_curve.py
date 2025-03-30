@@ -10,14 +10,16 @@ def test_prec_recall_curve_no_gts() -> None:
 
 def test_prec_recall_curve_no_preds() -> None:
     prec, rec = prc(np.array([]), np.array([]), 1)
-    assert prec is not None and rec is not None
+    assert prec is not None
+    assert rec is not None
     npt.assert_array_equal(prec, np.array([0.0]))
     npt.assert_array_equal(rec, np.array([0.0]))
 
 
 def test_prec_recall_curve_no_matching() -> None:
     prec, rec = prc(np.array([False, False]), np.array([1.0, 1.0]), 2)
-    assert prec is not None and rec is not None
+    assert prec is not None
+    assert rec is not None
     npt.assert_array_equal(prec, np.array([0.0, 0.0]))
     npt.assert_array_equal(rec, np.array([0.0, 0.0]))
 
@@ -58,7 +60,8 @@ def test_prec_recall_curve_normal() -> None:
         dtype=np.float32,
     )
     prec, rec = prc(det_matched, det_conf, 12)
-    assert prec is not None and rec is not None
+    assert prec is not None
+    assert rec is not None
     npt.assert_almost_equal(
         prec,
         np.array(

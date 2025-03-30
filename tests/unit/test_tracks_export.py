@@ -2,6 +2,7 @@ import datetime as dt
 import pathlib
 
 import freezegun
+import pyarrow.parquet as pq
 import pytest
 
 from evaldet import Tracks
@@ -12,16 +13,16 @@ def test_export_normal_csv(
 ) -> None:
     sample_tracks.to_csv(tmp_path, labels=["Car", "Van", "Truck"])
 
-    with open(tmp_path / "dets.csv", "r") as f:
+    with open(tmp_path / "dets.csv") as f:
         output = f.read()
 
-    with open(tmp_path / "labels.txt", "r") as f:
+    with open(tmp_path / "labels.txt") as f:
         output_labels = f.read()
 
-    with open(data_dir / "csv_save" / "dets.csv", "r") as f:
+    with open(data_dir / "csv_save" / "dets.csv") as f:
         exp_output = f.read()
 
-    with open(data_dir / "csv_save" / "labels.txt", "r") as f:
+    with open(data_dir / "csv_save" / "labels.txt") as f:
         exp_output_labels = f.read()
 
     assert output == exp_output
@@ -32,13 +33,13 @@ def test_export_empty_csv(tmp_path: pathlib.Path, data_dir: pathlib.Path) -> Non
     empty_tracks = Tracks([], [], [])
     empty_tracks.to_csv(tmp_path, labels=["Car", "Van", "Truck"])
 
-    with open(tmp_path / "dets.csv", "r") as f:
+    with open(tmp_path / "dets.csv") as f:
         output = f.read()
 
-    with open(tmp_path / "labels.txt", "r") as f:
+    with open(tmp_path / "labels.txt") as f:
         output_labels = f.read()
 
-    with open(data_dir / "csv_save" / "labels.txt", "r") as f:
+    with open(data_dir / "csv_save" / "labels.txt") as f:
         exp_output_labels = f.read()
 
     assert output == ""
@@ -65,10 +66,10 @@ def test_export_normal_cvat_video(
             tmp_path / "out.xml", labels=["Car", "Van", "Truck"], image_size=(640, 480)
         )
 
-    with open(tmp_path / "out.xml", "r") as f:
+    with open(tmp_path / "out.xml") as f:
         output = f.read()
 
-    with open(data_dir / "cvat_video_export.xml", "r") as f:
+    with open(data_dir / "cvat_video_export.xml") as f:
         exp_output = f.read()
 
     assert output == exp_output
@@ -86,10 +87,10 @@ def test_export_empty_cvat_video(
             tmp_path / "out.xml", labels=["Car", "Van", "Truck"], image_size=(640, 480)
         )
 
-    with open(tmp_path / "out.xml", "r") as f:
+    with open(tmp_path / "out.xml") as f:
         output = f.read()
 
-    with open(data_dir / "cvat_video_export_empty.xml", "r") as f:
+    with open(data_dir / "cvat_video_export_empty.xml") as f:
         exp_output = f.read()
 
     assert output == exp_output
@@ -100,23 +101,17 @@ def test_export_normal_parquet(
 ) -> None:
     sample_tracks.to_parquet(tmp_path / "out.parquet")
 
-    with open(tmp_path / "out.parquet", "rb") as f:
-        output = f.read()
+    table = pq.read_table(tmp_path / "out.parquet")
+    exp_table = pq.read_table(data_dir / "out.parquet")
 
-    with open(data_dir / "out.parquet", "rb") as f:
-        exp_output = f.read()
-
-    assert output == exp_output
+    assert table == exp_table
 
 
 def test_export_empty_parquet(tmp_path: pathlib.Path, data_dir: pathlib.Path) -> None:
     empty_tracks = Tracks([], [], [])
     empty_tracks.to_parquet(tmp_path / "empty.parquet")
 
-    with open(tmp_path / "empty.parquet", "rb") as f:
-        output = f.read()
+    table = pq.read_table(tmp_path / "empty.parquet")
+    exp_table = pq.read_table(data_dir / "empty.parquet")
 
-    with open(data_dir / "empty.parquet", "rb") as f:
-        exp_output = f.read()
-
-    assert output == exp_output
+    assert table == exp_table

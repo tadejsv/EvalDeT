@@ -1,3 +1,5 @@
+"""Various utilitis for computing object detection metrics."""
+
 import numba as nb
 import numpy as np
 import numpy.typing as npt
@@ -7,7 +9,7 @@ from evaldet import Detections
 from evaldet.dist import iou_dist
 
 
-@nb.njit(
+@nb.njit(  # type: ignore[misc]
     types.DictType(types.int64, types.float32[:, ::1])(
         types.float32[:, ::1],
         types.float32[:, ::1],
@@ -40,6 +42,7 @@ def compute_ious(
         A numba dictionary where key is the image index, corresponding to the row index
         in `image_ind_corr`, and the key is a `[H, G]` array of IoUs, where rows
         correspond to hypotheses and coulmns to ground truths on that image.
+
     """
     ious = {}
     common_images = np.nonzero(image_ind_corr[:, 3] * image_ind_corr[:, 1])[0]
@@ -58,7 +61,7 @@ def compute_ious(
 
 def match_images(gt: Detections, hyp: Detections) -> npt.NDArray[np.int32]:
     """
-    Match images between ground truths and hypotheses
+    Match images between ground truths and hypotheses.
 
     This creates an array with the start and end indices of the same image for
     detections and hypotheses.
@@ -73,10 +76,8 @@ def match_images(gt: Detections, hyp: Detections) -> npt.NDArray[np.int32]:
         which index do elements of the frame start. or end (for example for bboxes),
         for hypotheses and indices. If the end index is 0, this means that this frame is
         not present in hypotheses/ground truths
+
     """
-
-    assert gt.image_names is not None and hyp.image_names is not None
-
     gt_img_dict = {name: i for i, name in enumerate(gt.image_names)}
     hyp_img_dict = {name: i for i, name in enumerate(hyp.image_names)}
 
@@ -97,7 +98,7 @@ def match_images(gt: Detections, hyp: Detections) -> npt.NDArray[np.int32]:
     return image_ind_corr
 
 
-@nb.njit(
+@nb.njit(  # type: ignore[misc]
     nb.int32[:, ::1](
         nb.int32[::1],
         nb.boolean[::1],
@@ -114,7 +115,7 @@ def confusion_matrix(
     n_classes: int,
 ) -> npt.NDArray[np.int32]:
     """
-    Compute the confusion matrix
+    Compute the confusion matrix.
 
     This method computes the confusion matrix, showing the number of objects in
     hypotheses of class X that were matched with object of class Y in ground truths.
@@ -133,6 +134,7 @@ def confusion_matrix(
         truth with the class index `j`. If the row or column index is `n_classes`
         (last one), then this corresponds to the number of hypotheses or ground truths,
         respectively, that were not matched.
+
     """
     conf_matrix = np.zeros((n_classes + 1, n_classes + 1), dtype=np.int32)
 

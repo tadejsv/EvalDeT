@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -12,12 +14,12 @@ from evaldet.det.coco import (
 from evaldet.detections import Detections
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def empty_dets() -> Detections:
-    return Detections([], [], [], confs=[], class_names=("cls",), image_names=tuple())
+    return Detections([], [], [], confs=[], class_names=("cls",), image_names=())
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def normal_hyp_1() -> Detections:
     return Detections(
         [0, 1, 0, 1, 2, 1, 2, 0, 2],
@@ -42,7 +44,7 @@ def normal_hyp_1() -> Detections:
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def normal_gt_1() -> Detections:
     return Detections(
         [1, 0, 1, 0, 2, 0, 2, 1, 2],
@@ -67,7 +69,7 @@ def normal_gt_1() -> Detections:
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def normal_hyp_2() -> Detections:
     return Detections(
         [0, 1, 0, 1, 2, 1, 2, 0, 2, 3],
@@ -93,7 +95,7 @@ def normal_hyp_2() -> Detections:
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def normal_gt_2() -> Detections:
     return Detections(
         [1, 0, 1, 0, 2, 0, 2, 1, 2, 3],
@@ -119,7 +121,7 @@ def normal_gt_2() -> Detections:
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def example_hyp() -> Detections:
     return Detections(
         [0, 1, 2, 3, 4, 5, 6, 6, 7, 7, 8, 9],
@@ -158,7 +160,7 @@ def example_hyp() -> Detections:
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def example_gt() -> Detections:
     return Detections(
         [0, 2, 3, 4, 5, 5, 6, 6, 7, 7, 8, 9],
@@ -471,7 +473,7 @@ def test_coco_metrics_class_missing() -> None:
 
 
 @pytest.mark.parametrize(
-    "ap_interpolation,result",
+    ("ap_interpolation", "result"),
     [
         (
             "pascal",
@@ -505,7 +507,9 @@ def test_coco_metrics_class_missing() -> None:
         ),
     ],
 )
-def test_coco_summary_simple(ap_interpolation: APInterpolation, result: dict) -> None:
+def test_coco_summary_simple(
+    ap_interpolation: APInterpolation, result: dict[str, float | dict[str, float]]
+) -> None:
     """4 dets 1 class, one non-matching, others perfect"""
     hyp = Detections(
         [0, 0, 0, 0],
@@ -539,7 +543,7 @@ def test_coco_summary_simple(ap_interpolation: APInterpolation, result: dict) ->
 
 
 @pytest.mark.parametrize(
-    "ap_interpolation,result",
+    ("ap_interpolation", "result"),
     [
         (
             "pascal",
@@ -574,7 +578,7 @@ def test_coco_summary_simple(ap_interpolation: APInterpolation, result: dict) ->
     ],
 )
 def test_coco_summary_different_iou_thresholds(
-    ap_interpolation: APInterpolation, result: dict
+    ap_interpolation: APInterpolation, result: dict[str, float | dict[str, float]]
 ) -> None:
     """4 dets 1 class, different IoUs"""
     hyp = Detections(
@@ -609,7 +613,7 @@ def test_coco_summary_different_iou_thresholds(
 
 
 @pytest.mark.parametrize(
-    "ap_interpolation,result",
+    ("ap_interpolation", "result"),
     [
         (
             "pascal",
@@ -644,7 +648,7 @@ def test_coco_summary_different_iou_thresholds(
     ],
 )
 def test_coco_summary_different_sizes(
-    ap_interpolation: APInterpolation, result: dict
+    ap_interpolation: APInterpolation, result: dict[str, Any]
 ) -> None:
     """5 dets 1 class, 2 size classes (3/2): 1 non-matching first, 1 second"""
     hyp = Detections(
@@ -686,7 +690,7 @@ def test_coco_summary_different_sizes(
 
 
 @pytest.mark.parametrize(
-    "ap_interpolation,result",
+    ("ap_interpolation", "result"),
     [
         (
             "pascal",
@@ -723,7 +727,7 @@ def test_coco_summary_different_sizes(
     ],
 )
 def test_coco_summary_different_sizes_classes(
-    ap_interpolation: APInterpolation, result: dict
+    ap_interpolation: APInterpolation, result: dict[str, float | dict[str, float]]
 ) -> None:
     """2 classes, 3 dets per class, class 1 only size 1, class 2 only size 2"""
     hyp = Detections(
@@ -821,7 +825,7 @@ def test_coco_cm_normal2(normal_hyp_2: Detections, normal_gt_2: Detections) -> N
 
 
 @pytest.mark.parametrize(
-    "ap_interpolation,result",
+    ("ap_interpolation", "result"),
     [
         (
             "pascal",
@@ -871,7 +875,7 @@ def test_coco_metrics_normal1(
     normal_hyp_1: Detections,
     normal_gt_1: Detections,
     ap_interpolation: APInterpolation,
-    result: dict,
+    result: dict[str, Any],
 ) -> None:
     metrics = compute_metrics(
         normal_gt_1, normal_hyp_1, 0.5, ap_interpolation=ap_interpolation
@@ -887,7 +891,7 @@ def test_coco_metrics_normal1(
 
 
 @pytest.mark.parametrize(
-    "ap_interpolation,result",
+    ("ap_interpolation", "result"),
     [
         (
             "pascal",
@@ -937,7 +941,7 @@ def test_coco_metrics_normal2(
     normal_hyp_2: Detections,
     normal_gt_2: Detections,
     ap_interpolation: APInterpolation,
-    result: dict,
+    result: dict[str, Any],
 ) -> None:
     metrics = compute_metrics(
         normal_gt_2,
@@ -957,7 +961,7 @@ def test_coco_metrics_normal2(
 
 
 @pytest.mark.parametrize(
-    "ap_interpolation,result",
+    ("ap_interpolation", "result"),
     [
         (
             "pascal",
@@ -1055,7 +1059,7 @@ def test_coco_summary_normal1(
     normal_hyp_1: Detections,
     normal_gt_1: Detections,
     ap_interpolation: APInterpolation,
-    result: dict,
+    result: dict[str, float | dict[str, float]],
 ) -> None:
     summary = compute_coco_summary(
         normal_gt_1, normal_hyp_1, ap_interpolation=ap_interpolation
@@ -1071,7 +1075,7 @@ def test_coco_summary_normal1(
 
 
 @pytest.mark.parametrize(
-    "ap_interpolation,result",
+    ("ap_interpolation", "result"),
     [
         (
             "pascal",
@@ -1169,7 +1173,7 @@ def test_coco_summary_normal2(
     normal_hyp_2: Detections,
     normal_gt_2: Detections,
     ap_interpolation: APInterpolation,
-    result: dict,
+    result: dict[str, float | dict[str, float]],
 ) -> None:
     summary = compute_coco_summary(
         normal_gt_2, normal_hyp_2, ap_interpolation=ap_interpolation
@@ -1185,7 +1189,7 @@ def test_coco_summary_normal2(
 
 
 @pytest.mark.parametrize(
-    "ap_interpolation,iou_threshold,result",
+    ("ap_interpolation", "iou_threshold", "result"),
     [
         ("pascal", 0.5, {"ap": 0.8958, "precision": 0.9167, "recall": 0.9167}),
         ("coco", 0.5, {"ap": 0.8902, "precision": 0.9167, "recall": 0.9167}),
@@ -1198,7 +1202,7 @@ def test_coco_metrics_example(
     example_gt: Detections,
     ap_interpolation: APInterpolation,
     iou_threshold: float,
-    result: dict,
+    result: dict[str, float],
 ) -> None:
     """Easy case, perfect matching"""
 

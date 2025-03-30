@@ -1,3 +1,5 @@
+"""HOTA family of MOT metrics."""
+
 import collections as co
 import typing as t
 
@@ -13,26 +15,31 @@ _EPS = 1 / 1000
 
 
 class HOTAResults(t.TypedDict):
+    """
+    A typed dictionary for storing the results of the HOTA metric evaluation.
+    """
+
     HOTA: float
     DetA: float
     AssA: float
     LocA: float
-    alphas_HOTA: np.ndarray
-    HOTA_alpha: np.ndarray
-    DetA_alpha: np.ndarray
-    AssA_alpha: np.ndarray
-    LocA_alpha: np.ndarray
+    alphas_HOTA: npt.NDArray[np.float32]
+    HOTA_alpha: npt.NDArray[np.float32]
+    DetA_alpha: npt.NDArray[np.float32]
+    AssA_alpha: npt.NDArray[np.float32]
+    LocA_alpha: npt.NDArray[np.float32]
 
 
 def calculate_hota_metrics(
     ground_truth: Tracks, hypotheses: Tracks, ious: dict[int, npt.NDArray[np.float32]]
 ) -> HOTAResults:
-    """Calculate HOTA metrics.
+    """
+    Calculate HOTA metrics.
 
     Args:
         ground_truth: Ground truth tracks.
         hypotheses: Hypotheses tracks.
-        ious_threshold: A dictionary where keys are frame numbers (indices), and values
+        ious: A dictionary where keys are frame numbers (indices), and values
             are numpy matrices of IOU distances between detection in ground truth and
             hypotheses for that frame. IOUs must be present for all frames that are
             present in both ground truth and hypotheses.
@@ -48,8 +55,8 @@ def calculate_hota_metrics(
             - AssA
             - DetA
             - LocA
-    """
 
+    """
     alphas = np.arange(0.05, 0.96, 0.05)  # from 0.05 to 0.95 inclusive
     all_frames = sorted(set(ground_truth.frames).intersection(hypotheses.frames))
 
@@ -110,7 +117,7 @@ def calculate_hota_metrics(
 
             # Calculate matching as a LAP
             matching_inds = linear_sum_assignment(opt_matrix, maximize=True)
-            for row_ind, col_ind in zip(*matching_inds):
+            for row_ind, col_ind in zip(*matching_inds, strict=True):
                 if dist_matrix[row_ind, col_ind] < alpha:
                     TPA_vals[(gt_frame_inds[row_ind], hyp_frame_inds[col_ind])] += 1
                     locs += 1 - dist_matrix[row_ind, col_ind]
