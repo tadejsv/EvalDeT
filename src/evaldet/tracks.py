@@ -734,7 +734,7 @@ class Tracks:
             image_size: The size of the image in the `[w, h]` format, in pixels.
 
         """
-        max_label_ind = 1 if len(self._ids) == 0 else max(self.all_classes) + 1
+        max_label_ind = max(self.all_classes, default=0) + 1
         if len(labels) < max_label_ind:
             msg = (
                 f"The length of provied labels {len(labels)} is less than the largest"
@@ -743,7 +743,7 @@ class Tracks:
             raise ValueError(msg)
 
         w, h = image_size
-        max_frame = 1 if len(self.frames) == 0 else max(self.frames)
+        max_frame = max(self.frames, default=1)
 
         annotations = ET.Element("annotations")
         version = ET.SubElement(annotations, "version")
@@ -877,7 +877,7 @@ class Tracks:
                 0-th index).
 
         """
-        max_label_ind = 1 if len(self.ids) == 0 else max(self.all_classes) + 1
+        max_label_ind = max(self.all_classes, default=0) + 1
         if len(labels) < max_label_ind:
             msg = (
                 f"The length of provied labels {len(labels)} is less than the largest"
