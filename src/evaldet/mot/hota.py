@@ -29,8 +29,17 @@ class HOTAResults(t.TypedDict):
     AssA_alpha: npt.NDArray[np.float32]
     LocA_alpha: npt.NDArray[np.float32]
 
+    DetPr_alpha: npt.NDArray[np.float32]
+    DetRec_alpha: npt.NDArray[np.float32]
+    DetTP_alpha: npt.NDArray[np.int64]
+    DetFN_alpha: npt.NDArray[np.int64]
+    DetFP_alpha: npt.NDArray[np.int64]
 
-def calculate_hota_metrics(
+    AssPr_alpha: npt.NDArray[np.float32]
+    AssRec_alpha: npt.NDArray[np.float32]
+
+
+def calculate_hota_metrics(  # noqa: PLR0915
     ground_truth: Tracks, hypotheses: Tracks, ious: dict[int, npt.NDArray[np.float32]]
 ) -> HOTAResults:
     """
@@ -74,6 +83,13 @@ def calculate_hota_metrics(
     DetAs = np.zeros_like(alphas)
     AssAs = np.zeros_like(alphas)
     LocAs = np.zeros_like(alphas)
+    DetPrs = np.zeros_like(alphas)
+    DetRecs = np.zeros_like(alphas)
+    DetTPs = np.zeros_like(alphas)
+    DetFPs = np.zeros_like(alphas)
+    DetFNs = np.zeros_like(alphas)
+    AssPrs = np.zeros_like(alphas)
+    AssRecs = np.zeros_like(alphas)
 
     for a_ind, alpha in enumerate(alphas):
         # The arrays should all have the shape [n_gt, n_hyp]
@@ -130,6 +146,16 @@ def calculate_hota_metrics(
         DetAs[a_ind] = TP / (FN + FP - TP)
         AssAs[a_ind] = (TPA * A).sum() / max(TP, 1)
 
+        DetTPs[a_ind] = TP
+        DetFPs[a_ind] = FP - TP
+        DetFNs[a_ind] = FN - TP
+
+        DetPrs[a_ind] = TP / FP
+        DetRecs[a_ind] = TP / FN
+
+        AssPrs[a_ind] = (TPA * TPA / FPA).sum() / max(TP, 1)
+        AssRecs[a_ind] = (TPA * TPA / FNA).sum() / max(TP, 1)
+
         # If no matches -> full similarity [strange default]
         LocAs[a_ind] = np.maximum(locs, 1e-10) / np.maximum(TP, 1e-10)
 
@@ -145,4 +171,11 @@ def calculate_hota_metrics(
         "DetA_alpha": DetAs,
         "AssA_alpha": AssAs,
         "LocA_alpha": LocAs,
+        "AssPr_alpha": AssPrs,
+        "AssRec_alpha": AssRecs,
+        "DetPr_alpha": DetPrs,
+        "DetRec_alpha": DetRecs,
+        "DetFN_alpha": DetFNs,
+        "DetFP_alpha": DetFPs,
+        "DetTP_alpha": DetTPs,
     }
