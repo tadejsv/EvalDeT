@@ -54,16 +54,22 @@ def calculate_hota_metrics(  # noqa: PLR0915
             present in both ground truth and hypotheses.
 
     Returns:
-        A dictionary containing HOTA metrics (both average and individual alpha values).
-        Note that I use the matching algorithm from the paper, which differs from what
-        the official repository (TrackEval) is using - see
-        [this issue](https://github.com/JonathonLuiten/TrackEval/issues/22) for more
-        details. The metrics returned are:
+        A dictionary containing HOTA metrics. Note that I use the matching algorithm
+        from the paper, which differs from what the official repository (TrackEval) is
+        using - see [this issue](https://github.com/JonathonLuiten/TrackEval/issues/22)
+        for more details. The metrics returned are:
 
-            - HOTA
-            - AssA
-            - DetA
+            - HOTA (average and per-alpha)
+            - AssA (average and per-alpha)
+            - DetA (average and per-alpha)
             - LocA
+            - DetPr (per-alpha)
+            - DetRec (per-alpha)
+            - DetTP (per-alpha)
+            - DetFP (per-alpha)
+            - DetFN (per-alpha)
+            - AssPr (per-alpha)
+            - AssRec (per-alpha)
 
     """
     alphas = np.arange(0.05, 0.96, 0.05)  # from 0.05 to 0.95 inclusive
