@@ -88,16 +88,22 @@ class MOTMetrics:
                 - IDFN (ID false negatives)
                 - IDTP (ID true positives)
 
-            - HOTA metrics (both average and individual alpha values). Note that I use
-            the matching algorithm from the paper, which differs from what the official
-            repository (TrackEval) is using - see
+            - HOTA metrics. Note that I use the matching algorithm from the paper,
+            which differs from what the official repository (TrackEval) is using - see
             [this issue](https://github.com/JonathonLuiten/TrackEval/issues/22)
             for more details
 
-                - HOTA
-                - AssA
-                - DetA
+                - HOTA (average and per-alpha)
+                - AssA (average and per-alpha)
+                - DetA (average and per-alpha)
                 - LocA
+                - DetPr (per-alpha)
+                - DetRec (per-alpha)
+                - DetTP (per-alpha)
+                - DetFP (per-alpha)
+                - DetFN (per-alpha)
+                - AssPr (per-alpha)
+                - AssRec (per-alpha)
 
         Args:
             ground_truth: Ground truth tracks.
