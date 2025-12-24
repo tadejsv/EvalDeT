@@ -149,14 +149,14 @@ def _evaluate_image(
 
     # Sort gts by ignore
     gts_ignore = (gts_area < area_range[0]) | (gts_area > area_range[1])
-    sort_gt = np.argsort(gts_ignore)
+    sort_gt = np.argsort(gts_ignore, kind="mergesort")
     n_gts = int((~gts_ignore).sum())
 
     if preds_conf.size == 0 or gts_bbox.size == 0:
         return (matched, ignore_preds_area, gts_ignore, n_gts)
 
     # Sort preds by conf
-    sort_preds = np.argsort(-preds_conf)
+    sort_preds = np.argsort(-preds_conf, kind="mergesort")
 
     ious = ious[:, sort_gt]
 

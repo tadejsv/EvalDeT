@@ -103,10 +103,7 @@ class Detections:
         else:
             image_ids = np.array(image_ids)
 
-            if confs is not None:
-                sort_inds = np.lexsort((confs, image_ids))  # type: ignore[arg-type]
-            else:
-                sort_inds = np.argsort(image_ids)
+            sort_inds = np.argsort(image_ids, kind="stable")
 
             self._image_ids = np.array(image_ids[sort_inds], copy=True, dtype=np.int32)
 
