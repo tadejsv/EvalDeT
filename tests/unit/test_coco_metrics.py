@@ -1251,53 +1251,9 @@ def test_coco_crowd_gt_is_ignored_and_not_preferred_in_matching() -> None:
     gts_crowd = np.array([False, True], dtype=np.bool_)
 
     # Build GT detections with crowd flags (supporting a few common field names).
-    try:
-        gts = Detections(
-            [0, 0], gts_bbox, [0, 0], ("cls",), ("im",), confs=None, crowd=gts_crowd
-        )
-    except TypeError:
-        try:
-            gts = Detections(
-                [0, 0],
-                gts_bbox,
-                [0, 0],
-                ("cls",),
-                ("im",),
-                confs=None,
-                is_crowd=gts_crowd,
-            )
-        except TypeError:
-            try:
-                gts = Detections(
-                    [0, 0],
-                    gts_bbox,
-                    [0, 0],
-                    ("cls",),
-                    ("im",),
-                    confs=None,
-                    iscrowd=gts_crowd,
-                )
-            except TypeError:
-                try:
-                    gts = Detections(
-                        [0, 0],
-                        gts_bbox,
-                        [0, 0],
-                        ("cls",),
-                        ("im",),
-                        confs=None,
-                        gts_crowd=gts_crowd,
-                    )
-                except TypeError:
-                    gts = Detections(
-                        [0, 0], gts_bbox, [0, 0], ("cls",), ("im",), confs=None
-                    )
-                    for attr in ("crowd", "is_crowd", "iscrowd", "gts_crowd"):
-                        if hasattr(gts, attr):
-                            setattr(gts, attr, gts_crowd)
-                            break
-                    else:
-                        pytest.skip("Detections does not expose a crowd/iscrowd field")
+    gts = Detections(
+        [0, 0], gts_bbox, [0, 0], ("cls",), ("im",), confs=None, iscrowd=gts_crowd
+    )
 
     cm = confusion_matrix(gts, hyp, 0.5)
     npt.assert_array_equal(cm, np.array([[1, 0], [0, 0]], dtype=np.int32))
