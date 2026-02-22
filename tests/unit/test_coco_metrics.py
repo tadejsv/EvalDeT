@@ -1217,3 +1217,51 @@ def test_coco_metrics_example(
     assert metrics["class_results"]["cat"]["recall"] == pytest.approx(
         result["recall"], abs=1e-4
     )
+
+
+def test_coco_crowd_gt_is_ignored_and_not_preferred_in_matching() -> None:
+    """
+    Crowd GTs must be treated as ignored:
+      * they do not contribute to n_gts / recall denominator
+      * a detection should match a non-ignored GT first (even if the crowd-adjusted
+        similarity would be higher)
+    This test is constructed so that:
+      - non-crowd GT has standard IoU = 0.6 (> 0.5)
+      - crowd GT has standard IoU = 0.25 (< 0.5), but crowd-adjusted similarity = 1.0
+    Correct behavior: match the non-crowd GT => TP=1, FN=0, n_gts=1, precision=recall=1.
+    """
+    hyp = Detections(
+        [0],
+        np.array([[0.0, 0.0, 1.0, 1.0]], dtype=np.float32),
+        [0],
+        ("cls",),
+        ("im",),
+        confs=[0.9],
+    )
+
+    # GT0: non-crowd, IoU(pred, gt0) = 0.6
+    # GT1: crowd, contains pred -> standard IoU = 0.25, crowd-adjusted similarity = 1.0
+    gts_bbox = np.array(
+        [
+            [0.25, 0.0, 1.0, 1.0],  # non-crowd
+            [0.0, 0.0, 2.0, 2.0],  # crowd
+        ],
+        dtype=np.float32,
+    )
+    gts_crowd = np.array([False, True], dtype=np.bool_)
+
+    # Build GT detections with crowd flags (supporting a few common field names).
+    gts = Detections(
+        [0, 0], gts_bbox, [0, 0], ("cls",), ("im",), confs=None, iscrowd=gts_crowd
+    )
+
+    cm = confusion_matrix(gts, hyp, 0.5)
+    npt.assert_array_equal(cm, np.array([[1, 0], [0, 0]], dtype=np.int32))
+
+    metrics = compute_metrics(gts, hyp, 0.5)
+    assert metrics == {
+        "class_results": {
+            "cls": {"ap": 1.0, "n_gts": 1, "precision": 1.0, "recall": 1.0}
+        },
+        "mean_ap": 1.0,
+    }

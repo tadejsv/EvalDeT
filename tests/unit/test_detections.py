@@ -16,8 +16,9 @@ def dets_with_one_item() -> Detections:
         np.array([[0, 0, 1, 1]]),
         [1],
         confs=[0.5],
+        iscrowd=[True],
         class_names=("cls1", "cls2"),
-        image_names=("im"),
+        image_names=("im",),
     )
 
 
@@ -27,8 +28,9 @@ def dets_with_one_item_no_conf() -> Detections:
         [0],
         np.array([[0, 0, 1, 1]]),
         classes=[1],
+        iscrowd=[False],
         class_names=("cls1", "cls2"),
-        image_names=("im"),
+        image_names=("im",),
     )
 
 
@@ -68,6 +70,18 @@ def test_mismatch_len_ids_confs() -> None:
             np.array([[0, 0, 1, 1]]),
             classes=[0],
             confs=[0, 0],
+            class_names=("cls",),
+            image_names=("im",),
+        )
+
+
+def test_mismatch_len_ids_iscrowd() -> None:
+    with pytest.raises(ValueError, match="If `iscrowd` is given, it should contain"):
+        Detections(
+            [0],
+            np.array([[0, 0, 1, 1]]),
+            classes=[0],
+            iscrowd=[True, False],
             class_names=("cls",),
             image_names=("im",),
         )
@@ -144,18 +158,22 @@ def test_init_single() -> None:
         image_ids=[0],
         bboxes=np.array([[0, 0, 1, 1]]),
         confs=[0.9],
+        iscrowd=[True],
         classes=[1],
         image_names=("im1",),
         class_names=("cls1", "cls2"),
     )
 
     assert det.confs is not None
+    assert det.iscrowd is not None
+
     np.testing.assert_array_equal(det.image_ids, np.array([0], dtype=np.int32))
     np.testing.assert_array_equal(
         det.bboxes, np.array([[0, 0, 1, 1]], dtype=np.float32)
     )
     np.testing.assert_array_equal(det.confs, np.array([0.9], dtype=np.float32))
     np.testing.assert_array_equal(det.classes, np.array([1], dtype=np.int32))
+    np.testing.assert_array_equal(det.iscrowd, np.array([True], dtype=np.bool_))
 
     assert det.num_classes == 1
     assert det.num_dets == 1
@@ -172,12 +190,14 @@ def test_init_full() -> None:
         image_ids=[1, 0],
         bboxes=np.array([[2, 0, 1, 1], [0, 0, 1, 1]]),
         confs=[0.9, 0.99],
+        iscrowd=[True, False],
         classes=[1, 0],
         image_names=("im1", "im2"),
         class_names=("cls1", "cls2"),
     )
 
     assert det.confs is not None
+    assert det.iscrowd is not None
 
     # See that it was sorted by frame numbers
     np.testing.assert_array_equal(det.image_ids, np.array([0, 1], dtype=np.int32))
@@ -186,6 +206,7 @@ def test_init_full() -> None:
     )
     np.testing.assert_array_equal(det.confs, np.array([0.99, 0.9], dtype=np.float32))
     np.testing.assert_array_equal(det.classes, np.array([0, 1], dtype=np.int32))
+    np.testing.assert_array_equal(det.iscrowd, np.array([False, True], dtype=np.bool_))
 
     assert det.num_classes == 2
     assert det.num_dets == 2
@@ -203,11 +224,13 @@ def test_init_empty() -> None:
     )
 
     assert det.confs is not None
+    assert det.iscrowd is not None
 
     np.testing.assert_array_equal(det.image_ids, np.zeros((0,), dtype=np.int32))
     np.testing.assert_array_equal(det.bboxes, np.zeros((0, 4), dtype=np.float32))
     np.testing.assert_array_equal(det.confs, np.zeros((0,), dtype=np.float32))
     np.testing.assert_array_equal(det.classes, np.zeros((0,), dtype=np.int32))
+    np.testing.assert_array_equal(det.iscrowd, np.zeros((0,), dtype=np.bool_))
 
     assert det.class_names == ("cls",)
     assert det.image_names == ("img",)
@@ -219,11 +242,13 @@ def test_init_empty_no_names() -> None:
     )
 
     assert det.confs is not None
+    assert det.iscrowd is not None
 
     np.testing.assert_array_equal(det.image_ids, np.zeros((0,), dtype=np.int32))
     np.testing.assert_array_equal(det.bboxes, np.zeros((0, 4), dtype=np.float32))
     np.testing.assert_array_equal(det.confs, np.zeros((0,), dtype=np.float32))
     np.testing.assert_array_equal(det.classes, np.zeros((0,), dtype=np.int32))
+    np.testing.assert_array_equal(det.iscrowd, np.zeros((0,), dtype=np.bool_))
 
     assert det.class_names == ()
     assert det.image_names == ()
@@ -239,6 +264,7 @@ def test_init_no_confs() -> None:
         class_names=("cls1", "cls2"),
     )
     assert det.confs is None
+    assert det.iscrowd is None
 
 
 def test_init_full_extra_names() -> None:
@@ -253,6 +279,7 @@ def test_init_full_extra_names() -> None:
 
     assert det.class_names == ("cl1", "cl2", "cl3")
     assert det.image_names == ("im1", "im2")
+    assert det.iscrowd is None
 
 
 def test_filter() -> None:
@@ -260,6 +287,7 @@ def test_filter() -> None:
         image_ids=[1, 0],
         bboxes=np.array([[2, 0, 1, 1], [0, 0, 1, 1]]),
         confs=[0.9, 0.99],
+        iscrowd=[True, False],
         classes=[1, 0],
         image_names=["one", "two"],
         class_names=["c1", "c2"],
@@ -268,6 +296,7 @@ def test_filter() -> None:
     detf = det.filter(np.array([False, True]))
 
     assert detf.confs is not None
+    assert detf.iscrowd is not None
 
     np.testing.assert_array_equal(detf.image_ids, np.array([1], dtype=np.int32))
     np.testing.assert_array_equal(
@@ -275,6 +304,7 @@ def test_filter() -> None:
     )
     np.testing.assert_array_equal(detf.confs, np.array([0.9], dtype=np.float32))
     np.testing.assert_array_equal(detf.classes, np.array([1], dtype=np.int32))
+    np.testing.assert_array_equal(detf.iscrowd, np.array([True], dtype=np.bool_))
 
     assert detf.image_ind_dict == {1: (0, 1)}
 

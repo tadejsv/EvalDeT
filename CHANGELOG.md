@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 0.4.3 - 2026-02-22
+
+### Added
+
+* Add support for `iscrowd` attribute to Detections, and use this attribute in computing COCO metrics (#45)
+
+### Changed
+
+* Use `mergesort` for consistent sorting (#44)
+
 ## 0.4.2 - 2025-04-19
 
 ### Added

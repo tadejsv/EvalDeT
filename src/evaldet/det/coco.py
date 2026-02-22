@@ -84,9 +84,74 @@ class APInterpolation(str, Enum):
 
 
 @numba.njit(  # type: ignore[misc]
+    types.void(
+        types.float32[:, ::1],  # ious
+        types.float32[::1],  # preds_area
+        types.bool_[::1],  # gts_crowd_sorted
+        types.float32[::1],  # gts_area_sorted
+    ),
+)
+def _adjust_ious_for_crowd(
+    ious: npt.NDArray[np.float32],
+    preds_area: npt.NDArray[np.float32],
+    gts_crowd_sorted: npt.NDArray[np.bool_],
+    gts_area_sorted: npt.NDArray[np.float32],
+) -> None:
+    """
+    Adjust IoU values for crowd ground truths following the COCO evaluation rule.
+
+    In COCO, for crowd ground truths the similarity is defined as:
+
+        iou(gt, dt, iscrowd=1) = area(intersect(gt, dt)) / area(dt)
+
+    The input `ious` contains *standard* IoU:
+
+        IoU = area(intersect) / area(union)
+
+    For crowd ground truths, this function:
+    * recovers the intersection area from the standard IoU, prediction area, and ground
+      truth area, and then
+    * replaces `ious[:, j]` with `intersection / preds_area` for each crowd ground truth
+      column `j`.
+
+    This function mutates `ious` in place.
+
+    Args:
+        ious: A `[N, M]` array of standard IoU similarities between predictions and
+            ground truths (will be modified in place).
+        preds_area: A `[N, ]` array with areas of prediction bounding boxes.
+        gts_crowd_sorted: A `[M, ]` boolean array indicating which ground truths are
+            crowd ground truths (after any sorting applied by the caller).
+        gts_area_sorted: A `[M, ]` array with areas of ground truth bounding boxes
+            (aligned with `gts_crowd_sorted`).
+
+    Returns:
+        None. The `ious` array is modified in place.
+
+    """
+    if np.any(gts_crowd_sorted):
+        eps = np.float32(1e-10)
+        for j in range(gts_crowd_sorted.shape[0]):
+            if not gts_crowd_sorted[j]:
+                continue
+            for i in range(ious.shape[0]):
+                iou = ious[i, j]
+                if iou <= 0.0:
+                    ious[i, j] = 0.0
+                    continue
+                inter = (
+                    iou
+                    * (preds_area[i] + gts_area_sorted[j])
+                    / (np.float32(1.0) + iou + eps)
+                )
+                ious[i, j] = inter / (preds_area[i] + eps)
+
+
+@numba.njit(  # type: ignore[misc]
     types.Tuple((types.int32[::1], types.bool_[::1], types.bool_[::1], types.int32))(
         types.float32[:, ::1],
         types.float32[:, ::1],
+        types.bool_[::1],
         types.float32[:, ::1],
         types.float32[::1],
         types.Tuple((types.float32, types.float32)),
@@ -96,6 +161,7 @@ class APInterpolation(str, Enum):
 def _evaluate_image(
     preds_bbox: npt.NDArray[np.float32],
     gts_bbox: npt.NDArray[np.float32],
+    gts_crowd: npt.NDArray[np.bool_],
     ious: npt.NDArray[np.float32],
     preds_conf: npt.NDArray[np.float32],
     area_range: tuple[float, float],
@@ -106,7 +172,7 @@ def _evaluate_image(
 
     The matching process is the following:
     * First, ground truths are split into normal and ignored ones (those with area
-      outside `area_range`)
+      outside `area_range` or that are marked as a crowd)
     * In descending order according to prediction confidence, each prediction is matched
       with a ground truth that has not been matched to a previous prediction, and that
       has the highest IoU with it - the IoU needs to be above `iou_threshold`. If no
@@ -114,10 +180,13 @@ def _evaluate_image(
       ground truth.
     * Finally, the predictions that were matched to an ignored ground truth, or those
       that were unmatched and had area outside of `area_range`, are marked as ignored.
+      A ignored ground truth can only match with one detection - except for crowd ground
+      truths, that can match any number of detections.
 
     Args:
         preds_bbox: A `[N, 4]` array of prediction bounding boxes in xywh format
         gts_bbox: A `[M, 4]` array of ground truth bounding boxes in xywh format
+        gts_crowd: A `[M,]` array determining if a ground truth is a crowd or not.
         ious: A `[N, M]` array of IoU similarities between predictions and ground truths
         preds_conf: A `[N, ]` array of confidence scores of predictions
         area_range: A tuple `(lower_limit, upper_limit)` of limits for bounding box
@@ -147,8 +216,8 @@ def _evaluate_image(
 
     ignore_preds_area = (preds_area < area_range[0]) | (preds_area > area_range[1])
 
-    # Sort gts by ignore
-    gts_ignore = (gts_area < area_range[0]) | (gts_area > area_range[1])
+    # Sort gts by ignore (COCO: crowd gts are treated as ignored)
+    gts_ignore = (gts_area < area_range[0]) | (gts_area > area_range[1]) | gts_crowd
     sort_gt = np.argsort(gts_ignore, kind="mergesort")
     n_gts = int((~gts_ignore).sum())
 
@@ -159,6 +228,12 @@ def _evaluate_image(
     sort_preds = np.argsort(-preds_conf, kind="mergesort")
 
     ious = ious[:, sort_gt]
+    gts_crowd_sorted = gts_crowd[sort_gt]
+    gts_area_sorted = gts_area[sort_gt]
+
+    # COCO crowd IoU: iou(gt, dt, iscrowd=1) = area(intersect(gt,dt)) / area(dt)
+    # Here `ious` is standard IoU, so recover intersection and convert.
+    _adjust_ious_for_crowd(ious, preds_area, gts_crowd_sorted, gts_area_sorted)
 
     ignore_preds = np.zeros_like(ignore_preds_area)
 
@@ -176,7 +251,9 @@ def _evaluate_image(
         if n_gts < len(gts_area):
             ignore_match_ind = np.argmax(ious[p_ind, n_gts:]) + n_gts
             if ious[p_ind, ignore_match_ind] > iou_threshold:
-                ious[:, ignore_match_ind] = -1
+                # Crowd gts can be matched by multiple detections
+                if not gts_crowd_sorted[ignore_match_ind]:
+                    ious[:, ignore_match_ind] = -1
                 matched[p_ind] = sort_gt[ignore_match_ind]
                 ignore_preds[p_ind] = True
 
@@ -189,6 +266,7 @@ def _evaluate_image(
     types.Tuple((types.int32[::1], types.bool_[::1], types.bool_[::1]))(
         types.float32[:, ::1],
         types.float32[:, ::1],
+        types.bool_[::1],
         types.DictType(types.int64, types.float32[:, ::1]),
         types.float32[::1],
         types.int32[:, ::1],
@@ -200,6 +278,7 @@ def _evaluate_image(
 def _evaluate_dataset(
     preds_bbox: npt.NDArray[np.float32],
     gts_bbox: npt.NDArray[np.float32],
+    gts_crowd: npt.NDArray[np.bool_],
     ious: dict[int, npt.NDArray[np.float32]],
     preds_conf: npt.NDArray[np.float32],
     img_ind_corr: npt.NDArray[np.float32],
@@ -212,6 +291,7 @@ def _evaluate_dataset(
     Args:
         preds_bbox: A `[N, 4]` array of prediction bounding boxes in xywh format
         gts_bbox: A `[M, 4]` array of ground truth bounding boxes in xywh format
+        gts_crowd: A `[M,]` array determining if a ground truth is a crowd or not.
         ious: A dict with keys being image indices, and values beind 2D numpy arrays,
           containing IoU similarity scores between predictions and ground truths for
           each image.
@@ -258,6 +338,7 @@ def _evaluate_dataset(
         (matched_img, ignored_dets_img, ignored_gts_img, _) = _evaluate_image(
             preds_bbox[preds_start:preds_end],
             gts_bbox[gts_start:gts_end],
+            gts_crowd[gts_start:gts_end],
             img_ious,
             preds_conf=preds_conf[preds_start:preds_end],
             area_range=area_range,
@@ -346,12 +427,15 @@ def compute_metrics(
 
     """
     _check_compatibility(gt, hyp)
-
     class_results: dict[str, COCOResult] = {}
 
     for i, cls_name in enumerate(gt.class_names):
         hyp_cls = hyp.filter(hyp.classes == i)
-        gt_cls = gt.filter(gt.classes == i)
+        gt_mask = gt.classes == i
+        gt_cls = gt.filter(gt_mask)
+        gt_crowd_cls = gt_cls.iscrowd
+        if gt_crowd_cls is None:
+            gt_crowd_cls = np.zeros((len(gt_cls.bboxes),), dtype=np.bool_)
 
         img_ind_corr = utils.match_images(gt_cls, hyp_cls)
         ious = utils.compute_ious(hyp_cls.bboxes, gt_cls.bboxes, img_ind_corr)
@@ -359,6 +443,7 @@ def compute_metrics(
         hyp_matched, hyp_ignored, gts_ignored = _evaluate_dataset(
             preds_bbox=hyp_cls.bboxes,
             gts_bbox=gt_cls.bboxes,
+            gts_crowd=gt_crowd_cls,
             ious=ious,
             preds_conf=hyp_cls.confs,
             img_ind_corr=img_ind_corr,
@@ -452,6 +537,10 @@ def compute_coco_summary(
         hyp_cls = hyp.filter(hyp.classes == i_cls)
         gt_cls = gt.filter(gt.classes == i_cls)
 
+        gt_crowd_cls = gt_cls.iscrowd
+        if gt_crowd_cls is None:
+            gt_crowd_cls = np.zeros((len(gt_cls.bboxes),), dtype=np.bool_)
+
         img_ind_corr = utils.match_images(gt_cls, hyp_cls)
 
         ious = utils.compute_ious(hyp_cls.bboxes, gt_cls.bboxes, img_ind_corr)
@@ -461,6 +550,7 @@ def compute_coco_summary(
                 hyp_matched, hyp_ignored, gts_ignored = _evaluate_dataset(
                     preds_bbox=hyp_cls.bboxes,
                     gts_bbox=gt_cls.bboxes,
+                    gts_crowd=gt_crowd_cls,
                     ious=ious,
                     preds_conf=hyp_cls.confs,
                     img_ind_corr=img_ind_corr,
@@ -569,9 +659,14 @@ def confusion_matrix(
     img_ind_corr = utils.match_images(gt, hyp)
     ious = utils.compute_ious(hyp.bboxes, gt.bboxes, img_ind_corr)
 
+    gt_crowd = gt.iscrowd
+    if gt_crowd is None:
+        gt_crowd = np.zeros((len(gt.bboxes),), dtype=np.bool_)
+
     det_matched, det_ignored, gts_ignored = _evaluate_dataset(
         preds_bbox=hyp.bboxes,
         gts_bbox=gt.bboxes,
+        gts_crowd=gt_crowd,
         ious=ious,
         preds_conf=hyp.confs,
         img_ind_corr=img_ind_corr,
