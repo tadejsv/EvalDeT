@@ -38,6 +38,7 @@ class Detections:
     _classes: npt.NDArray[np.int32]
     _confs: npt.NDArray[np.float32] | None
     _image_ind_dict: dict[int, tuple[int, int]]
+    _iscrowd: npt.NDArray[np.bool_] | None
 
     _class_names: tuple[str, ...]
     _image_names: tuple[str, ...]
@@ -50,6 +51,7 @@ class Detections:
         class_names: Sequence[str],
         image_names: Sequence[str],
         confs: npt.NDArray[np.float32] | Sequence[float] | None = None,
+        iscrowd: npt.NDArray[np.bool_] | Sequence[bool] | None = None,
     ) -> None:
         """
         Create a `Detections` instance.
@@ -68,37 +70,20 @@ class Detections:
                 matching ground truth and prediction detection for metrics. The `i`-th
                 element in the sequence (zero indexed) is the image name for all images
                 with the label `i`. The length should be larger than the max image label
+            iscrowd: A sequence of booleans that determine if the detection is a crowd.
+                This is only meant to be used for COCO dataset ground truths, as it is
+                required to properly compute matching and COCO metrics. If not provided,
+                all detections are assumed not to be a crowd.
 
         """
-        if len(image_ids) != len(bboxes):
-            raise ValueError(
-                "`image_ids` and `bboxes` should contain the same number of items."
-            )
-
-        if len(image_ids) != len(classes):
-            raise ValueError(
-                "`image_ids` and `classes` should contain the same number of items."
-            )
-
-        if confs is not None and len(confs) != len(image_ids):
-            msg = (
-                "If `confs` is given, it should contain the same number of items"
-                " as `image_ids`."
-            )
-            raise ValueError(msg)
-
-        if len(bboxes) > 0 and bboxes[0].shape != (4,):
-            msg = (
-                "Each row of `bboxes` should be an 4-item array, but got"
-                f" shape {bboxes[0].shape}"
-            )
-            raise ValueError(msg)
+        self._check_lengths(image_ids, bboxes, classes, confs, iscrowd)
 
         if len(image_ids) == 0:
             self._image_ids = np.zeros((0,), dtype=np.int32)
             self._bboxes = np.zeros((0, 4), dtype=np.float32)
             self._classes = np.zeros((0,), dtype=np.int32)
             self._confs = np.zeros((0,), dtype=np.float32)
+            self._iscrowd = np.zeros((0,), dtype=np.bool_)
 
         else:
             image_ids = np.array(image_ids)
@@ -120,6 +105,13 @@ class Detections:
             else:
                 self._confs = np.array(
                     np.array(confs)[sort_inds], dtype=np.float32, copy=True
+                )
+
+            if iscrowd is None:
+                self._iscrowd = None
+            else:
+                self._iscrowd = np.array(
+                    np.array(iscrowd)[sort_inds], dtype=np.bool_, copy=True
                 )
 
         # Check that class_names cover all classes
@@ -145,6 +137,45 @@ class Detections:
         self._image_names = tuple(image_names)
 
         self._create_image_ind_dict()
+
+    def _check_lengths(
+        self,
+        image_ids: npt.NDArray[np.int32] | Sequence[int],
+        bboxes: Sequence[npt.NDArray[np.float32]] | npt.NDArray[np.float32],
+        classes: npt.NDArray[np.int32] | Sequence[int],
+        confs: npt.NDArray[np.float32] | Sequence[float] | None = None,
+        iscrowd: npt.NDArray[np.bool_] | Sequence[bool] | None = None,
+    ) -> None:
+        if len(image_ids) != len(bboxes):
+            raise ValueError(
+                "`image_ids` and `bboxes` should contain the same number of items."
+            )
+
+        if len(image_ids) != len(classes):
+            raise ValueError(
+                "`image_ids` and `classes` should contain the same number of items."
+            )
+
+        if confs is not None and len(confs) != len(image_ids):
+            msg = (
+                "If `confs` is given, it should contain the same number of items"
+                " as `image_ids`."
+            )
+            raise ValueError(msg)
+
+        if iscrowd is not None and len(iscrowd) != len(image_ids):
+            msg = (
+                "If `iscrowd` is given, it should contain the same number of items"
+                " as `image_ids`."
+            )
+            raise ValueError(msg)
+
+        if len(bboxes) > 0 and bboxes[0].shape != (4,):
+            msg = (
+                "Each row of `bboxes` should be an 4-item array, but got"
+                f" shape {bboxes[0].shape}"
+            )
+            raise ValueError(msg)
 
     def _create_image_ind_dict(self) -> None:
         if len(self._image_ids) == 0:
@@ -204,7 +235,8 @@ class Detections:
                     "image_id": 1,
                     "category_id": 1,
                     "bbox": [260, 177, 231, 199],
-                    "score": 0.67
+                    "score": 0.67,
+                    "iscrowd": false
                 },
             ]
         }
@@ -239,6 +271,7 @@ class Detections:
         image_ids = np.zeros((len(annotations),), dtype=np.int32)
         classes = np.zeros((len(annotations),), dtype=np.int32)
         bboxes = np.zeros((len(annotations), 4), dtype=np.float32)
+        iscrowd = np.zeros((len(annotations),), dtype=np.bool_)
 
         if len(annotations) == 0 or "score" in annotations[0]:
             confs = np.zeros((len(annotations),), dtype=np.float32)
@@ -249,6 +282,8 @@ class Detections:
             image_ids[i] = img_ind_dict[ann["image_id"]]
             classes[i] = cat_ind_dict[ann["category_id"]]
             bboxes[i] = ann["bbox"]
+
+            iscrowd[i] = bool(ann.get("iscrowd", 0))
 
             if confs is not None:
                 confs[i] = ann["score"]
@@ -263,6 +298,7 @@ class Detections:
             classes=classes,
             class_names=class_names,
             image_names=image_names,
+            iscrowd=iscrowd,
         )
 
     # @classmethod
@@ -340,12 +376,14 @@ class Detections:
             raise ValueError(msg)
 
         filtered_confs = self.confs if self.confs is None else self.confs[mask]
+        filtered_iscrowd = self.iscrowd if self.iscrowd is None else self.iscrowd[mask]
 
         return Detections(
             image_ids=self.image_ids[mask],
             bboxes=self.bboxes[mask],
             classes=self.classes[mask],
             confs=filtered_confs,
+            iscrowd=filtered_iscrowd,
             class_names=self.class_names,
             image_names=self.image_names,
         )
@@ -474,6 +512,11 @@ class Detections:
     def confs(self) -> npt.NDArray[np.float32] | None:
         """The array of confidence scores if available, otherwise None."""
         return self._confs
+
+    @property
+    def iscrowd(self) -> npt.NDArray[np.bool_] | None:
+        """Optional COCO iscrowd flag per GT annotation (len == num_dets)."""
+        return self._iscrowd
 
     @property
     def image_ind_dict(self) -> dict[int, tuple[int, int]]:

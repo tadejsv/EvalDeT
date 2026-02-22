@@ -20,6 +20,10 @@ def test_export_empty_parquet(tmp_path: Path) -> None:
     assert dets_r.num_dets == 0
     assert dets_r.num_images == 0
 
+    # len == 0 path in __init__ creates a 0-length iscrowd array
+    assert dets_r.iscrowd is not None
+    npt.assert_array_equal(dets_r.iscrowd, np.zeros((0,), dtype=np.bool_))
+
 
 def test_export_sample_parquet(tmp_path: Path, sample_detections: Detections) -> None:
     sample_detections.to_parquet(tmp_path / "dets.parquet")
@@ -35,6 +39,8 @@ def test_export_sample_parquet(tmp_path: Path, sample_detections: Detections) ->
 
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
+
+    assert dets_r.iscrowd is None
 
 
 def test_export_sample_no_confs_parquet(
@@ -54,6 +60,8 @@ def test_export_sample_no_confs_parquet(
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
 
+    assert dets_r.iscrowd is None
+
 
 def test_open_parquet(data_dir: Path, sample_detections: Detections) -> None:
     dets_r = Detections.from_parquet(data_dir / "detections" / "sample.parquet")
@@ -66,6 +74,8 @@ def test_open_parquet(data_dir: Path, sample_detections: Detections) -> None:
 
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
+
+    assert dets_r.iscrowd is None
 
 
 ######################################################
@@ -83,6 +93,9 @@ def test_export_empty_coco(tmp_path: Path) -> None:
     assert dets_r.num_dets == 0
     assert dets_r.num_images == 0
 
+    assert dets_r.iscrowd is not None
+    npt.assert_array_equal(dets_r.iscrowd, np.zeros((0,), dtype=np.bool_))
+
 
 def test_export_sample_coco(tmp_path: Path, sample_detections: Detections) -> None:
     sample_detections.to_coco(tmp_path / "dets.json")
@@ -98,6 +111,9 @@ def test_export_sample_coco(tmp_path: Path, sample_detections: Detections) -> No
 
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
+
+    assert dets_r.iscrowd is not None
+    npt.assert_array_equal(dets_r.iscrowd, np.zeros((dets_r.num_dets,), dtype=np.bool_))
 
 
 def test_export_sample_no_confs_coco(
@@ -117,6 +133,9 @@ def test_export_sample_no_confs_coco(
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
 
+    assert dets_r.iscrowd is not None
+    npt.assert_array_equal(dets_r.iscrowd, np.zeros((dets_r.num_dets,), dtype=np.bool_))
+
 
 def test_open_coco(data_dir: Path, sample_detections: Detections) -> None:
     dets_r = Detections.from_coco(data_dir / "detections" / "coco.json")
@@ -129,6 +148,9 @@ def test_open_coco(data_dir: Path, sample_detections: Detections) -> None:
 
     assert sample_detections.class_names == dets_r.class_names
     assert sample_detections.image_names == dets_r.image_names
+
+    assert dets_r.iscrowd is not None
+    npt.assert_array_equal(dets_r.iscrowd, np.zeros((dets_r.num_dets,), dtype=np.bool_))
 
 
 def test_open_coco_nums(data_dir: Path) -> None:
@@ -145,3 +167,18 @@ def test_open_coco_nums(data_dir: Path) -> None:
 
     assert dets_r.class_names == ("car",)
     assert dets_r.image_names == ("car3",)
+
+    assert dets_r.iscrowd is not None
+    npt.assert_array_equal(dets_r.iscrowd, np.array([False], dtype=np.bool_))
+
+
+def test_open_coco_crowd(data_dir: Path) -> None:
+    dets_r = Detections.from_coco(data_dir / "detections" / "coco_crowd.json")
+
+    assert dets_r.confs is not None
+    assert dets_r.iscrowd is not None
+
+    # Expect image ids 0,1 and iscrowd True for first, False for second
+    npt.assert_array_equal(dets_r.image_ids, np.array([0, 1], dtype=np.int32))
+    npt.assert_array_equal(dets_r.classes, np.array([0, 0], dtype=np.int32))
+    npt.assert_array_equal(dets_r.iscrowd, np.array([True, False], dtype=np.bool_))
